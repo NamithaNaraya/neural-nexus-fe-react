@@ -1,49 +1,38 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import ForceGraph2D from 'react-force-graph-2d';
+import ForceGraph3D from 'react-force-graph-3d';
 import { Loader2 } from 'lucide-react';
 import { graphService } from '../../services/graphService';
 
-export default function GraphForcePage({
-  folderId,
-  nodeTypeFilters,
-  relationshipTypeFilters,
-  minDegree,
-  showOrphans,
-  nodeSearch,
-}) {
+export default function GraphForceGraph3DPage({ folderId, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch }) {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const graphRef = useRef(null);
 
-  const loadGraph = async () => {
-    if (!folderId) {
-      setGraphData({ nodes: [], links: [] });
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await graphService.getFolder(folderId, 10000);
-      setGraphData(data);
-
-      setTimeout(() => {
-        graphRef.current?.zoomToFit(250);
-      }, 150);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to load graph data.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (folderId) {
-      loadGraph();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const load = async () => {
+      if (!folderId) {
+        setGraphData({ nodes: [], links: [] });
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await graphService.getFolder(folderId, 10000);
+        setGraphData(data);
+
+        setTimeout(() => {
+          graphRef.current?.zoomToFit(300);
+        }, 150);
+      } catch (err) {
+        console.error(err);
+        setError('Failed to load graph data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, [folderId]);
 
   const nodeTypes = useMemo(() => {
@@ -94,7 +83,7 @@ export default function GraphForcePage({
     <div className="w-full h-full flex flex-col bg-card">
       <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-background">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold">2D Force Graph</h2>
+          <h2 className="text-lg font-semibold">3D Force Graph</h2>
           <span className="text-xs text-muted-foreground">{filteredGraph.nodes.length.toLocaleString()} nodes · {filteredGraph.links.length.toLocaleString()} edges</span>
         </div>
       </div>
@@ -103,23 +92,21 @@ export default function GraphForcePage({
         {loading ? (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="w-6 h-6 animate-spin" />
-            <span className="ml-2">Loading graph data...</span>
+            <span className="ml-2">Loading 3D graph...</span>
           </div>
         ) : error ? (
           <div className="flex h-full items-center justify-center text-red-500">{error}</div>
         ) : (
           <div className="absolute inset-0">
-            <ForceGraph2D
+            <ForceGraph3D
               ref={graphRef}
               graphData={filteredGraph}
               nodeAutoColorBy="group"
               nodeLabel={(node) => `${node.id} ${node.type ? `(${node.type})` : ''}`}
-              linkDirectionalParticles={2}
-              linkDirectionalParticleSpeed={0.008}
-              linkWidth={1}
-              linkOpacity={0.6}
               nodeVal={(node) => (node.size || 1)}
-              onNodeClick={(node) => window.alert(`Node clicked: ${node.id}`)}
+              linkWidth={0.5}
+              linkOpacity={0.6}
+              onNodeClick={(node) => window.alert(`Node: ${node.id}`)}
               width={undefined}
               height={undefined}
             />

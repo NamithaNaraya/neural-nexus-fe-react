@@ -1,16 +1,22 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Gauge, Compass, Layers } from 'lucide-react';
+import { BarChart3, BookOpenText, Box, Compass, Grid2x2, Layers, TableProperties, Waypoints } from 'lucide-react';
 
 const viewItems = [
-  { path: 'overview', label: 'Overview', icon: Gauge },
-  { path: 'force', label: 'Force Graph', icon: Compass },
+  { path: 'overview', label: 'Overview', icon: BookOpenText },
+  { path: '2d', label: '2D Graph', icon: Compass },
+  { path: '3d', label: '3D Graph', icon: Box },
   { path: 'sunburst', label: 'Sunburst', icon: Layers },
+  { path: 'treemap', label: 'Treemap', icon: Grid2x2 },
+  { path: 'schema', label: 'Schema', icon: Waypoints },
+  { path: 'degree', label: 'Degree', icon: BarChart3 },
+  { path: 'matrix', label: 'Matrix', icon: Grid2x2 },
+  { path: 'table', label: 'Table', icon: TableProperties },
 ];
 
 export function GraphViewsNavigation() {
   return (
-    <div className="flex flex-wrap gap-2 mb-4">
+    <div className="flex flex-wrap gap-2">
       {viewItems.map(({ path, label, icon: Icon }) => (
         <NavLink
           key={path}
