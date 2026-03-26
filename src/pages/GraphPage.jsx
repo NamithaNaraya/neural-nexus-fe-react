@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Card, CardContent } from '../components/ui/Card';
 import GraphOverviewPage from './graph/GraphOverviewPage';
 import GraphForcePage from './graph/GraphForcePage';
-import GraphTreemapPage from './graph/GraphTreemapPage';
+import GraphSunburstPage from './graph/GraphSunburstPage';
 import { GraphViewsNavigation } from './graph/GraphViewsNavigation';
 import { folderService } from '../services/folderService';
 
@@ -51,7 +51,7 @@ export default function GraphPage() {
           <Route path="" element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<GraphOverviewPage folderId={folderId} />} />
           <Route path="force" element={<GraphForcePage folderId={folderId} />} />
-          <Route path="sunburst" element={<GraphTreemapPage folderId={folderId} />} />
+          <Route path="sunburst" element={<GraphSunburstPage folderId={folderId} />} />
           <Route path="treemap" element={<Navigate to="sunburst" replace />} />
           <Route path="*" element={<Navigate to="overview" replace />} />
         </Routes>
