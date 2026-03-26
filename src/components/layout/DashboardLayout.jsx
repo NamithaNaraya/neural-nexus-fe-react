@@ -16,24 +16,10 @@ export function DashboardLayout({ children }) {
       <div className="flex-1 flex flex-col relative w-full h-full">
         {/* Top Navbar */}
         <header className="h-14 border-b border-border/30 bg-card/50 backdrop-blur-xl flex items-center justify-between px-6 z-10 shrink-0">
-          {/* Left — Search */}
-          <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 h-9 px-3 rounded-lg bg-muted/30 border border-border/40 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all text-sm max-w-xs">
-              <Search className="w-4 h-4 shrink-0" />
-              <span className="hidden sm:inline text-muted-foreground/60">Search anything...</span>
-              <kbd className="hidden md:inline-flex h-5 items-center gap-0.5 rounded border border-border/50 bg-muted/30 px-1.5 font-mono text-[10px] font-medium text-muted-foreground ml-4">
-                <Command className="w-3 h-3" />K
-              </kbd>
-            </button>
-          </div>
+          <div />
 
           {/* Right — Actions */}
           <div className="flex items-center gap-1">
-            {/* Notifications */}
-            <button className="relative p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">
-              <Bell className="w-[18px] h-[18px]" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-card" />
-            </button>
 
             {/* Theme Toggle */}
             <button

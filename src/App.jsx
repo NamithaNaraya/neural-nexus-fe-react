@@ -51,7 +51,7 @@ function AppRoutes() {
               <DashboardLayout>
                 <Routes>
                   <Route path="/" element={<DashboardPage />} />
-                  <Route path="/graph" element={<GraphPage />} />
+                  <Route path="/graph/*" element={<GraphPage />} />
                   <Route path="/chat" element={<ChatPage />} />
                   <Route path="/upload" element={<UploadPage />} />
                   <Route path="/folders" element={<FoldersPage />} />
