@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
+import { GlobalFolderProvider } from './contexts/GlobalFolderContext';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 
 // Pages — imported from organized subfolders
@@ -48,21 +49,23 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <SidebarProvider>
-              <DashboardLayout>
-                <Routes>
-                  <Route path="/" element={<DashboardPage />} />
-                  <Route path="/graph/*" element={<GraphPage />} />
-                  <Route path="/chat" element={<ChatPage />} />
-                  <Route path="/upload" element={<UploadPage />} />
-                  <Route path="/folders" element={<FoldersPage />} />
-                  <Route path="/browse" element={<BrowsePage />} />
-                  <Route path="/analytics" element={<AnalyticsPage />} />
-                  <Route path="/insights" element={<InsightsPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/help" element={<HelpPage />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </DashboardLayout>
+              <GlobalFolderProvider>
+                <DashboardLayout>
+                  <Routes>
+                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/graph/*" element={<GraphPage />} />
+                    <Route path="/chat" element={<ChatPage />} />
+                    <Route path="/upload" element={<UploadPage />} />
+                    <Route path="/folders" element={<FoldersPage />} />
+                    <Route path="/browse" element={<BrowsePage />} />
+                    <Route path="/analytics" element={<AnalyticsPage />} />
+                    <Route path="/insights" element={<InsightsPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/help" element={<HelpPage />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </DashboardLayout>
+              </GlobalFolderProvider>
             </SidebarProvider>
           </ProtectedRoute>
         }

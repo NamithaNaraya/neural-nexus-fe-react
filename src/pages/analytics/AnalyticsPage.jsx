@@ -8,9 +8,7 @@ import { useAnalyticsWorkbench } from './useAnalyticsWorkbench';
 
 export default function AnalyticsPage() {
   const {
-    folders,
     folderId,
-    setFolderId,
     currentFolder,
     graphStats,
     filteredNodes,
@@ -60,9 +58,7 @@ export default function AnalyticsPage() {
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-6">
           <AnalyticsScopePanel
-            folders={folders}
             folderId={folderId}
-            setFolderId={setFolderId}
             currentFolder={currentFolder}
             graphStats={graphStats}
             loadingNodes={loadingNodes}

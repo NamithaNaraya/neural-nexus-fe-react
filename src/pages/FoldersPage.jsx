@@ -20,8 +20,10 @@ import {
 import { cn } from '../utils/cn';
 import { folderService } from '../services/folderService';
 import { browseService } from '../services/browseService';
+import { useGlobalFolder } from '../contexts/GlobalFolderContext';
 
 export default function FoldersPage() {
+  const { refreshFolders, setSelectedFolderId } = useGlobalFolder();
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -61,11 +63,13 @@ export default function FoldersPage() {
     if (!newFolderName.trim() || creating) return;
     setCreating(true);
     try {
-      await folderService.create(newFolderName.trim(), newFolderDesc.trim() || null);
+      const createdFolder = await folderService.create(newFolderName.trim(), newFolderDesc.trim() || null);
       setNewFolderName('');
       setNewFolderDesc('');
       setShowCreate(false);
-      fetchFolders();
+      await fetchFolders();
+      await refreshFolders();
+      if (createdFolder?.id) setSelectedFolderId(String(createdFolder.id));
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to create folder');
     } finally {
@@ -82,7 +86,8 @@ export default function FoldersPage() {
         setSelectedFolder(null);
         setFolderFiles([]);
       }
-      fetchFolders();
+      await fetchFolders();
+      await refreshFolders();
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to delete folder');
     } finally {

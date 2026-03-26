@@ -1,8 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { Skeleton } from '../components/ui/Skeleton';
 import {
   Upload as UploadIcon,
   FileText,
@@ -15,33 +14,15 @@ import {
   FolderOpen,
 } from 'lucide-react';
 import { cn } from '../utils/cn';
-import { folderService } from '../services/folderService';
 import { uploadService } from '../services/uploadService';
+import { useGlobalFolder } from '../contexts/GlobalFolderContext';
 
 export default function UploadPage() {
+  const { currentFolder, selectedFolderId } = useGlobalFolder();
   const [files, setFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [folders, setFolders] = useState([]);
-  const [selectedFolderId, setSelectedFolderId] = useState(null);
-  const [loadingFolders, setLoadingFolders] = useState(true);
-
-  // Fetch folders on mount
-  useEffect(() => {
-    const fetchFolders = async () => {
-      try {
-        const data = await folderService.list();
-        setFolders(data);
-        if (data.length > 0) setSelectedFolderId(data[0].id);
-      } catch (err) {
-        console.error('Failed to load folders:', err);
-      } finally {
-        setLoadingFolders(false);
-      }
-    };
-    fetchFolders();
-  }, []);
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
@@ -122,23 +103,18 @@ export default function UploadPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
                   <FolderOpen className="w-4 h-4 text-primary" />
-                  Select Target Folder
+                  Target Folder
                 </label>
-                {loadingFolders ? (
-                  <Skeleton className="h-10 w-full rounded-lg" />
-                ) : folders.length > 0 ? (
-                  <select
-                    value={selectedFolderId || ''}
-                    onChange={(e) => setSelectedFolderId(e.target.value)}
-                    className="w-full h-10 rounded-lg border border-input bg-background/50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-primary/50 transition-all duration-200 backdrop-blur-sm"
-                  >
-                    {folders.map(f => (
-                      <option key={f.id} value={f.id}>{f.name} ({f.file_count} files)</option>
-                    ))}
-                  </select>
+                {selectedFolderId ? (
+                  <div className="flex min-h-10 items-center justify-between rounded-lg border border-input bg-background/50 px-3 text-sm backdrop-blur-sm">
+                    <span className="font-medium">{currentFolder?.name || 'Selected folder'}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {Number(currentFolder?.file_count || 0).toLocaleString()} files
+                    </span>
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    No folders found. <a href="/folders" className="text-primary hover:underline">Create one first</a>.
+                    No global folder selected. <a href="/folders" className="text-primary hover:underline">Create one</a> or choose it in the header first.
                   </p>
                 )}
               </div>
@@ -272,7 +248,7 @@ export default function UploadPage() {
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-muted-foreground">
               {[
-                'Select a target folder for your data',
+                'Choose the active folder from the global header',
                 'Upload documents (PDF, text, CSV, etc.)',
                 'AI extracts entities & relationships',
                 'Review extractons in the Review Inbox',

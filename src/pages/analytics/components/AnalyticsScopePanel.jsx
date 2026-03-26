@@ -6,9 +6,7 @@ import { Input, Label } from '../../../components/ui/Input';
 import { cn } from '../../../utils/cn';
 
 export function AnalyticsScopePanel({
-  folders,
   folderId,
-  setFolderId,
   currentFolder,
   graphStats,
   loadingNodes,
@@ -27,28 +25,13 @@ export function AnalyticsScopePanel({
         <div className="space-y-1">
           <div className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Step 1</div>
           <h2 className="text-lg font-semibold">Choose data</h2>
-          <p className="text-sm text-muted-foreground">Pick the folder first. Then run on all folder data or only a selected subset.</p>
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Folder</Label>
-          <select
-            value={folderId}
-            onChange={(event) => setFolderId(event.target.value)}
-            className="h-11 w-full rounded-xl border border-border/60 bg-background/70 px-3 text-sm outline-none backdrop-blur-sm transition focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
-          >
-            {folders.map((folder) => (
-              <option key={folder.id} value={folder.id}>
-                {folder.name || folder.id}
-              </option>
-            ))}
-          </select>
+          <p className="text-sm text-muted-foreground">The folder in the global header is the dataset for this page. Then run on all folder data or only a selected subset.</p>
         </div>
 
         <div className="rounded-2xl border border-border/40 bg-background/40 p-4">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <FolderOpen className="h-4 w-4 text-primary" />
-            {currentFolder?.name || 'No folder selected'}
+            {currentFolder?.name || (folderId ? 'Selected folder' : 'No folder selected')}
           </div>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-border/30 bg-background/60 px-3 py-2">

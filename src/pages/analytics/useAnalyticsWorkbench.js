@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { folderService } from '../../services/folderService';
 import { graphService } from '../../services/graphService';
 import { analyticsService } from '../../services/analyticsService';
 import { weightsService } from '../../services/weightsService';
+import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
 import { ALGORITHM_CATALOG } from './algorithmCatalog';
 
 export function useAnalyticsWorkbench() {
-  const [folders, setFolders] = useState([]);
-  const [folderId, setFolderId] = useState('');
+  const { selectedFolderId: folderId, currentFolder } = useGlobalFolder();
   const [folderNodes, setFolderNodes] = useState([]);
   const [graphStats, setGraphStats] = useState({ nodes: 0, links: 0 });
   const [nodeSearch, setNodeSearch] = useState('');
@@ -33,31 +32,6 @@ export function useAnalyticsWorkbench() {
   useEffect(() => {
     let ignore = false;
 
-    async function loadFolders() {
-      try {
-        const data = await folderService.list();
-        if (ignore) return;
-        const items = Array.isArray(data) ? data : [];
-        setFolders(items);
-        if (items[0]?.id) setFolderId(String(items[0].id));
-      } catch (err) {
-        console.error('Failed to load folders:', err);
-        if (!ignore) {
-          setFolders([]);
-          setLoadingNodes(false);
-        }
-      }
-    }
-
-    loadFolders();
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let ignore = false;
-
     async function loadNodes() {
       if (!folderId) {
         setFolderNodes([]);
@@ -75,13 +49,15 @@ export function useAnalyticsWorkbench() {
           weightsService.discoverProperties(folderId),
         ]);
         if (ignore) return;
+
         const nodes = Array.isArray(data?.nodes) ? data.nodes : [];
+        const relProps = Object.keys(discoveredProperties?.relationship_properties || {});
+
         setFolderNodes(nodes);
         setGraphStats({
           nodes: Number(data?.total_nodes || nodes.length || 0),
           links: Number(data?.total_links || data?.links?.length || 0),
         });
-        const relProps = Object.keys(discoveredProperties?.relationship_properties || {});
         setRelationshipProperties(relProps);
         setWeightProperty(relProps[0] || '');
         setWeightNumerator(relProps[0] || '');
@@ -132,8 +108,6 @@ export function useAnalyticsWorkbench() {
       .slice(0, 40);
   }, [folderNodes, nodeSearch]);
 
-  const currentFolder = folders.find((folder) => String(folder.id) === String(folderId));
-
   const effectiveNodeIds = scopeMode === 'selection' && selectedNodes.length > 0
     ? selectedNodes
     : undefined;
@@ -181,14 +155,14 @@ export function useAnalyticsWorkbench() {
   ]);
 
   async function runAlgorithm() {
-    if (!selectedAlgorithm) return;
+    if (!selectedAlgorithm || !folderId) return;
 
     setRunning(true);
     setError('');
 
     try {
       const params = {
-        folder_id: folderId || undefined,
+        folder_id: folderId,
         node_ids: effectiveNodeIds,
         ...selectedAlgorithm.defaults,
       };
@@ -225,9 +199,7 @@ export function useAnalyticsWorkbench() {
   }
 
   return {
-    folders,
     folderId,
-    setFolderId,
     currentFolder,
     folderNodes,
     graphStats,

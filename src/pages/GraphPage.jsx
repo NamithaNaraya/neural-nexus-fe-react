@@ -11,8 +11,8 @@ import GraphDegreeDistributionPage from './graph/GraphDegreeDistributionPage';
 import GraphRelationshipMatrixPage from './graph/GraphRelationshipMatrixPage';
 import GraphPropertyTablePage from './graph/GraphPropertyTablePage';
 import { GraphViewsNavigation } from './graph/GraphViewsNavigation';
-import { folderService } from '../services/folderService';
 import { graphService } from '../services/graphService';
+import { useGlobalFolder } from '../contexts/GlobalFolderContext';
 import { Input, Label } from '../components/ui/Input';
 import { Card, CardContent } from '../components/ui/Card';
 import { cn } from '../utils/cn';
@@ -35,35 +35,13 @@ function FilterChip({ active, label, onClick }) {
 }
 
 export default function GraphPage() {
-  const [folders, setFolders] = useState([]);
-  const [folderId, setFolderId] = useState('');
+  const { selectedFolderId: folderId, currentFolder } = useGlobalFolder();
   const [nodeSearch, setNodeSearch] = useState('');
   const [minDegree, setMinDegree] = useState(0);
   const [showOrphans, setShowOrphans] = useState(true);
   const [nodeTypeFilters, setNodeTypeFilters] = useState(new Set());
   const [relationshipTypeFilters, setRelationshipTypeFilters] = useState(new Set());
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadFolders() {
-      try {
-        const folderList = await folderService.list();
-        if (ignore) return;
-        setFolders(folderList || []);
-        const firstId = folderList?.[0]?.id;
-        if (firstId) setFolderId(String(firstId));
-      } catch (error) {
-        console.error('Failed to load folders:', error);
-      }
-    }
-
-    loadFolders();
-    return () => {
-      ignore = true;
-    };
-  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -134,25 +112,19 @@ export default function GraphPage() {
             <div className="space-y-1">
               <div className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Filters</div>
               <h2 className="text-lg font-semibold">Graph sidebar</h2>
-              <p className="text-sm text-muted-foreground">These filters stay active while switching between all graph views.</p>
+              <p className="text-sm text-muted-foreground">These filters stay active while switching between all graph views, and they follow the global header folder.</p>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Folder</Label>
-              <div className="flex items-center gap-2">
+            <div className="rounded-2xl border border-border/40 bg-background/40 p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold">
                 <FolderOpen className="h-4 w-4 text-primary" />
-                <select
-                  value={folderId}
-                  onChange={(event) => setFolderId(event.target.value)}
-                  className="h-10 w-full rounded-xl border border-border/60 bg-background/70 px-3 text-sm outline-none"
-                >
-                  {folders.map((folder) => (
-                    <option key={folder.id} value={folder.id}>
-                      {folder.name || folder.id}
-                    </option>
-                  ))}
-                </select>
+                {currentFolder?.name || 'No folder selected'}
               </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {currentFolder
+                  ? `${Number(currentFolder.node_count || 0).toLocaleString()} nodes and ${Number(currentFolder.file_count || 0).toLocaleString()} files available in this scope.`
+                  : 'Choose a folder in the header to load graph views.'}
+              </p>
             </div>
 
             <div className="space-y-2">

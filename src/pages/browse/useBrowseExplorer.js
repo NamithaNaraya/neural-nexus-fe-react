@@ -1,14 +1,13 @@
 import { startTransition, useDeferredValue, useEffect, useState } from 'react';
 import { browseService } from '../../services/browseService';
-import { folderService } from '../../services/folderService';
 import { graphService } from '../../services/graphService';
+import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
 import { PAGE_SIZE } from './constants';
 import { groupNodesByType, sortNodes } from './helpers';
 
 export function useBrowseExplorer() {
-  const [folders, setFolders] = useState([]);
+  const { selectedFolderId: folderId, currentFolder } = useGlobalFolder();
   const [nodeTypes, setNodeTypes] = useState([]);
-  const [folderId, setFolderId] = useState('all');
   const [activeType, setActiveType] = useState('all');
   const [query, setQuery] = useState('');
   const [viewMode, setViewMode] = useState('gallery');
@@ -23,36 +22,24 @@ export function useBrowseExplorer() {
   useEffect(() => {
     let ignore = false;
 
-    async function loadFolders() {
-      try {
-        const data = await folderService.list();
-        if (!ignore) setFolders(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Failed to load folders:', err);
-      }
-    }
-
-    loadFolders();
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let ignore = false;
-
     async function loadNodeTypes() {
       try {
-        const scopeFolderId = folderId === 'all' ? undefined : folderId;
-        const response = await browseService.getNodeTypes(scopeFolderId);
+        if (!folderId) {
+          if (!ignore) {
+            setNodeTypes([]);
+            setActiveType('all');
+          }
+          return;
+        }
+
+        const response = await browseService.getNodeTypes(folderId);
         const types = Array.isArray(response?.types) ? response.types : [];
 
         if (!ignore) {
           setNodeTypes(types);
-          setActiveType((current) => {
-            if (current === 'all') return current;
-            return types.some((item) => item.type === current) ? current : 'all';
-          });
+          setActiveType((current) => (
+            current === 'all' || types.some((item) => item.type === current) ? current : 'all'
+          ));
         }
       } catch (err) {
         console.error('Failed to load node types:', err);
@@ -82,13 +69,16 @@ export function useBrowseExplorer() {
         setError('');
 
         try {
-          const scopeFolderId = folderId === 'all' ? undefined : folderId;
+          if (!folderId) {
+            if (!ignore) {
+              setNodes([]);
+              setTotalPages(1);
+            }
+            return;
+          }
 
           if (activeType === 'all') {
-            const response = scopeFolderId
-              ? await graphService.getFolder(scopeFolderId, 600)
-              : await graphService.getAll(600);
-
+            const response = await graphService.getFolder(folderId, 600);
             const rawNodes = Array.isArray(response?.nodes) ? response.nodes : [];
             const filtered = searchTerm
               ? rawNodes.filter((node) => JSON.stringify(node).toLowerCase().includes(searchTerm.toLowerCase()))
@@ -108,7 +98,7 @@ export function useBrowseExplorer() {
               });
             }
           } else {
-            const response = await browseService.getNodesByType(activeType, scopeFolderId, page, PAGE_SIZE, searchTerm);
+            const response = await browseService.getNodesByType(activeType, folderId, page, PAGE_SIZE, searchTerm);
             const rawNodes = Array.isArray(response?.nodes) ? response.nodes : [];
             const sorted = sortNodes(rawNodes, sortMode);
 
@@ -140,16 +130,13 @@ export function useBrowseExplorer() {
     };
   }, [folderId, activeType, page, deferredQuery, sortMode]);
 
-  const currentFolder = folders.find((folder) => String(folder.id) === String(folderId));
   const selectedTypeMeta = nodeTypes.find((item) => item.type === activeType);
   const totalKnownNodes = nodeTypes.reduce((sum, item) => sum + Number(item.count || 0), 0);
   const groupedNodes = groupNodesByType(nodes);
 
   return {
-    folders,
     nodeTypes,
     folderId,
-    setFolderId,
     activeType,
     setActiveType,
     query,

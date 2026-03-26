@@ -12,10 +12,7 @@ import { TableView } from './views/TableView';
 
 export default function BrowsePage() {
   const {
-    folders,
     nodeTypes,
-    folderId,
-    setFolderId,
     activeType,
     setActiveType,
     query,
@@ -61,13 +58,10 @@ export default function BrowsePage() {
       <BrowseFilters
         query={query}
         setQuery={setQuery}
-        folderId={folderId}
-        setFolderId={setFolderId}
         activeType={activeType}
         setActiveType={setActiveType}
         sortMode={sortMode}
         setSortMode={setSortMode}
-        folders={folders}
         nodeTypes={nodeTypes}
         viewMode={viewMode}
         setViewMode={setViewMode}

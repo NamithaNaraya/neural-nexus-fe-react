@@ -39,13 +39,10 @@ function Select({ value, onChange, className = '', children }) {
 export function BrowseFilters({
   query,
   setQuery,
-  folderId,
-  setFolderId,
   activeType,
   setActiveType,
   sortMode,
   setSortMode,
-  folders,
   nodeTypes,
   viewMode,
   setViewMode,
@@ -84,8 +81,8 @@ export function BrowseFilters({
         </div>
       </div>
 
-      <CardContent className="grid gap-4 p-6 lg:grid-cols-4">
-        <div className="lg:col-span-2">
+      <CardContent className="grid gap-4 p-6 lg:grid-cols-3">
+        <div>
           <Field label="Search">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -98,17 +95,6 @@ export function BrowseFilters({
             </div>
           </Field>
         </div>
-
-        <Field label="Folder">
-          <Select value={folderId} onChange={(event) => setFolderId(event.target.value)}>
-            <option value="all">All folders</option>
-            {folders.map((folder) => (
-              <option key={folder.id} value={folder.id}>
-                {folder.name || folder.id}
-              </option>
-            ))}
-          </Select>
-        </Field>
 
         <Field label="Entity type">
           <Select value={activeType} onChange={(event) => setActiveType(event.target.value)}>
