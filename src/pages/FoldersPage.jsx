@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { folderService } from '../services/folderService';
+import { browseService } from '../services/browseService';
 
 export default function FoldersPage() {
   const [folders, setFolders] = useState([]);
@@ -30,6 +31,15 @@ export default function FoldersPage() {
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [folderFiles, setFolderFiles] = useState([]);
   const [filesLoading, setFilesLoading] = useState(false);
+
+  const [nodeTypes, setNodeTypes] = useState([]);
+  const [selectedNodeType, setSelectedNodeType] = useState('');
+  const [folderNodes, setFolderNodes] = useState([]);
+  const [nodesLoading, setNodesLoading] = useState(false);
+  const [nodeSearch, setNodeSearch] = useState('');
+  const [nodesPage, setNodesPage] = useState(1);
+  const [nodesTotalPages, setNodesTotalPages] = useState(0);
+
   const [deleting, setDeleting] = useState(null);
 
   const fetchFolders = useCallback(async () => {
@@ -80,8 +90,57 @@ export default function FoldersPage() {
     }
   };
 
+  const fetchFolderNodeTypes = useCallback(async (folderId) => {
+    try {
+      const data = await browseService.getNodeTypes(folderId);
+      const types = Array.isArray(data.types) ? data.types : [];
+      setNodeTypes(types);
+      const firstType = types.length > 0 ? types[0].type : '';
+      setSelectedNodeType(firstType);
+      if (firstType) {
+        await fetchFolderNodes(folderId, firstType, 1, '');
+      } else {
+        setFolderNodes([]);
+        setNodesTotalPages(0);
+        setNodesLoading(false);
+      }
+    } catch (err) {
+      console.error('Failed to fetch node types:', err);
+      setNodeTypes([]);
+      setFolderNodes([]);
+      setSelectedNodeType('');
+      setNodesTotalPages(0);
+      setNodesLoading(false);
+    }
+  }, []);
+
+  const fetchFolderNodes = useCallback(async (folderId, type, page = 1, q = '') => {
+    setNodesLoading(true);
+    try {
+      const data = await browseService.getNodesByType(type, folderId, page, 20, q);
+      setFolderNodes(Array.isArray(data.nodes) ? data.nodes : []);
+      setNodesTotalPages(data.total_pages || 0);
+      setNodesPage(data.page || 1);
+    } catch (err) {
+      console.error('Failed to fetch nodes by type:', err);
+      setFolderNodes([]);
+      setNodesTotalPages(0);
+      setNodesPage(1);
+    } finally {
+      setNodesLoading(false);
+    }
+  }, []);
+
   const openFolder = async (folder) => {
     setSelectedFolder(folder);
+    setFolderFiles([]);
+    setNodeTypes([]);
+    setSelectedNodeType('');
+    setFolderNodes([]);
+    setNodeSearch('');
+    setNodesPage(1);
+    setNodesTotalPages(0);
+
     setFilesLoading(true);
     try {
       const files = await folderService.listFiles(folder.id);
@@ -92,6 +151,12 @@ export default function FoldersPage() {
     } finally {
       setFilesLoading(false);
     }
+
+    try {
+      await fetchFolderNodeTypes(folder.id);
+    } catch (err) {
+      console.error('fetchFolderNodeTypes error:', err);
+    }
   };
 
   const formatDate = (isoStr) => {
@@ -100,6 +165,14 @@ export default function FoldersPage() {
       month: 'short', day: 'numeric', year: 'numeric',
     });
   };
+
+  useEffect(() => {
+    if (!selectedFolder || !selectedNodeType || !nodeSearch) return;
+    const timer = setTimeout(() => {
+      fetchFolderNodes(selectedFolder.id, selectedNodeType, 1, nodeSearch);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [nodeSearch, selectedFolder, selectedNodeType]);
 
   return (
     <div className="space-y-6">
@@ -290,6 +363,68 @@ export default function FoldersPage() {
                   <div className="p-3 rounded-lg bg-muted/20 border border-border/30 text-center">
                     <p className="text-xl font-bold">{formatDate(selectedFolder.updated_at)}</p>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">Updated</p>
+                  </div>
+                </div>
+
+                {/* Browse / node inspector */}
+                <div className="mb-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold">Graph nodes</h3>
+                    <span className="text-xs text-muted-foreground">{folderNodes.length} found</span>
+                  </div>
+
+                  <div className="flex gap-2 flex-wrap mb-3">
+                    {nodeTypes.length > 0 ? nodeTypes.map((nodeType) => (
+                      <button
+                        key={nodeType.type}
+                        type="button"
+                        onClick={() => {
+                          setSelectedNodeType(nodeType.type);
+                          setNodesPage(1);
+                          fetchFolderNodes(selectedFolder.id, nodeType.type, 1, nodeSearch);
+                        }}
+                        className={cn(
+                          'px-3 py-1.5 text-xs rounded-full border transition',
+                          selectedNodeType === nodeType.type
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-muted/10 border-border/50 text-muted-foreground hover:bg-muted/20'
+                        )}
+                      >
+                        {nodeType.type} ({nodeType.count})
+                      </button>
+                    )) : (
+                      <span className="text-xs text-muted-foreground">No node types found in folder.</span>
+                    )}
+                  </div>
+
+                  <Input
+                    value={nodeSearch}
+                    onChange={(e) => setNodeSearch(e.target.value)}
+                    placeholder="Filter nodes by name..."
+                    className="mb-3 h-9"
+                  />
+
+                  <div className="space-y-2 max-h-40 overflow-y-auto mb-4 min-h-[40px]">
+                    {nodesLoading ? (
+                      <div className="space-y-2 transition-opacity duration-200">
+                        {[1, 2, 3, 4, 5].map((x) => (
+                          <Skeleton key={x} className="h-10 rounded-lg" />
+                        ))}
+                      </div>
+                    ) : folderNodes.length > 0 ? (
+                      <div className="space-y-2 transition-opacity duration-200">
+                        {folderNodes.map((node) => (
+                          <div key={node.id} className="rounded-lg border border-border/20 bg-muted/10 px-3 py-2 text-xs hover:bg-muted/20 transition-colors duration-150">
+                            <div className="font-medium truncate">{node.name}</div>
+                            <div className="text-muted-foreground truncate text-[11px]">{node.type}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-border/20 bg-muted/10 p-3 text-xs text-muted-foreground transition-opacity duration-200">
+                        No nodes loaded, select a type or check folder contents.
+                      </div>
+                    )}
                   </div>
                 </div>
 
