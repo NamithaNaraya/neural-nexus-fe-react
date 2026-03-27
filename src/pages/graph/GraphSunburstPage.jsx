@@ -3,8 +3,17 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { graphService } from '../../services/graphService';
 import { Skeleton } from '../../components/ui/Skeleton';
 import * as d3 from 'd3';
+import { filterGraphData } from './filterGraphData';
 
-export default function GraphSunburstPage({ folderId }) {
+export default function GraphSunburstPage(props) {
+  const {
+    folderId,
+    nodeTypeFilters,
+    relationshipTypeFilters,
+    minDegree,
+    showOrphans,
+    nodeSearch,
+  } = props;
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [loading, setLoading] = useState(false);
 
@@ -27,9 +36,14 @@ export default function GraphSunburstPage({ folderId }) {
     load();
   }, [folderId]);
 
+  const filteredGraph = useMemo(
+    () => filterGraphData(graphData, { nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch }),
+    [graphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch]
+  );
+
   const sunburstData = useMemo(() => {
     const groups = {};
-    graphData.nodes.forEach((node) => {
+    filteredGraph.nodes.forEach((node) => {
       const type = node.type || 'Unknown';
       if (!groups[type]) groups[type] = { name: type, children: [] };
       groups[type].children.push({ name: node.name || node.id, value: 1, id: node.id });
@@ -39,7 +53,7 @@ export default function GraphSunburstPage({ folderId }) {
       name: 'Graph',
       children: Object.values(groups),
     };
-  }, [graphData.nodes]);
+  }, [filteredGraph.nodes]);
 
   const svgRef = React.useRef(null);
 

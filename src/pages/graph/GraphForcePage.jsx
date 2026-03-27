@@ -1,12 +1,15 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { Loader2 } from 'lucide-react';
 import { graphService } from '../../services/graphService';
+import { getNodeTypeColor, getRelationshipTypeColor, withAlpha } from './colorSystem';
 
 export default function GraphForcePage({
   folderId,
   nodeTypeFilters,
   relationshipTypeFilters,
+  nodeTypeColors,
+  relationshipTypeColors,
   minDegree,
   showOrphans,
   nodeSearch,
@@ -16,53 +19,42 @@ export default function GraphForcePage({
   const [error, setError] = useState(null);
   const graphRef = useRef(null);
 
-  const loadGraph = async () => {
-    if (!folderId) {
-      setGraphData({ nodes: [], links: [] });
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await graphService.getFolder(folderId, 10000);
-      setGraphData(data);
-
-      setTimeout(() => {
-        graphRef.current?.zoomToFit(250);
-      }, 150);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to load graph data.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (folderId) {
-      loadGraph();
+    async function loadGraph() {
+      if (!folderId) {
+        setGraphData({ nodes: [], links: [] });
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await graphService.getFolder(folderId, 10000);
+        setGraphData(data);
+
+        setTimeout(() => {
+          graphRef.current?.zoomToFit(260, 60);
+        }, 200);
+      } catch (err) {
+        console.error(err);
+        setError('Failed to load graph data.');
+      } finally {
+        setLoading(false);
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    loadGraph();
   }, [folderId]);
 
-  const nodeTypes = useMemo(() => {
-    const types = new Set();
-    graphData.nodes.forEach((node) => {
-      if (node.type) types.add(node.type);
-      else types.add('Unknown');
-    });
-    return [...types].sort();
-  }, [graphData.nodes]);
+  const nodeTypes = useMemo(
+    () => [...new Set(graphData.nodes.map((node) => node.type || 'Unknown'))].sort(),
+    [graphData.nodes]
+  );
 
-  const relationshipTypes = useMemo(() => {
-    const types = new Set();
-    graphData.links.forEach((link) => {
-      if (link.type) types.add(link.type);
-      else types.add('Unknown');
-    });
-    return [...types].sort();
-  }, [graphData.links]);
+  const relationshipTypes = useMemo(
+    () => [...new Set(graphData.links.map((link) => link.type || 'Unknown'))].sort(),
+    [graphData.links]
+  );
 
   const filteredGraph = useMemo(() => {
     const selectedNodeTypes = nodeTypeFilters.size ? nodeTypeFilters : new Set(nodeTypes);
@@ -76,33 +68,60 @@ export default function GraphForcePage({
       return true;
     });
 
-    const nodeIds = new Set(nodes.map((n) => n.id));
-
+    const nodeIds = new Set(nodes.map((node) => node.id));
     const selectedRelTypes = relationshipTypeFilters.size ? relationshipTypeFilters : new Set(relationshipTypes);
 
-    const links = graphData.links.filter((link) => {
-      const type = link.type || 'Unknown';
-      if (!selectedRelTypes.has(type)) return false;
-      if (!nodeIds.has(link.source) || !nodeIds.has(link.target)) return false;
-      return true;
-    });
+    const links = graphData.links
+      .filter((link) => {
+        const type = link.type || 'Unknown';
+        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
 
-    return { nodes, links };
-  }, [graphData, nodeTypes, relationshipTypes, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch]);
+        if (!selectedRelTypes.has(type)) return false;
+        if (!nodeIds.has(sourceId) || !nodeIds.has(targetId)) return false;
+        return true;
+      })
+      .map((link) => ({
+        ...link,
+        color: getRelationshipTypeColor(link.type || 'Unknown', relationshipTypeColors),
+      }));
+
+    const enrichedNodes = nodes.map((node) => ({
+      ...node,
+      color: getNodeTypeColor(node.type || 'Unknown', nodeTypeColors),
+    }));
+
+    return { nodes: enrichedNodes, links };
+  }, [
+    graphData,
+    nodeTypes,
+    relationshipTypes,
+    nodeTypeFilters,
+    relationshipTypeFilters,
+    nodeTypeColors,
+    relationshipTypeColors,
+    minDegree,
+    showOrphans,
+    nodeSearch,
+  ]);
 
   return (
-    <div className="w-full h-full flex flex-col bg-card">
-      <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-background">
+    <div className="flex h-full w-full flex-col overflow-hidden rounded-[26px] bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,247,251,0.92))] dark:bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_26%),linear-gradient(180deg,rgba(15,23,42,0.92),rgba(17,24,39,0.94))]">
+      <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold">2D Force Graph</h2>
-          <span className="text-xs text-muted-foreground">{filteredGraph.nodes.length.toLocaleString()} nodes · {filteredGraph.links.length.toLocaleString()} edges</span>
+          <div>
+            <h2 className="text-lg font-semibold">2D Force Graph</h2>
+            <p className="text-xs text-muted-foreground">
+              {filteredGraph.nodes.length.toLocaleString()} nodes and {filteredGraph.links.length.toLocaleString()} edges
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden relative">
+      <div className="relative flex-1 overflow-hidden">
         {loading ? (
           <div className="flex h-full items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin" />
+            <Loader2 className="h-6 w-6 animate-spin" />
             <span className="ml-2">Loading graph data...</span>
           </div>
         ) : error ? (
@@ -112,14 +131,17 @@ export default function GraphForcePage({
             <ForceGraph2D
               ref={graphRef}
               graphData={filteredGraph}
-              nodeAutoColorBy="group"
-              nodeLabel={(node) => `${node.id} ${node.type ? `(${node.type})` : ''}`}
-              linkDirectionalParticles={2}
-              linkDirectionalParticleSpeed={0.008}
-              linkWidth={1}
-              linkOpacity={0.6}
-              nodeVal={(node) => (node.size || 1)}
-              onNodeClick={(node) => window.alert(`Node clicked: ${node.id}`)}
+              backgroundColor="rgba(0,0,0,0)"
+              nodeColor={(node) => node.color}
+              nodeRelSize={7}
+              nodeVal={(node) => Math.max(1, Number(node.size || node.degree || 1))}
+              nodeLabel={(node) => `${node.name || node.id}${node.type ? ` (${node.type})` : ''}`}
+              linkColor={(link) => withAlpha(link.color || '#94A3B8', '66')}
+              linkDirectionalParticles={1}
+              linkDirectionalParticleColor={(link) => link.color}
+              linkDirectionalParticleSpeed={0.005}
+              linkWidth={(link) => (link.type ? 1.4 : 1)}
+              onNodeClick={(node) => window.alert(`Node clicked: ${node.name || node.id}`)}
               width={undefined}
               height={undefined}
             />

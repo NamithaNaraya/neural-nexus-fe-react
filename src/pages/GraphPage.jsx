@@ -11,28 +11,12 @@ import GraphDegreeDistributionPage from './graph/GraphDegreeDistributionPage';
 import GraphRelationshipMatrixPage from './graph/GraphRelationshipMatrixPage';
 import GraphPropertyTablePage from './graph/GraphPropertyTablePage';
 import { GraphViewsNavigation } from './graph/GraphViewsNavigation';
+import { GraphColorFilterSection } from './graph/components/GraphColorFilterSection';
 import { graphService } from '../services/graphService';
 import { useGlobalFolder } from '../contexts/GlobalFolderContext';
 import { Input, Label } from '../components/ui/Input';
 import { Card, CardContent } from '../components/ui/Card';
-import { cn } from '../utils/cn';
-
-function FilterChip({ active, label, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'rounded-full border px-3 py-1.5 text-xs font-medium transition',
-        active
-          ? 'border-primary bg-primary text-white'
-          : 'border-border/50 bg-background/60 text-muted-foreground hover:border-primary/30 hover:text-foreground'
-      )}
-    >
-      {label}
-    </button>
-  );
-}
+import { getNodeTypeColor, getRelationshipTypeColor } from './graph/colorSystem';
 
 export default function GraphPage() {
   const { selectedFolderId: folderId, currentFolder } = useGlobalFolder();
@@ -41,6 +25,8 @@ export default function GraphPage() {
   const [showOrphans, setShowOrphans] = useState(true);
   const [nodeTypeFilters, setNodeTypeFilters] = useState(new Set());
   const [relationshipTypeFilters, setRelationshipTypeFilters] = useState(new Set());
+  const [nodeTypeColors, setNodeTypeColors] = useState({});
+  const [relationshipTypeColors, setRelationshipTypeColors] = useState({});
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
 
   useEffect(() => {
@@ -77,35 +63,19 @@ export default function GraphPage() {
     [graphData.links]
   );
 
-  const toggleFilterValue = (value, setState) => {
-    setState((current) => {
-      const next = new Set(current);
-      if (next.has(value)) next.delete(value);
-      else next.add(value);
-      return next;
-    });
-  };
-
   const sharedGraphProps = {
     folderId,
     nodeTypeFilters,
     relationshipTypeFilters,
+    nodeTypeColors,
+    relationshipTypeColors,
     minDegree,
     showOrphans,
     nodeSearch,
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">
-          <span className="gradient-text">Graph Views</span>
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Switch between every available graph view from one place.
-        </p>
-      </div>
-
+    <div>
       <div className="grid gap-4 xl:grid-cols-[320px_1fr]">
         <Card className="h-fit border-border/60 bg-card/70 shadow-lg shadow-slate-900/5 backdrop-blur-xl xl:sticky xl:top-4">
           <CardContent className="space-y-5 p-5">
@@ -166,37 +136,27 @@ export default function GraphPage() {
             </label>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                <Network className="h-3.5 w-3.5" />
-                Node types
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {nodeTypes.map((type) => (
-                  <FilterChip
-                    key={type}
-                    active={nodeTypeFilters.has(type)}
-                    label={type}
-                    onClick={() => toggleFilterValue(type, setNodeTypeFilters)}
-                  />
-                ))}
-              </div>
+              <GraphColorFilterSection
+                title="Node types"
+                icon={Network}
+                items={nodeTypes}
+                activeItems={nodeTypeFilters}
+                setActiveItems={setNodeTypeFilters}
+                colorMap={nodeTypeColors}
+                getColor={getNodeTypeColor}
+              />
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                <GitBranch className="h-3.5 w-3.5" />
-                Relationship types
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {relationshipTypes.map((type) => (
-                  <FilterChip
-                    key={type}
-                    active={relationshipTypeFilters.has(type)}
-                    label={type}
-                    onClick={() => toggleFilterValue(type, setRelationshipTypeFilters)}
-                  />
-                ))}
-              </div>
+              <GraphColorFilterSection
+                title="Relationship types"
+                icon={GitBranch}
+                items={relationshipTypes}
+                activeItems={relationshipTypeFilters}
+                setActiveItems={setRelationshipTypeFilters}
+                colorMap={relationshipTypeColors}
+                getColor={getRelationshipTypeColor}
+              />
             </div>
           </CardContent>
         </Card>
@@ -211,15 +171,15 @@ export default function GraphPage() {
           <div className="h-[calc(100vh-14rem)] min-h-[680px] overflow-hidden rounded-2xl border border-border/60 bg-card/50">
             <Routes>
               <Route path="" element={<Navigate to="overview" replace />} />
-              <Route path="overview" element={<GraphOverviewPage folderId={folderId} />} />
+              <Route path="overview" element={<GraphOverviewPage {...sharedGraphProps} />} />
               <Route path="2d" element={<GraphForcePage {...sharedGraphProps} />} />
               <Route path="3d" element={<GraphForceGraph3DPage {...sharedGraphProps} />} />
-              <Route path="sunburst" element={<GraphSunburstPage folderId={folderId} />} />
-              <Route path="treemap" element={<GraphTreemapPage folderId={folderId} />} />
-              <Route path="schema" element={<GraphSchemaExplorerPage folderId={folderId} />} />
-              <Route path="degree" element={<GraphDegreeDistributionPage folderId={folderId} />} />
-              <Route path="matrix" element={<GraphRelationshipMatrixPage folderId={folderId} />} />
-              <Route path="table" element={<GraphPropertyTablePage folderId={folderId} />} />
+              <Route path="sunburst" element={<GraphSunburstPage {...sharedGraphProps} />} />
+              <Route path="treemap" element={<GraphTreemapPage {...sharedGraphProps} />} />
+              <Route path="schema" element={<GraphSchemaExplorerPage {...sharedGraphProps} />} />
+              <Route path="degree" element={<GraphDegreeDistributionPage {...sharedGraphProps} />} />
+              <Route path="matrix" element={<GraphRelationshipMatrixPage {...sharedGraphProps} />} />
+              <Route path="table" element={<GraphPropertyTablePage {...sharedGraphProps} />} />
               <Route path="*" element={<Navigate to="overview" replace />} />
             </Routes>
           </div>

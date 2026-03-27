@@ -3,8 +3,17 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { graphService } from '../../services/graphService';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ChevronDown } from 'lucide-react';
+import { filterGraphData } from './filterGraphData';
 
-export default function GraphPropertyTablePage({ folderId }) {
+export default function GraphPropertyTablePage(props) {
+  const {
+    folderId,
+    nodeTypeFilters,
+    relationshipTypeFilters,
+    minDegree,
+    showOrphans,
+    nodeSearch,
+  } = props;
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState('name');
@@ -29,8 +38,13 @@ export default function GraphPropertyTablePage({ folderId }) {
     load();
   }, [folderId]);
 
+  const filteredGraph = useMemo(
+    () => filterGraphData(graphData, { nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch }),
+    [graphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch]
+  );
+
   const sortedNodes = useMemo(() => {
-    const nodes = [...graphData.nodes];
+    const nodes = [...filteredGraph.nodes];
     nodes.sort((a, b) => {
       let aVal = a[sortBy] || '';
       let bVal = b[sortBy] || '';
@@ -43,7 +57,7 @@ export default function GraphPropertyTablePage({ folderId }) {
       return sortOrder === 'asc' ? result : -result;
     });
     return nodes.slice(0, 500);
-  }, [graphData.nodes, sortBy, sortOrder]);
+  }, [filteredGraph.nodes, sortBy, sortOrder]);
 
   const toggleSort = (key) => {
     if (sortBy === key) {

@@ -2,8 +2,17 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent } from '../../components/ui/Card';
 import { graphService } from '../../services/graphService';
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
+import { filterGraphData } from './filterGraphData';
 
-export default function GraphTreemapPage({ folderId }) {
+export default function GraphTreemapPage(props) {
+  const {
+    folderId,
+    nodeTypeFilters,
+    relationshipTypeFilters,
+    minDegree,
+    showOrphans,
+    nodeSearch,
+  } = props;
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [loading, setLoading] = useState(false);
 
@@ -26,9 +35,14 @@ export default function GraphTreemapPage({ folderId }) {
     load();
   }, [folderId]);
 
+  const filteredGraph = useMemo(
+    () => filterGraphData(graphData, { nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch }),
+    [graphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch]
+  );
+
   const treeData = useMemo(() => {
     const groups = {};
-    graphData.nodes.forEach((n) => {
+    filteredGraph.nodes.forEach((n) => {
       const type = n.type || 'Unknown';
       groups[type] = groups[type] || { name: type, children: [] };
       groups[type].children.push({ name: n.name || n.id, value: 1 });
@@ -37,7 +51,7 @@ export default function GraphTreemapPage({ folderId }) {
       name: 'Graph',
       children: Object.values(groups).map((group) => ({ ...group, children: group.children.slice(0, 150) })),
     };
-  }, [graphData.nodes]);
+  }, [filteredGraph.nodes]);
 
   return (
     <div className="space-y-4">

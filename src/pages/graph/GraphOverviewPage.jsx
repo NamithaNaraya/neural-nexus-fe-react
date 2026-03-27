@@ -4,8 +4,17 @@ import { FolderOpen, Network, FileText } from 'lucide-react';
 import { graphService } from '../../services/graphService';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { filterGraphData } from './filterGraphData';
 
-export default function GraphOverviewPage({ folderId }) {
+export default function GraphOverviewPage(props) {
+  const {
+    folderId,
+    nodeTypeFilters,
+    relationshipTypeFilters,
+    minDegree,
+    showOrphans,
+    nodeSearch,
+  } = props;
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [loading, setLoading] = useState(false);
 
@@ -28,9 +37,14 @@ export default function GraphOverviewPage({ folderId }) {
     load();
   }, [folderId]);
 
+  const filteredGraph = useMemo(
+    () => filterGraphData(graphData, { nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch }),
+    [graphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch]
+  );
+
   const nodeTypeCounts = useMemo(() => {
     const counts = {};
-    graphData.nodes.forEach((node) => {
+    filteredGraph.nodes.forEach((node) => {
       const type = node.type || 'unknown';
       counts[type] = (counts[type] || 0) + 1;
     });
@@ -38,9 +52,9 @@ export default function GraphOverviewPage({ folderId }) {
       .map(([type, value]) => ({ type, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 12);
-  }, [graphData.nodes]);
+  }, [filteredGraph.nodes]);
 
-  const filteredNodes = useMemo(() => graphData.nodes.slice(0, 200), [graphData.nodes]);
+  const filteredNodes = useMemo(() => filteredGraph.nodes.slice(0, 200), [filteredGraph.nodes]);
 
   return (
     <div className="space-y-6">
@@ -59,21 +73,21 @@ export default function GraphOverviewPage({ folderId }) {
             <Card>
               <CardContent className="space-y-2">
                 <div className="flex items-center gap-2 text-primary"><FolderOpen className="w-4 h-4" /> Nodes</div>
-                <p className="text-3xl font-bold">{graphData.nodes.length.toLocaleString()}</p>
+                <p className="text-3xl font-bold">{filteredGraph.nodes.length.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">Loaded up to 20k rows, total may exceed</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="space-y-2">
                 <div className="flex items-center gap-2 text-primary"><Network className="w-4 h-4" /> Links</div>
-                <p className="text-3xl font-bold">{graphData.links.length.toLocaleString()}</p>
+                <p className="text-3xl font-bold">{filteredGraph.links.length.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">Limited to avoid browser hang</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="space-y-2">
                 <div className="flex items-center gap-2 text-primary"><FileText className="w-4 h-4" /> Types</div>
-                <p className="text-3xl font-bold">{new Set(graphData.nodes.map((n) => n.type || 'unknown')).size}</p>
+                <p className="text-3xl font-bold">{new Set(filteredGraph.nodes.map((n) => n.type || 'unknown')).size}</p>
                 <p className="text-xs text-muted-foreground">Top 12 shown in chart</p>
               </CardContent>
             </Card>

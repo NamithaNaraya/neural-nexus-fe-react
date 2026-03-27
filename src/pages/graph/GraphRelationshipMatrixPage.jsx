@@ -2,8 +2,17 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent } from '../../components/ui/Card';
 import { graphService } from '../../services/graphService';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { filterGraphData } from './filterGraphData';
 
-export default function GraphRelationshipMatrixPage({ folderId }) {
+export default function GraphRelationshipMatrixPage(props) {
+  const {
+    folderId,
+    nodeTypeFilters,
+    relationshipTypeFilters,
+    minDegree,
+    showOrphans,
+    nodeSearch,
+  } = props;
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [loading, setLoading] = useState(false);
 
@@ -26,8 +35,13 @@ export default function GraphRelationshipMatrixPage({ folderId }) {
     load();
   }, [folderId]);
 
+  const filteredGraph = useMemo(
+    () => filterGraphData(graphData, { nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch }),
+    [graphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch]
+  );
+
   const matrix = useMemo(() => {
-    const nodeTypes = [...new Set(graphData.nodes.map((n) => n.type || 'Unknown'))].sort();
+    const nodeTypes = [...new Set(filteredGraph.nodes.map((n) => n.type || 'Unknown'))].sort();
     const counts = {};
 
     nodeTypes.forEach((t1) => {
@@ -36,15 +50,15 @@ export default function GraphRelationshipMatrixPage({ folderId }) {
       });
     });
 
-    graphData.links.forEach((link) => {
-      const sourceType = graphData.nodes.find((n) => n.id === link.source)?.type || 'Unknown';
-      const targetType = graphData.nodes.find((n) => n.id === link.target)?.type || 'Unknown';
+    filteredGraph.links.forEach((link) => {
+      const sourceType = filteredGraph.nodes.find((n) => n.id === link.source)?.type || 'Unknown';
+      const targetType = filteredGraph.nodes.find((n) => n.id === link.target)?.type || 'Unknown';
       const key = `${sourceType}|${targetType}`;
       if (key in counts) counts[key]++;
     });
 
     return { nodeTypes, counts };
-  }, [graphData.nodes, graphData.links]);
+  }, [filteredGraph.nodes, filteredGraph.links]);
 
   const maxCount = Math.max(...Object.values(matrix.counts), 1);
 

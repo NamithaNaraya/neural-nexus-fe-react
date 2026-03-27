@@ -3,8 +3,17 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { graphService } from '../../services/graphService';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ArrowRight } from 'lucide-react';
+import { filterGraphData } from './filterGraphData';
 
-export default function GraphSchemaExplorerPage({ folderId }) {
+export default function GraphSchemaExplorerPage(props) {
+  const {
+    folderId,
+    nodeTypeFilters,
+    relationshipTypeFilters,
+    minDegree,
+    showOrphans,
+    nodeSearch,
+  } = props;
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [loading, setLoading] = useState(false);
 
@@ -27,22 +36,27 @@ export default function GraphSchemaExplorerPage({ folderId }) {
     load();
   }, [folderId]);
 
+  const filteredGraph = useMemo(
+    () => filterGraphData(graphData, { nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch }),
+    [graphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch]
+  );
+
   const schema = useMemo(() => {
     const nodeTypeCounts = {};
     const relTypeCounts = {};
 
-    graphData.nodes.forEach((node) => {
+    filteredGraph.nodes.forEach((node) => {
       const type = node.type || 'Unknown';
       nodeTypeCounts[type] = (nodeTypeCounts[type] || 0) + 1;
     });
 
-    graphData.links.forEach((link) => {
+    filteredGraph.links.forEach((link) => {
       const type = link.type || 'UNKNOWN';
       relTypeCounts[type] = (relTypeCounts[type] || 0) + 1;
     });
 
     return { nodeTypeCounts, relTypeCounts };
-  }, [graphData.nodes, graphData.links]);
+  }, [filteredGraph.nodes, filteredGraph.links]);
 
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
@@ -121,7 +135,7 @@ export default function GraphSchemaExplorerPage({ folderId }) {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Total Nodes</p>
-                  <p className="text-2xl font-bold">{graphData.nodes.length}</p>
+                  <p className="text-2xl font-bold">{filteredGraph.nodes.length}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Rel Types</p>
@@ -129,7 +143,7 @@ export default function GraphSchemaExplorerPage({ folderId }) {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Total Links</p>
-                  <p className="text-2xl font-bold">{graphData.links.length}</p>
+                  <p className="text-2xl font-bold">{filteredGraph.links.length}</p>
                 </div>
               </div>
             </CardContent>
