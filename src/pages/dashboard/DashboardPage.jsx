@@ -3,14 +3,15 @@ import { RefreshCw } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { useDashboard } from '../../hooks/useDashboard';
 import { StatsCards } from './StatsCards';
-import { HealthStatus } from './HealthStatus';
 import { QuickActions } from './QuickActions';
 import { ActivityFeed } from './ActivityFeed';
+import { NodeTypeDistributionCard } from './NodeTypeDistributionCard';
+import { MostConnectedEntitiesCard } from './MostConnectedEntitiesCard';
+import { RecentUploadsCard } from './RecentUploadsCard';
 import { cn } from '../../utils/cn';
 
 export default function DashboardPage() {
-  const { stats, activity, health, loading, refresh } = useDashboard();
-
+  const { stats, activity, loading, refresh } = useDashboard();
   const [compactMode, setCompactMode] = useState(false);
 
   return (
@@ -22,7 +23,7 @@ export default function DashboardPage() {
             <span className="gradient-text">Dashboard</span>
           </h1>
           <p className="text-muted-foreground text-sm">
-            Your knowledge graph overview and system health at a glance.
+            Your knowledge graph overview and insights at a glance.
           </p>
           <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
             <input
@@ -31,7 +32,7 @@ export default function DashboardPage() {
               onChange={(e) => setCompactMode(e.target.checked)}
               className="h-4 w-4 accent-primary"
             />
-            Compact layout (hide visual extras)
+            Compact layout (hide insights)
           </label>
         </div>
         <Button
@@ -49,19 +50,36 @@ export default function DashboardPage() {
       {/* Stats Cards */}
       <StatsCards stats={stats} loading={loading} />
 
-      {/* Health + Quick Actions Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          <HealthStatus health={health} loading={loading} />
+      {/* Knowledge Graph Insights */}
+      {!compactMode && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-1">
+            <NodeTypeDistributionCard />
+          </div>
+          <div className="lg:col-span-1">
+            <MostConnectedEntitiesCard />
+          </div>
+          <div className="lg:col-span-1">
+            <QuickActions />
+          </div>
         </div>
-        <QuickActions />
-      </div>
+      )}
 
-      {/* Recent Activity */}
-      {!compactMode && <ActivityFeed activity={activity} loading={loading} />}
+      {/* Recent Uploads + Activity */}
+      {!compactMode && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2">
+            <RecentUploadsCard />
+          </div>
+          <div>
+            <ActivityFeed activity={activity} loading={loading} />
+          </div>
+        </div>
+      )}
+
       {compactMode && (
         <div className="rounded-2xl border border-border/60 bg-card/70 p-4 text-sm text-muted-foreground">
-          Compact mode is on: activity feed is hidden for faster loading and cleaner focus.
+          Quick only mode is on: All insights and charts are hidden. Enable insights to see your knowledge graph analysis.
         </div>
       )}
     </div>
