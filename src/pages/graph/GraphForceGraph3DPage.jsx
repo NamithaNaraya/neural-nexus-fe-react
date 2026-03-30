@@ -243,8 +243,8 @@ export default function GraphForceGraph3DPage({
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1">
-        <div className="relative min-h-[420px] min-w-0 overflow-hidden">
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div className="absolute inset-0">
           {loading || focusLoading ? (
             <div className="flex h-full items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin" />
