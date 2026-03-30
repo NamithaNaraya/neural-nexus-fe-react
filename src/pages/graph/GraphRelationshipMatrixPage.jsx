@@ -3,6 +3,7 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { graphService } from '../../services/graphService';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { filterGraphData } from './filterGraphData';
+import { capGraphData } from './graphDisplayData';
 
 export default function GraphRelationshipMatrixPage(props) {
   const {
@@ -40,9 +41,12 @@ export default function GraphRelationshipMatrixPage(props) {
     [graphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch]
   );
 
+  const renderedGraph = useMemo(() => capGraphData(filteredGraph, 12000), [filteredGraph]);
+
   const matrix = useMemo(() => {
-    const nodeTypes = [...new Set(filteredGraph.nodes.map((n) => n.type || 'Unknown'))].sort();
+    const nodeTypes = [...new Set(renderedGraph.nodes.map((n) => n.type || 'Unknown'))].sort();
     const counts = {};
+    const getId = (value) => (typeof value === 'object' ? value?.id : value);
 
     nodeTypes.forEach((t1) => {
       nodeTypes.forEach((t2) => {
@@ -50,15 +54,15 @@ export default function GraphRelationshipMatrixPage(props) {
       });
     });
 
-    filteredGraph.links.forEach((link) => {
-      const sourceType = filteredGraph.nodes.find((n) => n.id === link.source)?.type || 'Unknown';
-      const targetType = filteredGraph.nodes.find((n) => n.id === link.target)?.type || 'Unknown';
+    renderedGraph.links.forEach((link) => {
+      const sourceType = renderedGraph.nodes.find((n) => n.id === getId(link.source))?.type || 'Unknown';
+      const targetType = renderedGraph.nodes.find((n) => n.id === getId(link.target))?.type || 'Unknown';
       const key = `${sourceType}|${targetType}`;
       if (key in counts) counts[key]++;
     });
 
     return { nodeTypes, counts };
-  }, [filteredGraph.nodes, filteredGraph.links]);
+  }, [renderedGraph.nodes, renderedGraph.links]);
 
   const maxCount = Math.max(...Object.values(matrix.counts), 1);
 

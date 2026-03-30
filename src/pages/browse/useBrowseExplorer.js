@@ -1,4 +1,4 @@
-import { startTransition, useDeferredValue, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { browseService } from '../../services/browseService';
 import { graphService } from '../../services/graphService';
 import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
@@ -17,7 +17,17 @@ export function useBrowseExplorer() {
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const deferredQuery = useDeferredValue(query);
+  const forceRefreshRef = useRef(false);
+
+  useEffect(() => {
+    const handleCrud = () => {
+      forceRefreshRef.current = true;
+      setPage(1);
+    };
+
+    window.addEventListener('nnv2:graph-crud', handleCrud);
+    return () => window.removeEventListener('nnv2:graph-crud', handleCrud);
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -32,7 +42,7 @@ export function useBrowseExplorer() {
           return;
         }
 
-        const response = await browseService.getNodeTypes(folderId);
+        const response = await browseService.getNodeTypes(folderId, { force: forceRefreshRef.current });
         const types = Array.isArray(response?.types) ? response.types : [];
 
         if (!ignore) {
@@ -58,77 +68,73 @@ export function useBrowseExplorer() {
 
   useEffect(() => {
     setPage(1);
-  }, [folderId, activeType, deferredQuery]);
+  }, [folderId, activeType, query]);
 
   useEffect(() => {
     let ignore = false;
-    const searchTerm = deferredQuery.trim();
-    const timer = setTimeout(() => {
-      async function loadNodes() {
-        setLoading(true);
-        setError('');
+    const searchTerm = query.trim();
 
-        try {
-          if (!folderId) {
-            if (!ignore) {
-              setNodes([]);
-              setTotalPages(1);
-            }
-            return;
-          }
+    async function loadNodes() {
+      setLoading(true);
+      setError('');
 
-          if (activeType === 'all') {
-            const response = await graphService.getFolder(folderId, 600);
-            const rawNodes = Array.isArray(response?.nodes) ? response.nodes : [];
-            const filtered = searchTerm
-              ? rawNodes.filter((node) => JSON.stringify(node).toLowerCase().includes(searchTerm.toLowerCase()))
-              : rawNodes;
-
-            const sorted = sortNodes(filtered, sortMode);
-            const computedTotalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-            const safePage = Math.min(page, computedTotalPages);
-            const startIndex = (safePage - 1) * PAGE_SIZE;
-            const pageNodes = sorted.slice(startIndex, startIndex + PAGE_SIZE);
-
-            if (!ignore) {
-              startTransition(() => {
-                setNodes(pageNodes);
-                setTotalPages(computedTotalPages);
-                if (safePage !== page) setPage(safePage);
-              });
-            }
-          } else {
-            const response = await browseService.getNodesByType(activeType, folderId, page, PAGE_SIZE, searchTerm);
-            const rawNodes = Array.isArray(response?.nodes) ? response.nodes : [];
-            const sorted = sortNodes(rawNodes, sortMode);
-
-            if (!ignore) {
-              startTransition(() => {
-                setNodes(sorted);
-                setTotalPages(Math.max(1, response?.total_pages || 1));
-              });
-            }
-          }
-        } catch (err) {
-          console.error('Failed to load browse data:', err);
+      try {
+        if (!folderId) {
           if (!ignore) {
             setNodes([]);
             setTotalPages(1);
-            setError('Browse data could not be loaded right now.');
           }
-        } finally {
-          if (!ignore) setLoading(false);
+          return;
         }
+
+        if (activeType === 'all') {
+          const response = await graphService.getFolder(folderId, 600, { force: forceRefreshRef.current });
+          const rawNodes = Array.isArray(response?.nodes) ? response.nodes : [];
+          const filtered = searchTerm
+            ? rawNodes.filter((node) => JSON.stringify(node).toLowerCase().includes(searchTerm.toLowerCase()))
+            : rawNodes;
+
+          const sorted = sortNodes(filtered, sortMode);
+          const computedTotalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+          const safePage = Math.min(page, computedTotalPages);
+          const startIndex = (safePage - 1) * PAGE_SIZE;
+          const pageNodes = sorted.slice(startIndex, startIndex + PAGE_SIZE);
+
+          if (!ignore) {
+            setNodes(pageNodes);
+            setTotalPages(computedTotalPages);
+            if (safePage !== page) setPage(safePage);
+          }
+        } else {
+          const response = await browseService.getNodesByType(activeType, folderId, page, PAGE_SIZE, searchTerm, {
+            force: forceRefreshRef.current,
+          });
+          const rawNodes = Array.isArray(response?.nodes) ? response.nodes : [];
+          const sorted = sortNodes(rawNodes, sortMode);
+
+          if (!ignore) {
+            setNodes(sorted);
+            setTotalPages(Math.max(1, response?.total_pages || 1));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load browse data:', err);
+        if (!ignore) {
+          setNodes([]);
+          setTotalPages(1);
+          setError('Browse data could not be loaded right now.');
+        }
+      } finally {
+        forceRefreshRef.current = false;
+        if (!ignore) setLoading(false);
       }
+    }
 
-      loadNodes();
-    }, 250);
-
+    loadNodes();
     return () => {
       ignore = true;
-      clearTimeout(timer);
     };
-  }, [folderId, activeType, page, deferredQuery, sortMode]);
+  }, [folderId, activeType, page, query, sortMode]);
 
   const selectedTypeMeta = nodeTypes.find((item) => item.type === activeType);
   const totalKnownNodes = nodeTypes.reduce((sum, item) => sum + Number(item.count || 0), 0);

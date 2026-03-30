@@ -1,25 +1,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { FolderOpen, GitBranch, Network, Search } from 'lucide-react';
-import GraphOverviewPage from './graph/GraphOverviewPage';
+import { SlidersHorizontal } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import { Card, CardContent } from '../components/ui/Card';
 import GraphForcePage from './graph/GraphForcePage';
 import GraphForceGraph3DPage from './graph/GraphForceGraph3DPage';
-import GraphSunburstPage from './graph/GraphSunburstPage';
-import GraphTreemapPage from './graph/GraphTreemapPage';
-import GraphSchemaExplorerPage from './graph/GraphSchemaExplorerPage';
-import GraphDegreeDistributionPage from './graph/GraphDegreeDistributionPage';
-import GraphRelationshipMatrixPage from './graph/GraphRelationshipMatrixPage';
 import GraphPropertyTablePage from './graph/GraphPropertyTablePage';
 import { GraphViewsNavigation } from './graph/GraphViewsNavigation';
-import { GraphColorFilterSection } from './graph/components/GraphColorFilterSection';
+import { GraphWorkspaceSidebar } from './graph/GraphWorkspaceSidebar';
+import { knowledgeGraphSections } from './graph/graphViewSections';
 import { graphService } from '../services/graphService';
 import { useGlobalFolder } from '../contexts/GlobalFolderContext';
-import { Input, Label } from '../components/ui/Input';
-import { Card, CardContent } from '../components/ui/Card';
-import { getNodeTypeColor, getRelationshipTypeColor } from './graph/colorSystem';
 
 export default function GraphPage() {
   const { selectedFolderId: folderId, currentFolder } = useGlobalFolder();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('nnv2:graph-sidebar-collapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
   const [nodeSearch, setNodeSearch] = useState('');
   const [minDegree, setMinDegree] = useState(0);
   const [showOrphans, setShowOrphans] = useState(true);
@@ -28,6 +29,9 @@ export default function GraphPage() {
   const [nodeTypeColors, setNodeTypeColors] = useState({});
   const [relationshipTypeColors, setRelationshipTypeColors] = useState({});
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+  const [refreshToken, setRefreshToken] = useState(0);
+  const [graphStats, setGraphStats] = useState({ nodes: 0, links: 0 });
+  const [addNodeSignal, setAddNodeSignal] = useState(0);
 
   useEffect(() => {
     let ignore = false;
@@ -47,11 +51,22 @@ export default function GraphPage() {
       }
     }
 
+    const handleCrud = () => setRefreshToken((value) => value + 1);
+    window.addEventListener('nnv2:graph-crud', handleCrud);
     loadGraphContext();
     return () => {
       ignore = true;
+      window.removeEventListener('nnv2:graph-crud', handleCrud);
     };
-  }, [folderId]);
+  }, [folderId, refreshToken]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nnv2:graph-sidebar-collapsed', sidebarCollapsed ? '1' : '0');
+    } catch {
+      // ignore local storage failures
+    }
+  }, [sidebarCollapsed]);
 
   const nodeTypes = useMemo(
     () => [...new Set((graphData.nodes || []).map((node) => node.type || 'Unknown'))].sort(),
@@ -72,119 +87,133 @@ export default function GraphPage() {
     minDegree,
     showOrphans,
     nodeSearch,
+    onStatsChange: setGraphStats,
+    addNodeSignal,
   };
 
   return (
-    <div>
-      <div className="grid gap-4 xl:grid-cols-[320px_1fr]">
-        <Card className="h-fit border-border/60 bg-card/70 shadow-lg shadow-slate-900/5 backdrop-blur-xl xl:sticky xl:top-4">
-          <CardContent className="space-y-5 p-5">
-            <div className="space-y-1">
-              <div className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Filters</div>
-              <h2 className="text-lg font-semibold">Graph sidebar</h2>
-              <p className="text-sm text-muted-foreground">These filters stay active while switching between all graph views, and they follow the global header folder.</p>
+    <div className="relative h-full flex flex-col">
+      {!sidebarCollapsed ? (
+        <div className="grid items-start gap-4 h-full xl:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="overflow-y-auto">
+            <GraphWorkspaceSidebar
+              title="Graph sidebar"
+              description="These filters stay active while switching between the KG views, and they follow the selected folder."
+              collapsed={sidebarCollapsed}
+              onToggleCollapsed={() => setSidebarCollapsed((value) => !value)}
+              currentFolder={currentFolder}
+              nodeSearch={nodeSearch}
+              setNodeSearch={setNodeSearch}
+              minDegree={minDegree}
+              setMinDegree={setMinDegree}
+              showOrphans={showOrphans}
+              setShowOrphans={setShowOrphans}
+              nodeTypes={nodeTypes}
+              nodeTypeFilters={nodeTypeFilters}
+              setNodeTypeFilters={setNodeTypeFilters}
+              relationshipTypes={relationshipTypes}
+              relationshipTypeFilters={relationshipTypeFilters}
+              setRelationshipTypeFilters={setRelationshipTypeFilters}
+              nodeTypeColors={nodeTypeColors}
+              setNodeTypeColors={setNodeTypeColors}
+              relationshipTypeColors={relationshipTypeColors}
+              setRelationshipTypeColors={setRelationshipTypeColors}
+            />
+          </div>
+
+          <div className="min-w-0 flex flex-col h-full gap-0">
+            <Card className="border-border/60 bg-card/70 shadow-lg shadow-slate-900/5 backdrop-blur-xl flex-shrink-0 rounded-b-none border-b-0">
+              <CardContent className="flex items-center justify-between gap-4 p-4">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2 rounded-full border border-border/40 bg-background/70 px-3 text-xs"
+                    type="button"
+                    onClick={() => setSidebarCollapsed(true)}
+                    aria-label="Collapse filters"
+                    title="Collapse filters"
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filters
+                  </Button>
+                  <GraphViewsNavigation sections={knowledgeGraphSections} basePath="/graph" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="hidden items-center gap-2 rounded-full border border-border/40 bg-background/60 px-3 py-1.5 text-xs text-muted-foreground md:flex">
+                    <span>{Number(graphStats.nodes || 0).toLocaleString()} nodes</span>
+                    <span className="text-border">•</span>
+                    <span>{Number(graphStats.links || 0).toLocaleString()} relationships</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAddNodeSignal((value) => value + 1)}
+                    className="rounded-full bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition hover:from-blue-600 hover:to-purple-700"
+                  >
+                    Add Node
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex-1 overflow-hidden rounded-t-none rounded-b-2xl border border-t-0 border-border/60 bg-card/50 min-h-0">
+              <Routes>
+                <Route path="" element={<Navigate to="2d" replace />} />
+                <Route path="2d" element={<GraphForcePage {...sharedGraphProps} />} />
+                <Route path="3d" element={<GraphForceGraph3DPage {...sharedGraphProps} />} />
+                <Route path="table" element={<GraphPropertyTablePage {...sharedGraphProps} />} />
+                <Route path="*" element={<Navigate to="2d" replace />} />
+              </Routes>
             </div>
-
-            <div className="rounded-2xl border border-border/40 bg-background/40 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <FolderOpen className="h-4 w-4 text-primary" />
-                {currentFolder?.name || 'No folder selected'}
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {currentFolder
-                  ? `${Number(currentFolder.node_count || 0).toLocaleString()} nodes and ${Number(currentFolder.file_count || 0).toLocaleString()} files available in this scope.`
-                  : 'Choose a folder in the header to load graph views.'}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Search nodes</Label>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={nodeSearch}
-                  onChange={(event) => setNodeSearch(event.target.value)}
-                  placeholder="Find nodes by name"
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Min degree</Label>
-              <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-background/40 px-3 py-2">
-                <input
-                  type="range"
-                  min={0}
-                  max={10}
-                  value={minDegree}
-                  onChange={(event) => setMinDegree(Number(event.target.value))}
-                  className="w-full"
-                />
-                <span className="text-sm font-semibold text-primary">{minDegree}</span>
-              </div>
-            </div>
-
-            <label className="flex items-center gap-2 text-sm font-medium">
-              <input
-                type="checkbox"
-                checked={showOrphans}
-                onChange={() => setShowOrphans((value) => !value)}
-                className="accent-primary"
-              />
-              Show orphan nodes
-            </label>
-
-            <div className="space-y-2">
-              <GraphColorFilterSection
-                title="Node types"
-                icon={Network}
-                items={nodeTypes}
-                activeItems={nodeTypeFilters}
-                setActiveItems={setNodeTypeFilters}
-                colorMap={nodeTypeColors}
-                getColor={getNodeTypeColor}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <GraphColorFilterSection
-                title="Relationship types"
-                icon={GitBranch}
-                items={relationshipTypes}
-                activeItems={relationshipTypeFilters}
-                setActiveItems={setRelationshipTypeFilters}
-                colorMap={relationshipTypeColors}
-                getColor={getRelationshipTypeColor}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-4">
-          <Card className="border-border/60 bg-card/70 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
-            <CardContent className="p-4">
-              <GraphViewsNavigation />
-            </CardContent>
-          </Card>
-
-          <div className="h-[calc(100vh-14rem)] min-h-[680px] overflow-hidden rounded-2xl border border-border/60 bg-card/50">
-            <Routes>
-              <Route path="" element={<Navigate to="overview" replace />} />
-              <Route path="overview" element={<GraphOverviewPage {...sharedGraphProps} />} />
-              <Route path="2d" element={<GraphForcePage {...sharedGraphProps} />} />
-              <Route path="3d" element={<GraphForceGraph3DPage {...sharedGraphProps} />} />
-              <Route path="sunburst" element={<GraphSunburstPage {...sharedGraphProps} />} />
-              <Route path="treemap" element={<GraphTreemapPage {...sharedGraphProps} />} />
-              <Route path="schema" element={<GraphSchemaExplorerPage {...sharedGraphProps} />} />
-              <Route path="degree" element={<GraphDegreeDistributionPage {...sharedGraphProps} />} />
-              <Route path="matrix" element={<GraphRelationshipMatrixPage {...sharedGraphProps} />} />
-              <Route path="table" element={<GraphPropertyTablePage {...sharedGraphProps} />} />
-              <Route path="*" element={<Navigate to="overview" replace />} />
-            </Routes>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="relative flex flex-col h-full">
+          <div className="space-y-0 flex-1 flex flex-col min-h-0">
+            <div className="flex items-center justify-between gap-4 rounded-t-2xl rounded-b-none border border-b-0 border-border/60 bg-card/70 px-4 py-3 shadow-lg shadow-slate-900/5 backdrop-blur-xl flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 rounded-full border border-border/40 bg-background/70 px-3 text-xs"
+                  type="button"
+                  onClick={() => setSidebarCollapsed(false)}
+                  aria-label="Open filters"
+                  title="Open filters"
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filters
+                  </Button>
+                  <GraphViewsNavigation sections={knowledgeGraphSections} basePath="/graph" />
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAddNodeSignal((value) => value + 1)}
+                  className="rounded-full bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition hover:from-blue-600 hover:to-purple-700"
+                >
+                  Add Node
+                </button>
+                <div className="hidden items-center gap-2 rounded-full border border-border/40 bg-background/60 px-3 py-1.5 text-xs text-muted-foreground md:flex">
+                  <span>{Number(graphStats.nodes || 0).toLocaleString()} nodes</span>
+                  <span className="text-border">•</span>
+                  <span>{Number(graphStats.links || 0).toLocaleString()} relationships</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-hidden rounded-t-none rounded-b-2xl border border-t-0 border-border/60 bg-card/50 min-h-0">
+              <Routes>
+                <Route path="" element={<Navigate to="2d" replace />} />
+                <Route path="2d" element={<GraphForcePage {...sharedGraphProps} />} />
+                <Route path="3d" element={<GraphForceGraph3DPage {...sharedGraphProps} />} />
+                <Route path="table" element={<GraphPropertyTablePage {...sharedGraphProps} />} />
+                <Route path="*" element={<Navigate to="2d" replace />} />
+              </Routes>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

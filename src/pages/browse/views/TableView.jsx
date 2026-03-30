@@ -16,6 +16,7 @@ export function TableView({ nodes }) {
                 <th className="px-5 py-4 font-medium">Degree</th>
                 <th className="px-5 py-4 font-medium">Fields</th>
                 <th className="px-5 py-4 font-medium">Identifier</th>
+                <th className="px-5 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>

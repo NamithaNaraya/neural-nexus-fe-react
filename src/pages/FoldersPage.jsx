@@ -21,6 +21,7 @@ import { cn } from '../utils/cn';
 import { folderService } from '../services/folderService';
 import { browseService } from '../services/browseService';
 import { useGlobalFolder } from '../contexts/GlobalFolderContext';
+import { FolderCrudModal } from '../components/crud';
 
 export default function FoldersPage() {
   const { refreshFolders, setSelectedFolderId } = useGlobalFolder();
@@ -43,6 +44,8 @@ export default function FoldersPage() {
   const [nodesTotalPages, setNodesTotalPages] = useState(0);
 
   const [deleting, setDeleting] = useState(null);
+  const [editingFolder, setEditingFolder] = useState(null);
+  const [showEdit, setShowEdit] = useState(false);
 
   const fetchFolders = useCallback(async () => {
     setLoading(true);
@@ -294,6 +297,13 @@ export default function FoldersPage() {
 
                       <div className="flex items-center gap-1 shrink-0">
                         <button
+                          onClick={(e) => { e.stopPropagation(); setEditingFolder(folder); setShowEdit(true); }}
+                          className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all duration-200"
+                          title="Edit folder"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
                           className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/10 text-muted-foreground hover:text-red-500 transition-all duration-200"
                           title="Delete folder"
@@ -476,8 +486,19 @@ export default function FoldersPage() {
               </CardContent>
             </Card>
           </div>
-        )}
+          )}
       </div>
+
+      <FolderCrudModal
+        open={showEdit}
+        mode="edit"
+        initialFolder={editingFolder}
+        onClose={() => setShowEdit(false)}
+        onSuccess={async () => {
+          await fetchFolders();
+          await refreshFolders();
+        }}
+      />
     </div>
   );
 }

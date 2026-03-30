@@ -3,6 +3,7 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { graphService } from '../../services/graphService';
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
 import { filterGraphData } from './filterGraphData';
+import { capGraphData } from './graphDisplayData';
 
 export default function GraphTreemapPage(props) {
   const {
@@ -40,9 +41,11 @@ export default function GraphTreemapPage(props) {
     [graphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch]
   );
 
+  const renderedGraph = useMemo(() => capGraphData(filteredGraph, 12000), [filteredGraph]);
+
   const treeData = useMemo(() => {
     const groups = {};
-    filteredGraph.nodes.forEach((n) => {
+    renderedGraph.nodes.forEach((n) => {
       const type = n.type || 'Unknown';
       groups[type] = groups[type] || { name: type, children: [] };
       groups[type].children.push({ name: n.name || n.id, value: 1 });
@@ -51,7 +54,7 @@ export default function GraphTreemapPage(props) {
       name: 'Graph',
       children: Object.values(groups).map((group) => ({ ...group, children: group.children.slice(0, 150) })),
     };
-  }, [filteredGraph.nodes]);
+  }, [renderedGraph.nodes]);
 
   return (
     <div className="space-y-4">

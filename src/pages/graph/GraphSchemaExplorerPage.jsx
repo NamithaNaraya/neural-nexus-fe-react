@@ -4,6 +4,7 @@ import { graphService } from '../../services/graphService';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ArrowRight } from 'lucide-react';
 import { filterGraphData } from './filterGraphData';
+import { capGraphData } from './graphDisplayData';
 
 export default function GraphSchemaExplorerPage(props) {
   const {
@@ -41,22 +42,24 @@ export default function GraphSchemaExplorerPage(props) {
     [graphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch]
   );
 
+  const renderedGraph = useMemo(() => capGraphData(filteredGraph, 12000), [filteredGraph]);
+
   const schema = useMemo(() => {
     const nodeTypeCounts = {};
     const relTypeCounts = {};
 
-    filteredGraph.nodes.forEach((node) => {
+    renderedGraph.nodes.forEach((node) => {
       const type = node.type || 'Unknown';
       nodeTypeCounts[type] = (nodeTypeCounts[type] || 0) + 1;
     });
 
-    filteredGraph.links.forEach((link) => {
+    renderedGraph.links.forEach((link) => {
       const type = link.type || 'UNKNOWN';
       relTypeCounts[type] = (relTypeCounts[type] || 0) + 1;
     });
 
     return { nodeTypeCounts, relTypeCounts };
-  }, [filteredGraph.nodes, filteredGraph.links]);
+  }, [renderedGraph.nodes, renderedGraph.links]);
 
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 

@@ -4,6 +4,7 @@ import { graphService } from '../../services/graphService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { filterGraphData } from './filterGraphData';
+import { capGraphData } from './graphDisplayData';
 
 export default function GraphDegreeDistributionPage(props) {
   const {
@@ -41,9 +42,11 @@ export default function GraphDegreeDistributionPage(props) {
     [graphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch]
   );
 
+  const renderedGraph = useMemo(() => capGraphData(filteredGraph, 12000), [filteredGraph]);
+
   const degreeData = useMemo(() => {
     const degrees = {};
-    filteredGraph.nodes.forEach((node) => {
+    renderedGraph.nodes.forEach((node) => {
       const degree = node.degree || 0;
       degrees[degree] = (degrees[degree] || 0) + 1;
     });
@@ -51,7 +54,7 @@ export default function GraphDegreeDistributionPage(props) {
       .map(([degree, count]) => ({ degree: parseInt(degree), count }))
       .sort((a, b) => a.degree - b.degree)
       .slice(0, 30);
-  }, [filteredGraph.nodes]);
+  }, [renderedGraph.nodes]);
 
   return (
     <div className="space-y-4">
@@ -92,23 +95,23 @@ export default function GraphDegreeDistributionPage(props) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-muted-foreground">Max Degree</p>
-              <p className="text-lg font-bold">{Math.max(...filteredGraph.nodes.map((n) => n.degree || 0), 0)}</p>
+                <p className="text-lg font-bold">{Math.max(...renderedGraph.nodes.map((n) => n.degree || 0), 0)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Avg Degree</p>
               <p className="text-lg font-bold">
-                {filteredGraph.nodes.length > 0
-                  ? (filteredGraph.nodes.reduce((sum, n) => sum + (n.degree || 0), 0) / filteredGraph.nodes.length).toFixed(2)
+                  {renderedGraph.nodes.length > 0
+                  ? (renderedGraph.nodes.reduce((sum, n) => sum + (n.degree || 0), 0) / renderedGraph.nodes.length).toFixed(2)
                   : 0}
               </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Orphans (Degree 0)</p>
-              <p className="text-lg font-bold">{filteredGraph.nodes.filter((n) => !n.degree || n.degree === 0).length}</p>
+              <p className="text-lg font-bold">{renderedGraph.nodes.filter((n) => !n.degree || n.degree === 0).length}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Hubs (Degree {'>'} 5)</p>
-              <p className="text-lg font-bold">{filteredGraph.nodes.filter((n) => (n.degree || 0) > 5).length}</p>
+              <p className="text-lg font-bold">{renderedGraph.nodes.filter((n) => (n.degree || 0) > 5).length}</p>
             </div>
           </div>
         </CardContent>

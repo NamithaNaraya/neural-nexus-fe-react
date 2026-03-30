@@ -12,6 +12,7 @@ import { TableView } from './views/TableView';
 
 export default function BrowsePage() {
   const {
+    folderId,
     nodeTypes,
     activeType,
     setActiveType,

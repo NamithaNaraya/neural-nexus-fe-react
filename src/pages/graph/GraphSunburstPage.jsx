@@ -4,6 +4,7 @@ import { graphService } from '../../services/graphService';
 import { Skeleton } from '../../components/ui/Skeleton';
 import * as d3 from 'd3';
 import { filterGraphData } from './filterGraphData';
+import { capGraphData } from './graphDisplayData';
 
 export default function GraphSunburstPage(props) {
   const {
@@ -41,9 +42,11 @@ export default function GraphSunburstPage(props) {
     [graphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch]
   );
 
+  const renderedGraph = useMemo(() => capGraphData(filteredGraph, 12000), [filteredGraph]);
+
   const sunburstData = useMemo(() => {
     const groups = {};
-    filteredGraph.nodes.forEach((node) => {
+    renderedGraph.nodes.forEach((node) => {
       const type = node.type || 'Unknown';
       if (!groups[type]) groups[type] = { name: type, children: [] };
       groups[type].children.push({ name: node.name || node.id, value: 1, id: node.id });
@@ -53,7 +56,7 @@ export default function GraphSunburstPage(props) {
       name: 'Graph',
       children: Object.values(groups),
     };
-  }, [filteredGraph.nodes]);
+  }, [renderedGraph.nodes]);
 
   const svgRef = React.useRef(null);
 

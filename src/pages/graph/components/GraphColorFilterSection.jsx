@@ -47,18 +47,18 @@ export function GraphColorFilterSection({
           <Icon className="h-3.5 w-3.5" />
           {title}
         </div>
-        <div className="flex items-center gap-2 text-[11px] font-medium">
+        <div className="flex items-center gap-2 text-[10px] font-medium">
           <button
             type="button"
             onClick={selectAll}
-            className="rounded-full border border-border/50 bg-background/70 px-2.5 py-1 text-muted-foreground transition hover:border-primary/30 hover:text-foreground"
+            className="rounded-full border border-border/30 bg-background/30 px-2.5 py-1 text-muted-foreground transition hover:border-primary/30 hover:bg-primary/5 hover:text-foreground"
           >
             Select all
           </button>
           <button
             type="button"
             onClick={clearAll}
-            className="rounded-full border border-border/50 bg-background/70 px-2.5 py-1 text-muted-foreground transition hover:border-primary/30 hover:text-foreground"
+            className="rounded-full border border-border/30 bg-background/30 px-2.5 py-1 text-muted-foreground transition hover:border-primary/30 hover:bg-primary/5 hover:text-foreground"
           >
             Clear
           </button>
@@ -74,9 +74,9 @@ export function GraphColorFilterSection({
             <div
               key={item}
               className={cn(
-                'group relative overflow-hidden rounded-2xl border transition',
+                'group relative overflow-hidden rounded-full border transition',
                 active
-                  ? 'border-transparent shadow-[0_12px_28px_-20px_rgba(15,23,42,0.45)]'
+                  ? 'border-transparent shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)]'
                   : 'border-border/50 bg-background/70'
               )}
               style={active ? { backgroundColor: color } : undefined}
@@ -85,7 +85,7 @@ export function GraphColorFilterSection({
                 type="button"
                 onClick={() => toggleItem(item)}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-2 text-xs font-semibold transition',
+                  'flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold transition',
                   active ? 'text-white' : 'text-foreground'
                 )}
               >

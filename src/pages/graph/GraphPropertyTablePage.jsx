@@ -1,9 +1,11 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
 import { graphService } from '../../services/graphService';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import { filterGraphData } from './filterGraphData';
+import { GraphNodeCrudModal } from '../../components/crud';
 
 export default function GraphPropertyTablePage(props) {
   const {
@@ -18,6 +20,21 @@ export default function GraphPropertyTablePage(props) {
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [crudOpen, setCrudOpen] = useState(false);
+  const [crudMode, setCrudMode] = useState('create');
+  const [activeNode, setActiveNode] = useState(null);
+  const [refreshToken, setRefreshToken] = useState(0);
+  const forceRefreshRef = useRef(false);
+
+  useEffect(() => {
+    const handleCrud = () => {
+      forceRefreshRef.current = true;
+      setRefreshToken((value) => value + 1);
+    };
+
+    window.addEventListener('nnv2:graph-crud', handleCrud);
+    return () => window.removeEventListener('nnv2:graph-crud', handleCrud);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -27,16 +44,17 @@ export default function GraphPropertyTablePage(props) {
           setGraphData({ nodes: [], links: [] });
           return;
         }
-        const data = await graphService.getFolder(folderId, 10000);
+        const data = await graphService.getFolder(folderId, 10000, { force: forceRefreshRef.current });
         setGraphData(data);
       } catch (err) {
         console.error('Failed to load graph:', err);
       } finally {
+        forceRefreshRef.current = false;
         setLoading(false);
       }
     };
     load();
-  }, [folderId]);
+  }, [folderId, refreshToken]);
 
   const filteredGraph = useMemo(
     () => filterGraphData(graphData, { nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch }),
@@ -70,9 +88,15 @@ export default function GraphPropertyTablePage(props) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Property Table</h1>
-        <p className="text-sm text-muted-foreground">Sortable table of all nodes with properties. Click column header to sort.</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Property Table</h1>
+          <p className="text-sm text-muted-foreground">Sortable table of all nodes with properties. Click column header to sort.</p>
+        </div>
+        <Button variant="gradient" size="sm" className="gap-2" onClick={() => { setCrudMode('create'); setActiveNode(null); setCrudOpen(true); }}>
+          <Plus className="w-4 h-4" />
+          Add Node
+        </Button>
       </div>
 
       {loading ? (
@@ -80,55 +104,77 @@ export default function GraphPropertyTablePage(props) {
       ) : (
         <Card>
           <CardContent className="p-0">
-            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-              <table className="w-full text-sm border-collapse">
+            <div className="max-h-[600px] overflow-y-auto overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
                 <thead className="sticky top-0 bg-muted/50">
                   <tr className="border-b border-border">
-                    <th
-                      onClick={() => toggleSort('id')}
-                      className="px-4 py-2 text-left font-semibold text-xs text-muted-foreground uppercase cursor-pointer hover:bg-muted"
-                    >
+                    <th onClick={() => toggleSort('id')} className="cursor-pointer px-4 py-2 text-left text-xs font-semibold uppercase text-muted-foreground hover:bg-muted">
                       <div className="flex items-center gap-1">
                         ID {sortBy === 'id' && <ChevronDown className="w-3 h-3" />}
                       </div>
                     </th>
-                    <th
-                      onClick={() => toggleSort('name')}
-                      className="px-4 py-2 text-left font-semibold text-xs text-muted-foreground uppercase cursor-pointer hover:bg-muted"
-                    >
+                    <th onClick={() => toggleSort('name')} className="cursor-pointer px-4 py-2 text-left text-xs font-semibold uppercase text-muted-foreground hover:bg-muted">
                       <div className="flex items-center gap-1">
                         Name {sortBy === 'name' && <ChevronDown className="w-3 h-3" />}
                       </div>
                     </th>
-                    <th
-                      onClick={() => toggleSort('type')}
-                      className="px-4 py-2 text-left font-semibold text-xs text-muted-foreground uppercase cursor-pointer hover:bg-muted"
-                    >
+                    <th onClick={() => toggleSort('type')} className="cursor-pointer px-4 py-2 text-left text-xs font-semibold uppercase text-muted-foreground hover:bg-muted">
                       <div className="flex items-center gap-1">
                         Type {sortBy === 'type' && <ChevronDown className="w-3 h-3" />}
                       </div>
                     </th>
-                    <th
-                      onClick={() => toggleSort('degree')}
-                      className="px-4 py-2 text-left font-semibold text-xs text-muted-foreground uppercase cursor-pointer hover:bg-muted"
-                    >
+                    <th onClick={() => toggleSort('degree')} className="cursor-pointer px-4 py-2 text-left text-xs font-semibold uppercase text-muted-foreground hover:bg-muted">
                       <div className="flex items-center gap-1">
                         Degree {sortBy === 'degree' && <ChevronDown className="w-3 h-3" />}
                       </div>
                     </th>
-                    <th className="px-4 py-2 text-left font-semibold text-xs text-muted-foreground uppercase">Description</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold uppercase text-muted-foreground">Description</th>
+                    <th className="px-4 py-2 text-right text-xs font-semibold uppercase text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sortedNodes.map((node, idx) => (
-                    <tr key={node.id} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
-                      <td className="px-4 py-2 text-xs font-mono text-muted-foreground truncate max-w-xs">{node.id}</td>
+                    <tr
+                      key={node.id}
+                      className={`${idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'} cursor-pointer hover:bg-muted/40`}
+                      onClick={() => {
+                        setCrudMode('edit');
+                        setActiveNode(node);
+                        setCrudOpen(true);
+                      }}
+                    >
+                      <td className="max-w-xs truncate px-4 py-2 text-xs font-mono text-muted-foreground">{node.id}</td>
                       <td className="px-4 py-2 text-xs font-medium">{node.name || '—'}</td>
                       <td className="px-4 py-2 text-xs">
-                        <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs">{node.type || 'Unknown'}</span>
+                        <span className="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary">{node.type || 'Unknown'}</span>
                       </td>
                       <td className="px-4 py-2 text-xs font-semibold">{node.degree || 0}</td>
-                      <td className="px-4 py-2 text-xs text-muted-foreground truncate max-w-sm">{node.description || '—'}</td>
+                      <td className="max-w-sm truncate px-4 py-2 text-xs text-muted-foreground">{node.description || '—'}</td>
+                      <td className="px-4 py-2 text-right">
+                        <button
+                          type="button"
+                          className="mr-2 rounded-md border border-border/50 px-2 py-1 text-[10px] font-medium hover:bg-muted/50"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setCrudMode('edit');
+                            setActiveNode(node);
+                            setCrudOpen(true);
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-md border border-red-500/20 px-2 py-1 text-[10px] font-medium text-red-600 hover:bg-red-500/5"
+                          onClick={async (event) => {
+                            event.stopPropagation();
+                            await graphService.deleteNode(node.id, folderId);
+                            setRefreshToken((value) => value + 1);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -137,6 +183,15 @@ export default function GraphPropertyTablePage(props) {
           </CardContent>
         </Card>
       )}
+
+      <GraphNodeCrudModal
+        open={crudOpen}
+        mode={crudMode}
+        folderId={folderId}
+        initialNode={activeNode}
+        onClose={() => setCrudOpen(false)}
+        onSuccess={() => setRefreshToken((value) => value + 1)}
+      />
     </div>
   );
 }

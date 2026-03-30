@@ -51,7 +51,7 @@ export function DashboardLayout({ children }) {
           <div className="absolute inset-0 -z-10 bg-gradient-to-br from-background via-background to-primary/[0.02]" />
           <div className="absolute right-0 top-0 -z-10 h-[600px] w-[600px] rounded-full bg-blue-500/[0.02] blur-[120px]" />
 
-          <div className="w-full px-6 py-5">
+          <div className="w-full h-full px-6 py-5 flex flex-col">
             {children}
           </div>
         </main>

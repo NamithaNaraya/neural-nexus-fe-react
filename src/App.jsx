@@ -9,6 +9,7 @@ import { DashboardLayout } from './components/layout/DashboardLayout';
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
 const GraphPage = lazy(() => import('./pages/GraphPage'));
+const VisualizeDataPage = lazy(() => import('./pages/visualize/VisualizeDataPage'));
 const ChatPage = lazy(() => import('./pages/chat/ChatPage'));
 const UploadPage = lazy(() => import('./pages/UploadPage'));
 const FoldersPage = lazy(() => import('./pages/FoldersPage'));
@@ -66,6 +67,7 @@ function AppRoutes() {
                     <Routes>
                       <Route path="/" element={<DashboardPage />} />
                       <Route path="/graph/*" element={<GraphPage />} />
+                      <Route path="/visualize/*" element={<VisualizeDataPage />} />
                       <Route path="/chat" element={<ChatPage />} />
                       <Route path="/upload" element={<UploadPage />} />
                       <Route path="/folders" element={<FoldersPage />} />

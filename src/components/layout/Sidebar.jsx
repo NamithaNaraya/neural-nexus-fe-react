@@ -17,6 +17,7 @@ import {
   Search,
   Sparkles,
   HelpCircle,
+  Palette,
 } from 'lucide-react';
 
 const navSections = [
@@ -25,6 +26,7 @@ const navSections = [
     items: [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
       { icon: Network, label: 'Knowledge Graph', path: '/graph' },
+      { icon: Palette, label: 'Visualize Data', path: '/visualize' },
       { icon: MessageSquare, label: 'Chat', path: '/chat', badge: 'RAG+Web' },
     ],
   },
