@@ -31,7 +31,7 @@ const navSections = [
   {
     label: 'Data',
     items: [
-      { icon: Upload, label: 'Upload & Ingest', path: '/upload' },
+      { icon: Upload, label: 'Upload', path: '/upload' },
       { icon: Folder, label: 'Folders', path: '/folders' },
       { icon: Search, label: 'Browse Graph', path: '/browse' },
     ],
@@ -39,8 +39,8 @@ const navSections = [
   {
     label: 'Intelligence',
     items: [
+      { icon: Sparkles, label: 'ML Prediction', path: '/ml-prediction' },
       { icon: BarChart3, label: 'Analytics', path: '/analytics' },
-      { icon: Sparkles, label: 'AI Insights', path: '/insights' },
     ],
   },
   {
