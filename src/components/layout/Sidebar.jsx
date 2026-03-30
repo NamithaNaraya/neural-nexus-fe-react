@@ -25,7 +25,7 @@ const navSections = [
     items: [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
       { icon: Network, label: 'Knowledge Graph', path: '/graph' },
-      { icon: MessageSquare, label: 'AI Chat', path: '/chat', badge: 'RAG' },
+      { icon: MessageSquare, label: 'Chat', path: '/chat', badge: 'RAG+Web' },
     ],
   },
   {
