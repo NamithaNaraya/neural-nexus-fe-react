@@ -9,7 +9,7 @@ const buttonVariants = {
     secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
     ghost: 'hover:bg-accent hover:text-accent-foreground',
     link: 'text-primary underline-offset-4 hover:underline',
-    gradient: 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-lg shadow-blue-500/25',
+    gradient: 'bg-gradient-to-r from-emerald-600 to-amber-700 text-white hover:from-emerald-700 hover:to-amber-800 shadow-lg shadow-emerald-500/25',
   },
   size: {
     default: 'h-10 px-4 py-2',

@@ -63,9 +63,9 @@ export function HeaderFolderPicker({
         type="button"
         onClick={() => setOpen((value) => !value)}
         disabled={loading || folders.length === 0}
-        className="flex h-10 items-center gap-2 rounded-xl border border-border/50 bg-background/70 px-3 text-left transition hover:border-primary/30 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex h-10 items-center gap-2 rounded-xl border border-border/50 bg-background/70 px-3 text-left transition hover:border-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <FolderOpen className="h-3.5 w-3.5 text-primary" />
+        <FolderOpen className="h-3.5 w-3.5 text-emerald-600" />
         <span className="text-xs font-medium text-muted-foreground">Folder</span>
         <span className="max-w-[180px] truncate text-sm font-medium text-foreground">
           {selectedFolder?.name || (loading ? 'Loading...' : 'No folders')}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent } from '../../components/ui/Card';
 import { graphService } from '../../services/graphService';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -17,6 +17,7 @@ export default function GraphSunburstPage(props) {
   } = props;
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [loading, setLoading] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(0);
 
   useEffect(() => {
     const load = async () => {
@@ -58,13 +59,25 @@ export default function GraphSunburstPage(props) {
     };
   }, [renderedGraph.nodes]);
 
-  const svgRef = React.useRef(null);
+  const wrapperRef = useRef(null);
+  const svgRef = useRef(null);
 
   useEffect(() => {
-    if (loading || !sunburstData.children.length || !svgRef.current) return;
+    if (!wrapperRef.current) return undefined;
+    const node = wrapperRef.current;
+    const updateWidth = () => setContainerWidth(node.clientWidth || 0);
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
-    const width = 780;
-    const radius = width / 6;
+  useEffect(() => {
+    if (loading || !sunburstData.children.length || !svgRef.current || !containerWidth) return;
+
+    const width = containerWidth;
+    const height = 620;
+    const radius = Math.min(width, height * 1.15) / 2.35;
 
     const partition = d3.partition().size([2 * Math.PI, radius]);
     const root = d3
@@ -86,7 +99,7 @@ export default function GraphSunburstPage(props) {
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
-    const g = svg.append('g').attr('transform', `translate(${width / 2},${radius + 20})`);
+    const g = svg.append('g').attr('transform', `translate(${width / 2},${height / 2})`);
 
     g.selectAll('path')
       .data(root.descendants().filter((d) => d.depth))
@@ -117,7 +130,7 @@ export default function GraphSunburstPage(props) {
       .attr('text-anchor', 'middle')
       .attr('font-size', '10px')
       .text((d) => d.data.name);
-  }, [sunburstData, loading]);
+  }, [sunburstData, loading, containerWidth]);
 
   return (
     <div className="space-y-4">
@@ -129,9 +142,9 @@ export default function GraphSunburstPage(props) {
           <Skeleton className="h-24 rounded-lg" />
         </div>
       ) : (
-        <Card>
-          <CardContent className="h-[620px] relative">
-            <svg ref={svgRef} width="100%" height="620" />
+        <Card className="w-full">
+          <CardContent ref={wrapperRef} className="relative h-[620px] w-full">
+            <svg ref={svgRef} width="100%" height="620" viewBox={`0 0 ${containerWidth || 780} 620`} preserveAspectRatio="xMidYMid meet" />
             <div
               id="sunburst-tooltip"
               className="absolute pointer-events-none z-50 rounded-md bg-black/70 px-2 py-1 text-white text-xs opacity-0 transition-opacity"

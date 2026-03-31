@@ -4,7 +4,6 @@ import { cn } from '../../utils/cn';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-  LayoutDashboard,
   Network,
   MessageSquare,
   Upload,
@@ -19,12 +18,13 @@ import {
   HelpCircle,
   Palette,
 } from 'lucide-react';
+import nessoLogo from '../../assets/logo.png';
 
 const navSections = [
   {
     label: 'Main',
     items: [
-      { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+      { icon: Folder, label: 'Folders', path: '/folders' },
       { icon: Network, label: 'Knowledge Graph', path: '/graph' },
       { icon: Palette, label: 'Visualize Data', path: '/visualize' },
       { icon: MessageSquare, label: 'Chat', path: '/chat', badge: 'RAG+Web' },
@@ -34,7 +34,6 @@ const navSections = [
     label: 'Data',
     items: [
       { icon: Upload, label: 'Upload', path: '/upload' },
-      { icon: Folder, label: 'Folders', path: '/folders' },
       { icon: Search, label: 'Browse Graph', path: '/browse' },
     ],
   },
@@ -73,15 +72,15 @@ export function Sidebar() {
           'flex items-center gap-3 overflow-hidden transition-all duration-300',
           expanded ? 'w-full' : 'w-10 justify-center'
         )}>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0">
-            <Network className="w-5 h-5 text-white" />
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-emerald-500/20 bg-white shadow-lg shadow-emerald-500/15 shrink-0 dark:bg-slate-950">
+            <img src={nessoLogo} alt="NESSO" className="h-full w-full object-contain p-1" />
           </div>
           <div className={cn(
             'transition-all duration-200 overflow-hidden whitespace-nowrap',
             expanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'
           )}>
-            <h1 className="font-extrabold text-base gradient-text leading-tight">Neural Nexus</h1>
-            <p className="text-[10px] text-muted-foreground/60 font-medium tracking-widest uppercase">Platform</p>
+            <h1 className="font-extrabold text-base leading-tight text-emerald-600 dark:text-emerald-300">NESSO</h1>
+            <p className="text-[10px] font-medium tracking-widest uppercase text-emerald-600/60 dark:text-emerald-300/60">Botanica</p>
           </div>
         </div>
       </div>

@@ -4,10 +4,9 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import { GlobalFolderProvider } from './contexts/GlobalFolderContext';
-import { DashboardLayout } from './components/layout/DashboardLayout';
+import { AppLayout } from './components/layout/AppLayout';
 
 const LoginPage = lazy(() => import('./pages/LoginPage'));
-const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
 const GraphPage = lazy(() => import('./pages/GraphPage'));
 const VisualizeDataPage = lazy(() => import('./pages/visualize/VisualizeDataPage'));
 const ChatPage = lazy(() => import('./pages/chat/ChatPage'));
@@ -63,9 +62,9 @@ function AppRoutes() {
             <SidebarProvider>
               <GlobalFolderProvider>
                 <Suspense fallback={<RouteLoader />}>
-                  <DashboardLayout>
+                  <AppLayout>
                     <Routes>
-                      <Route path="/" element={<DashboardPage />} />
+                      <Route path="/" element={<Navigate to="/folders" replace />} />
                       <Route path="/graph/*" element={<GraphPage />} />
                       <Route path="/visualize/*" element={<VisualizeDataPage />} />
                       <Route path="/chat" element={<ChatPage />} />
@@ -79,7 +78,7 @@ function AppRoutes() {
                       <Route path="/help" element={<HelpPage />} />
                       <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
-                  </DashboardLayout>
+                  </AppLayout>
                 </Suspense>
               </GlobalFolderProvider>
             </SidebarProvider>

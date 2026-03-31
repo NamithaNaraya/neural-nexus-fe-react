@@ -194,7 +194,7 @@ export default function GraphPage() {
             <button
               type="button"
               onClick={() => setAddNodeSignal((value) => value + 1)}
-              className="rounded-full bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition hover:from-blue-600 hover:to-purple-700"
+              className="rounded-full bg-gradient-to-r from-emerald-600 to-amber-700 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-emerald-500/20 transition hover:from-emerald-700 hover:to-amber-800"
             >
               Add Node
             </button>

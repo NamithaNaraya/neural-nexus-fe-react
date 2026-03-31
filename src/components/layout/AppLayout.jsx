@@ -5,7 +5,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
 import { Moon, Sun } from 'lucide-react';
 
-export function DashboardLayout({ children }) {
+export function AppLayout({ children }) {
   const { theme, toggleTheme } = useTheme();
   const {
     folders,
@@ -35,9 +35,9 @@ export function DashboardLayout({ children }) {
               className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
             >
               {theme === 'dark' ? (
-                <Sun className="h-[18px] w-[18px] text-amber-400" />
+                <Sun className="h-[18px] w-[18px] text-amber-600" />
               ) : (
-                <Moon className="h-[18px] w-[18px] text-blue-500" />
+                <Moon className="h-[18px] w-[18px] text-emerald-600" />
               )}
             </button>
 
@@ -49,9 +49,9 @@ export function DashboardLayout({ children }) {
 
         <main className="relative flex-1 overflow-auto">
           <div className="absolute inset-0 -z-10 bg-gradient-to-br from-background via-background to-primary/[0.02]" />
-          <div className="absolute right-0 top-0 -z-10 h-[600px] w-[600px] rounded-full bg-blue-500/[0.02] blur-[120px]" />
+          <div className="absolute right-0 top-0 -z-10 h-[600px] w-[600px] rounded-full bg-emerald-500/[0.04] blur-[120px]" />
 
-          <div className="w-full h-full px-6 py-5 flex flex-col">
+          <div className="flex h-full w-full flex-col px-6 py-5">
             {children}
           </div>
         </main>
