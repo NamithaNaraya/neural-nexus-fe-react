@@ -1,28 +1,49 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../../components/ui/Button';
-import { RotateCcw, ChevronRight, ArrowDownToLine, Sparkles, PanelRightClose, FolderOpen } from 'lucide-react';
+import { RotateCcw, PanelRightClose, Download, ChevronDown, FileText, FileJson, SquarePen } from 'lucide-react';
 import { MessageBubble, TypingIndicator } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
 import api from '../../services/api';
 import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../utils/cn';
-
-const INITIAL_MESSAGE = {
-  role: 'assistant',
-  content: "Hello! I'm your AI chat assistant with RAG and web search. Ask anything about your knowledge graph or general domain, and you'll get full answers from the backend.",
-};
+import jsPDF from 'jspdf';
+import {
+  WELCOME_MESSAGE,
+  createBlankSession,
+  getChatStorageKey,
+  getDefaultSessionTitle,
+  loadChatWorkspace,
+  removeSession,
+  saveChatWorkspace,
+  selectSessionForFolder,
+  getSessionTitleFromMessages,
+} from './chatSessionStorage';
 
 export default function ChatPage() {
-  const { currentFolder, selectedFolderId } = useGlobalFolder();
-  const [messages, setMessages] = useState([INITIAL_MESSAGE]);
+  const { currentFolder, selectedFolderId, setSelectedFolderId } = useGlobalFolder();
+  const { user } = useAuth();
+  const userKey = user?.id || user?.email || user?.username || 'anonymous';
+  const storageKey = useMemo(() => getChatStorageKey(userKey), [userKey]);
+  const [workspace, setWorkspace] = useState(() => loadChatWorkspace(userKey));
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [chatHistory, setChatHistory] = useState([]);
-  const [isHistoryOpen, setHistoryOpen] = useState(false);
-  const [sessionName, setSessionName] = useState('Chat Session');
+  const [isHistoryOpen, setHistoryOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1280 : false));
+  const [isDownloadOpen, setDownloadOpen] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const downloadMenuRef = useRef(null);
+  const hasHydratedWorkspaceRef = useRef(false);
+  const lastFolderIdRef = useRef(selectedFolderId || '');
+
+  const activeSession = useMemo(
+    () => workspace.sessions.find((session) => session.id === workspace.currentSessionId) || null,
+    [workspace]
+  );
+  const messages = activeSession?.messages || [WELCOME_MESSAGE];
+  const chatHistory = workspace.sessions.slice().sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+  const hasPendingWebSearchMessage = messages.some((message) => message?.webSearchPending);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -30,17 +51,47 @@ export default function ChatPage() {
 
   useEffect(scrollToBottom, [messages]);
 
-  const createSessionSnapshot = () => ({
-    id: Date.now().toString(),
-    label: `${sessionName} ${chatHistory.length + 1}`,
-    createdAt: Date.now(),
-    messages: messages.slice(),
-  });
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!downloadMenuRef.current?.contains(event.target)) {
+        setDownloadOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, []);
 
-  const saveCurrentSession = () => {
-    if (messages.length <= 1) return;
-    setChatHistory((prev) => [...prev, createSessionSnapshot()]);
-  };
+  useEffect(() => {
+    hasHydratedWorkspaceRef.current = false;
+    setWorkspace(loadChatWorkspace(userKey));
+    queueMicrotask(() => {
+      hasHydratedWorkspaceRef.current = true;
+    });
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!selectedFolderId) return;
+    if (!hasHydratedWorkspaceRef.current) {
+      lastFolderIdRef.current = selectedFolderId;
+      return;
+    }
+    if (String(lastFolderIdRef.current || '') === String(selectedFolderId)) {
+      return;
+    }
+    lastFolderIdRef.current = selectedFolderId;
+    setWorkspace((prev) => {
+      const currentSession = prev.sessions.find((session) => session.id === prev.currentSessionId);
+      if (String(currentSession?.folderId || '') === String(selectedFolderId)) {
+        return prev;
+      }
+      return selectSessionForFolder(prev, selectedFolderId, currentFolder?.name || '');
+    });
+  }, [selectedFolderId, currentFolder?.name]);
+
+  useEffect(() => {
+    if (!hasHydratedWorkspaceRef.current) return;
+    saveChatWorkspace(userKey, workspace);
+  }, [workspace, userKey]);
 
   const normalizeWebSearchSources = (metadata) => {
     const chunks = metadata?.grounding_chunks || [];
@@ -59,8 +110,30 @@ export default function ChatPage() {
       .filter(Boolean);
   };
 
+  const persistWorkspace = (nextWorkspace) => {
+    setWorkspace(nextWorkspace);
+    saveChatWorkspace(userKey, nextWorkspace);
+  };
+
+  const updateCurrentSession = (updater) => {
+    setWorkspace((prev) => {
+      const current = prev.sessions.find((session) => session.id === prev.currentSessionId);
+      if (!current) return prev;
+      const nextSession = updater(current);
+      const sessions = [nextSession, ...prev.sessions.filter((session) => session.id !== nextSession.id)];
+      const nextWorkspace = { currentSessionId: nextSession.id, sessions };
+      saveChatWorkspace(userKey, nextWorkspace);
+      return nextWorkspace;
+    });
+  };
+
   const updateMessageAtIndex = (index, updater) => {
-    setMessages((prev) => prev.map((message, messageIndex) => (messageIndex === index ? updater(message) : message)));
+    updateCurrentSession((session) => ({
+      ...session,
+      messages: session.messages.map((message, messageIndex) => (messageIndex === index ? updater(message) : message)),
+      title: session.title || getSessionTitleFromMessages(session.messages, getDefaultSessionTitle(currentFolder?.name || 'Chat Session')),
+      updatedAt: Date.now(),
+    }));
   };
 
   const performWebSearch = async ({ question, contextHint = '', messageIndex = null, appendMessage = false }) => {
@@ -79,10 +152,11 @@ export default function ChatPage() {
         isWebSearch: true,
       }));
     } else if (appendMessage) {
-      setMessages((prev) => {
-        appendedMessageIndex = prev.length;
-        return [
-          ...prev,
+      appendedMessageIndex = messages.length;
+      updateCurrentSession((session) => ({
+        ...session,
+        messages: [
+          ...session.messages,
           {
             role: 'assistant',
             content: `Searching web for: "${searchQuery}"...`,
@@ -91,8 +165,9 @@ export default function ChatPage() {
             webSearchQuery: searchQuery,
             webSearchContextHint: fallbackContext,
           },
-        ];
-      });
+        ],
+        updatedAt: Date.now(),
+      }));
     }
 
     setLoading(true);
@@ -128,19 +203,23 @@ export default function ChatPage() {
           webSearchContextHint: fallbackContext,
         }));
       } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            content: `Web search results for "${searchQuery}"`,
-            isWebSearch: true,
-            webSearchPending: false,
-            webSearchAnswer: answer,
-            webSearchSources: sources,
-            webSearchQuery: searchQuery,
-            webSearchContextHint: fallbackContext,
-          },
-        ]);
+        updateCurrentSession((session) => ({
+          ...session,
+          messages: [
+            ...session.messages,
+            {
+              role: 'assistant',
+              content: `Web search results for "${searchQuery}"`,
+              isWebSearch: true,
+              webSearchPending: false,
+              webSearchAnswer: answer,
+              webSearchSources: sources,
+              webSearchQuery: searchQuery,
+              webSearchContextHint: fallbackContext,
+            },
+          ],
+          updatedAt: Date.now(),
+        }));
       }
     } catch {
       const errorMessage = {
@@ -159,7 +238,11 @@ export default function ChatPage() {
           ...errorMessage,
         }));
       } else {
-        setMessages((prev) => [...prev, errorMessage]);
+        updateCurrentSession((session) => ({
+          ...session,
+          messages: [...session.messages, errorMessage],
+          updatedAt: Date.now(),
+        }));
       }
     } finally {
       setLoading(false);
@@ -172,19 +255,28 @@ export default function ChatPage() {
 
     const userMessage = input.trim();
     setInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
+    const nextSessionTitle = getSessionTitleFromMessages([...messages.filter((msg) => !msg.isWelcome), { role: 'user', content: userMessage }], currentFolder?.name || 'Chat Session');
+    updateCurrentSession((session) => ({
+      ...session,
+      title: session.title && session.title !== getDefaultSessionTitle(currentFolder?.name || 'Chat Session') ? session.title : nextSessionTitle,
+      folderId: selectedFolderId ? String(selectedFolderId) : session.folderId,
+      folderName: currentFolder?.name || session.folderName,
+      messages: [...session.messages, { role: 'user', content: userMessage }],
+      updatedAt: Date.now(),
+    }));
     setLoading(true);
 
     try {
-      const history = messages
-        .filter((message) => message.role !== 'system')
+      const activeMessages = messages
+        .filter((message) => message.role !== 'system' && !message.isWelcome)
         .map((message) => ({ role: message.role, content: message.content }));
 
       // Call non-streaming endpoint that returns full response
       const response = await api.post('/combined-chat/answer', {
         question: userMessage,
         folder_id: selectedFolderId || null,
-        history: history.slice(-6),
+        session_id: workspace.currentSessionId || null,
+        history: activeMessages.slice(-10),
       });
 
       console.log('Full API response:', response.data);
@@ -200,39 +292,69 @@ export default function ChatPage() {
       const webSearchQuery = response.data?.web_search_query || userMessage;
       const webSearchSources = normalizeWebSearchSources(response.data?.grounding_metadata);
 
-      // Add complete message with all data
-      setMessages((prev) => [...prev, {
-        role: 'assistant',
-        content: answer,
-        sources,
-        webSearchSuggested: suggestWebSearch,
-        webSearchQuery,
-        webSearchSources,
-        contextSummary,
-        intent,
-        algorithm,
-        results,
-      }]);
+      updateCurrentSession((session) => ({
+        ...session,
+        messages: [
+          ...session.messages,
+          {
+            role: 'assistant',
+            content: answer,
+            sources,
+            webSearchSuggested: suggestWebSearch,
+            webSearchQuery,
+            webSearchSources,
+            contextSummary,
+            intent,
+            algorithm,
+            results,
+          },
+        ],
+        updatedAt: Date.now(),
+      }));
 
     } catch (error) {
       console.error('Chat error', error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: 'Sorry, I encountered an error. Please make sure the backend is running and try again.',
-          isError: true,
-        },
-      ]);
+      updateCurrentSession((session) => ({
+        ...session,
+        messages: [
+          ...session.messages,
+          {
+            role: 'assistant',
+            content: 'Sorry, I encountered an error. Please make sure the backend is running and try again.',
+            isError: true,
+          },
+        ],
+        updatedAt: Date.now(),
+      }));
     } finally {
       setLoading(false);
       inputRef.current?.focus();
     }
   };
 
+  const startNewChat = () => {
+    const nextSession = createBlankSession({
+      folderId: selectedFolderId || '',
+      folderName: currentFolder?.name || '',
+    });
+    persistWorkspace({
+      currentSessionId: nextSession.id,
+      sessions: [nextSession, ...workspace.sessions],
+    });
+    setInput('');
+    setHistoryOpen(false);
+    inputRef.current?.focus();
+  };
+
   const clearChat = () => {
-    saveCurrentSession();
-    setMessages([{ role: 'assistant', content: 'Chat cleared. How can I help you?' }]);
+    updateCurrentSession((session) => ({
+      ...session,
+      title: getDefaultSessionTitle(currentFolder?.name || session.folderName || 'Chat Session'),
+      messages: [WELCOME_MESSAGE],
+      updatedAt: Date.now(),
+    }));
+    setInput('');
+    inputRef.current?.focus();
   };
 
   const exportToText = () => {
@@ -255,62 +377,128 @@ export default function ChatPage() {
     URL.revokeObjectURL(anchor.href);
   };
 
+  const exportToPdf = () => {
+    if (messages.length === 0) return;
+
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const margin = 14;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    let y = margin;
+
+    const pushLine = (line, fontSize = 11, color = [40, 40, 40]) => {
+      doc.setFontSize(fontSize);
+      doc.setTextColor(color[0], color[1], color[2]);
+      const lines = doc.splitTextToSize(String(line || ''), pageWidth - margin * 2);
+      lines.forEach((part) => {
+        if (y > pageHeight - margin) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(part, margin, y);
+        y += fontSize * 0.42;
+      });
+      y += 2;
+    };
+
+    doc.setFont('helvetica', 'bold');
+    pushLine(`Neural Nexus Chat Export`, 16, [30, 41, 59]);
+    doc.setFont('helvetica', 'normal');
+    pushLine(`Folder: ${currentFolder?.name || 'Global'}`, 10, [75, 85, 99]);
+    pushLine(`Session: ${activeSession?.title || 'Current conversation'}`, 10, [75, 85, 99]);
+    pushLine(`Exported: ${new Date().toLocaleString()}`, 10, [75, 85, 99]);
+    y += 2;
+
+    messages.forEach((message, index) => {
+      const label = message.role === 'user' ? 'User' : message.isWebSearch ? 'Assistant / Web' : 'Assistant';
+      doc.setFont('helvetica', 'bold');
+      pushLine(`${label}`, 11, message.role === 'user' ? [22, 101, 52] : [92, 72, 58]);
+      doc.setFont('helvetica', 'normal');
+      pushLine(message.content || '', 10, [41, 37, 36]);
+      if (message.webSearchAnswer) {
+        doc.setFont('helvetica', 'bold');
+        pushLine('Web insights', 10, [5, 150, 105]);
+        doc.setFont('helvetica', 'normal');
+        pushLine(message.webSearchAnswer, 10, [68, 64, 60]);
+      }
+      if (index < messages.length - 1) {
+        y += 2;
+        doc.setDrawColor(226, 232, 240);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 4;
+      }
+    });
+
+    doc.save(`chat-${Date.now()}.pdf`);
+  };
+
   const restoreSession = (id) => {
     const session = chatHistory.find((item) => item.id === id);
     if (session) {
-      setMessages(session.messages);
+      const nextWorkspace = {
+        currentSessionId: session.id,
+        sessions: workspace.sessions.map((entry) =>
+          entry.id === session.id
+            ? {
+                ...entry,
+                messages: session.messages,
+                folderId: session.folderId || entry.folderId,
+                folderName: session.folderName || entry.folderName,
+                updatedAt: Date.now(),
+              }
+            : entry
+        ),
+      };
+      persistWorkspace(nextWorkspace);
+      if (session.folderId) {
+        setSelectedFolderId(String(session.folderId));
+      }
       setHistoryOpen(false);
     }
   };
 
   const deleteSession = (id) => {
-    setChatHistory((prev) => prev.filter((item) => item.id !== id));
+    const nextWorkspace = removeSession(workspace, id);
+    persistWorkspace(nextWorkspace);
+    if (nextWorkspace.currentSessionId !== workspace.currentSessionId) {
+      const nextSession = nextWorkspace.sessions.find((session) => session.id === nextWorkspace.currentSessionId);
+      if (nextSession) {
+        if (nextSession.folderId) {
+          setSelectedFolderId(String(nextSession.folderId));
+        }
+        setHistoryOpen(false);
+      }
+    }
   };
-
-  const readOnlyMessageCount = useMemo(() => messages.length, [messages]);
 
   return (
     <div className="-mx-6 -my-5 flex h-[calc(100vh-theme(spacing.16))] w-[calc(100%+theme(spacing.12))] flex-col bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="px-6 pt-5">
-        <section className="rounded-[30px] border border-border/50 bg-card/75 px-5 py-4 shadow-[0_18px_50px_-36px_rgba(92,72,58,0.35)] backdrop-blur-xl">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0 space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/80">
-                <Sparkles className="h-3.5 w-3.5" />
-                Conversation Workspace
-              </div>
+      <div className="px-6 pt-4">
+        <section className="rounded-[28px] border border-border/50 bg-card/75 px-5 py-3.5 shadow-[0_18px_50px_-36px_rgba(92,72,58,0.35)] backdrop-blur-xl">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0 space-y-1.5">
               <div className="space-y-1">
-                <h1 className="text-2xl font-semibold tracking-tight text-foreground">Chat</h1>
+                <h1 className="text-[1.8rem] font-semibold tracking-tight text-foreground">Chat</h1>
                 <p className="max-w-3xl text-sm text-muted-foreground">
                   {currentFolder?.name
-                    ? `Ask about the selected folder, inspect answers, and open web sources when needed. Folder: ${currentFolder.name}.`
+                    ? (
+                      <>
+                        Ask about{' '}
+                        <span className="font-semibold text-emerald-700 dark:text-emerald-300">
+                          {currentFolder.name}
+                        </span>
+                        , inspect answers, and open web sources when needed.
+                      </>
+                    )
                     : 'Ask about your knowledge graph, review grounded answers, and open web sources when needed.'}
                 </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2.5 py-1">
-                  <FolderOpen className="h-3.5 w-3.5 text-emerald-600" />
-                  {currentFolder?.name || 'No folder selected'}
-                </span>
-                <span className="rounded-full border border-border/60 bg-background/60 px-2.5 py-1">
-                  {readOnlyMessageCount} message{readOnlyMessageCount === 1 ? '' : 's'}
-                </span>
-                <span className="rounded-full border border-border/60 bg-background/60 px-2.5 py-1 text-emerald-700 dark:text-emerald-300">
-                  Web search ready
-                </span>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5"
-                onClick={scrollToBottom}
-                aria-label="Scroll to latest message"
-              >
-                <ArrowDownToLine className="h-4 w-4" />
-                Latest
+              <Button variant="ghost" size="sm" onClick={startNewChat} className="gap-1.5">
+                <SquarePen className="h-4 w-4" />
+                New chat
               </Button>
               <Button
                 variant="ghost"
@@ -327,40 +515,80 @@ export default function ChatPage() {
                 <RotateCcw className="h-4 w-4" />
                 Clear chat
               </Button>
+              <div className="relative" ref={downloadMenuRef}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setDownloadOpen((open) => !open)}
+                  aria-expanded={isDownloadOpen}
+                >
+                  <Download className="h-4 w-4" />
+                  Download
+                  <ChevronDown className={cn('h-4 w-4 transition-transform', isDownloadOpen ? 'rotate-180' : '')} />
+                </Button>
+                {isDownloadOpen && (
+                  <div className="absolute right-0 top-11 z-20 min-w-48 rounded-2xl border border-border/60 bg-card/95 p-2 shadow-[0_20px_55px_-35px_rgba(92,72,58,0.45)] backdrop-blur-xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        exportToText();
+                        setDownloadOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                    >
+                      <FileText className="h-4 w-4 text-emerald-600" />
+                      Download TXT
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        exportToJson();
+                        setDownloadOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                    >
+                      <FileJson className="h-4 w-4 text-emerald-600" />
+                      Download JSON
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        exportToPdf();
+                        setDownloadOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                    >
+                      <Download className="h-4 w-4 text-emerald-600" />
+                      Download PDF
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </section>
       </div>
 
-      <div className="relative flex min-h-0 flex-1 overflow-hidden px-6 pb-5 pt-4">
-        <div className={cn(
-          'flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-border/50 bg-card/75 shadow-[0_24px_70px_-48px_rgba(92,72,58,0.45)] backdrop-blur-xl',
-          isHistoryOpen ? 'lg:pr-[22rem]' : ''
-        )}>
-          <div className="flex items-center justify-between gap-3 border-b border-border/40 px-5 py-3">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden px-6 pb-5 pt-3">
+        <div className="flex min-h-0 flex-1 gap-0 lg:gap-4">
+          <div
+            className={cn(
+              'flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-border/50 bg-card/75 shadow-[0_24px_70px_-48px_rgba(92,72,58,0.45)] backdrop-blur-xl',
+              isHistoryOpen ? 'lg:border-r-0 lg:rounded-r-none' : ''
+            )}
+          >
+          <div className="flex items-center justify-between gap-3 border-b border-border/40 px-5 py-2.5">
             <div>
               <p className="text-sm font-semibold text-foreground">Conversation</p>
-              <p className="text-xs text-muted-foreground">
-                Messages stay here while history opens as a drawer on the right.
-              </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hidden gap-1.5 lg:inline-flex"
-              onClick={scrollToBottom}
-              aria-label="Jump to latest message"
-            >
-              <ChevronRight className="h-4 w-4 rotate-90" />
-              Latest
-            </Button>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4 lg:px-6">
             {messages.map((message, index) => (
               <MessageBubble key={index} message={message} onWebSearch={performWebSearch} messageIndex={index} />
             ))}
-            {loading && <TypingIndicator />}
+            {loading && !hasPendingWebSearchMessage ? <TypingIndicator /> : null}
             <div ref={messagesEndRef} />
           </div>
 
@@ -378,6 +606,26 @@ export default function ChatPage() {
             loading={loading}
             inputRef={inputRef}
           />
+          </div>
+
+          <aside
+            id="chat-history-drawer"
+            className={cn(
+              'hidden min-h-0 w-[19rem] shrink-0 border-l border-border/40 lg:block',
+              isHistoryOpen ? 'lg:block' : 'lg:hidden'
+            )}
+            aria-hidden={!isHistoryOpen}
+          >
+            <div className="h-full overflow-hidden rounded-[32px] rounded-l-none border border-border/50 border-l-0 bg-card/75 shadow-[0_24px_70px_-48px_rgba(92,72,58,0.45)] backdrop-blur-xl">
+              <ChatHistoryPanel
+                chatHistory={chatHistory}
+                activeSessionId={workspace.currentSessionId}
+                onRestore={restoreSession}
+                onDelete={deleteSession}
+                onClose={() => setHistoryOpen(false)}
+              />
+            </div>
+          </aside>
         </div>
 
         <div
@@ -390,19 +638,17 @@ export default function ChatPage() {
         />
 
         <aside
-          id="chat-history-drawer"
           className={cn(
-            'absolute right-6 top-4 bottom-5 z-20 w-[min(100vw-3rem,22rem)] translate-x-[110%] transition-transform duration-300 ease-out',
+            'absolute right-6 top-3 bottom-5 z-20 w-[min(100vw-3rem,19rem)] translate-x-[110%] transition-transform duration-300 ease-out lg:hidden',
             isHistoryOpen ? 'translate-x-0' : 'pointer-events-none'
           )}
           aria-hidden={!isHistoryOpen}
         >
           <ChatHistoryPanel
             chatHistory={chatHistory}
+            activeSessionId={workspace.currentSessionId}
             onRestore={restoreSession}
             onDelete={deleteSession}
-            onExportText={exportToText}
-            onExportJson={exportToJson}
             onClose={() => setHistoryOpen(false)}
           />
         </aside>

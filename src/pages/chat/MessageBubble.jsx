@@ -1,7 +1,275 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Bot, Network, Globe, ExternalLink, Loader2 } from 'lucide-react';
-import { Badge } from '../../components/ui/Badge';
+import { Bot, Globe, ExternalLink, Loader2 } from 'lucide-react';
+
+const MD_INLINE_REGEX = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(\*\*([^*]+)\*\*)|(`([^`]+)`)|(\*([^*\n]+)\*)/g;
+
+const splitTableRow = (line) =>
+  line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((cell) => cell.trim());
+
+const isTableDivider = (line) => /^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$/.test(line);
+
+const looksLikeTableRow = (line) => /\|/.test(line);
+
+const sanitizeAssistantAnswer = (text) => {
+  const safeText = String(text || '').replace(/\r\n/g, '\n');
+  const lines = safeText.split('\n');
+  const cleanedLines = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const currentLine = lines[index];
+    const trimmedLine = currentLine.trim();
+    const nextLine = lines[index + 1]?.trim() || '';
+
+    if (looksLikeTableRow(trimmedLine) && isTableDivider(nextLine) && /\b(source|search)\b/i.test(trimmedLine)) {
+      index += 1;
+      while (index + 1 < lines.length && looksLikeTableRow(lines[index + 1].trim())) {
+        index += 1;
+      }
+      continue;
+    }
+
+    cleanedLines.push(currentLine);
+  }
+
+  return cleanedLines
+    .join('\n')
+    .split(/\n{2,}/)
+    .map((paragraph) => {
+      const normalizedParagraph = paragraph
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .join(' ');
+
+      if (!normalizedParagraph) return '';
+      if (/\b(semantic search|structural search)\b/i.test(normalizedParagraph)) return '';
+      return normalizedParagraph;
+    })
+    .filter(Boolean)
+    .join('\n\n')
+    .trim();
+};
+
+const renderInlineMarkdown = (text, keyPrefix = 'inline') => {
+  const pieces = [];
+  let lastIndex = 0;
+  let match;
+
+  const safeText = String(text ?? '');
+  MD_INLINE_REGEX.lastIndex = 0;
+  while ((match = MD_INLINE_REGEX.exec(safeText)) !== null) {
+    if (match.index > lastIndex) {
+      pieces.push(safeText.slice(lastIndex, match.index));
+    }
+
+    if (match[2] && match[3]) {
+      pieces.push(
+        <a key={`${keyPrefix}-${match.index}`} href={match[3]} target="_blank" rel="noopener noreferrer" className="text-emerald-700 dark:text-emerald-300 hover:underline font-medium">
+          {match[2]}
+          <ExternalLink className="ml-1 inline-block h-3 w-3" />
+        </a>
+      );
+    } else if (match[5]) {
+      pieces.push(
+        <strong key={`${keyPrefix}-${match.index}`} className="font-semibold text-stone-900 dark:text-stone-100">
+          {match[5]}
+        </strong>
+      );
+    } else if (match[7]) {
+      pieces.push(
+        <code
+          key={`${keyPrefix}-${match.index}`}
+          className="rounded-md border border-stone-200 bg-stone-100 px-1.5 py-0.5 font-mono text-[0.85em] text-stone-800 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+        >
+          {match[7]}
+        </code>
+      );
+    } else if (match[9]) {
+      pieces.push(
+        <em key={`${keyPrefix}-${match.index}`} className="italic text-stone-900 dark:text-stone-100">
+          {match[9]}
+        </em>
+      );
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < safeText.length) {
+    pieces.push(safeText.slice(lastIndex));
+  }
+
+  return pieces.length ? pieces : safeText;
+};
+
+const renderMarkdownContent = (text) => {
+  const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+  const blocks = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index];
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      blocks.push(<br key={`br-${index}`} />);
+      index += 1;
+      continue;
+    }
+
+    if (trimmed.startsWith('```')) {
+      const codeLines = [];
+      const language = trimmed.slice(3).trim();
+      index += 1;
+      while (index < lines.length && !lines[index].trim().startsWith('```')) {
+        codeLines.push(lines[index]);
+        index += 1;
+      }
+      if (index < lines.length) index += 1;
+      blocks.push(
+        <pre key={`code-${index}`} className="my-3 overflow-x-auto rounded-xl border border-stone-200 bg-stone-100 p-3 text-sm text-stone-800 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-200">
+          {language && <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">{language}</div>}
+          <code className="whitespace-pre-wrap font-mono">{codeLines.join('\n')}</code>
+        </pre>
+      );
+      continue;
+    }
+
+    const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      const Tag = `h${Math.min(level, 6)}`;
+      blocks.push(
+        <Tag
+          key={`heading-${index}`}
+          className={`mt-3 mb-2 font-semibold tracking-tight ${
+            level === 1 ? 'text-xl' : level === 2 ? 'text-lg' : 'text-base'
+          } text-stone-900 dark:text-stone-100`}
+        >
+          {renderInlineMarkdown(headingMatch[2], `heading-${index}`)}
+        </Tag>
+      );
+      index += 1;
+      continue;
+    }
+
+    if (looksLikeTableRow(trimmed) && index + 1 < lines.length && isTableDivider(lines[index + 1])) {
+      const header = splitTableRow(trimmed);
+      const shouldHideTable = header.some((cell) => /\b(source|search)\b/i.test(cell));
+      const rowLines = [];
+      index += 2;
+      while (index < lines.length && looksLikeTableRow(lines[index].trim())) {
+        rowLines.push(splitTableRow(lines[index]));
+        index += 1;
+      }
+
+      if (shouldHideTable) {
+        continue;
+      }
+
+      blocks.push(
+        <div key={`table-${index}`} className="my-3 overflow-x-auto rounded-xl border border-border/60">
+          <table className="min-w-full border-collapse text-left text-sm">
+            <thead className="bg-stone-100 dark:bg-stone-900">
+              <tr>
+                {header.map((cell, cellIndex) => (
+                  <th key={cellIndex} className="border-b border-border/60 px-3 py-2 font-semibold text-stone-800 dark:text-stone-100">
+                    {renderInlineMarkdown(cell, `table-header-${index}-${cellIndex}`)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rowLines.map((row, rowIndex) => (
+                <tr key={rowIndex} className="border-b border-border/40 last:border-b-0">
+                  {row.map((cell, cellIndex) => (
+                    <td key={cellIndex} className="px-3 py-2 align-top text-stone-700 dark:text-stone-200">
+                      {renderInlineMarkdown(cell, `table-row-${index}-${rowIndex}-${cellIndex}`)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      continue;
+    }
+
+    if (/^(\-|\*|\+)\s+/.test(trimmed)) {
+      const items = [];
+      while (index < lines.length && /^(\-|\*|\+)\s+/.test(lines[index].trim())) {
+        items.push(lines[index].trim().replace(/^(\-|\*|\+)\s+/, ''));
+        index += 1;
+      }
+
+      blocks.push(
+        <ul key={`ul-${index}`} className="my-3 list-disc space-y-1 pl-5">
+          {items.map((item, itemIndex) => (
+            <li key={itemIndex} className="pl-1">
+              {renderInlineMarkdown(item, `ul-${index}-${itemIndex}`)}
+            </li>
+          ))}
+        </ul>
+      );
+      continue;
+    }
+
+    if (/^\d+\.\s+/.test(trimmed)) {
+      const items = [];
+      while (index < lines.length && /^\d+\.\s+/.test(lines[index].trim())) {
+        items.push(lines[index].trim().replace(/^\d+\.\s+/, ''));
+        index += 1;
+      }
+
+      blocks.push(
+        <ol key={`ol-${index}`} className="my-3 list-decimal space-y-1 pl-5">
+          {items.map((item, itemIndex) => (
+            <li key={itemIndex} className="pl-1">
+              {renderInlineMarkdown(item, `ol-${index}-${itemIndex}`)}
+            </li>
+          ))}
+        </ol>
+      );
+      continue;
+    }
+
+    if (/^>\s+/.test(trimmed)) {
+      blocks.push(
+        <blockquote key={`quote-${index}`} className="my-3 border-l-4 border-emerald-300 bg-emerald-50/70 pl-4 pr-3 py-2 text-stone-700 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-stone-200">
+          {renderInlineMarkdown(trimmed.replace(/^>\s+/, ''), `quote-${index}`)}
+        </blockquote>
+      );
+      index += 1;
+      continue;
+    }
+
+    const paragraphLines = [trimmed];
+    index += 1;
+    while (index < lines.length) {
+      const nextLine = lines[index].trim();
+      if (!nextLine || nextLine.startsWith('```') || /^(#{1,6})\s+/.test(nextLine) || /^(\-|\*|\+)\s+/.test(nextLine) || /^\d+\.\s+/.test(nextLine) || /^>\s+/.test(nextLine) || (looksLikeTableRow(nextLine) && index + 1 < lines.length && isTableDivider(lines[index + 1]))) {
+        break;
+      }
+      paragraphLines.push(nextLine);
+      index += 1;
+    }
+
+    blocks.push(
+      <p key={`p-${index}`} className="mb-2 last:mb-0 leading-relaxed text-stone-800 dark:text-stone-100">
+        {renderInlineMarkdown(paragraphLines.join(' '), `p-${index}`)}
+      </p>
+    );
+  }
+
+  return blocks;
+};
 
 export function MessageBubble({ message, onWebSearch, messageIndex }) {
   const isUser = message.role === 'user';
@@ -9,88 +277,16 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
   const isWebSearch = message.isWebSearch;
   const webSearchPending = message.webSearchPending;
   const webSearchSuggested = message.webSearchSuggested;
-
-  const parseMarkdownTable = (text) => {
-    const lines = text.split('\n');
-    if (lines.length < 2) return null;
-
-    const headerLineIndex = lines.findIndex((line) => /\|.+\|/.test(line));
-    if (headerLineIndex === -1 || headerLineIndex + 1 >= lines.length) return null;
-
-    const headerParts = lines[headerLineIndex].split('|').map((s) => s.trim()).filter(Boolean);
-    const separatorParts = lines[headerLineIndex + 1].split('|').map((s) => s.trim()).filter(Boolean);
-    if (separatorParts.length < headerParts.length) return null;
-
-    const dataLines = lines.slice(headerLineIndex + 2).filter((line) => /\|.+\|/.test(line));
-    if (dataLines.length === 0) return null;
-
-    const rows = dataLines.map((line) => line.split('|').map((s) => s.trim()).filter(Boolean));
-
-    return { headers: headerParts, rows };
-  };
-
-  const table = parseMarkdownTable(message.content);
-
-  const renderMarkdownInline = (text) => {
-    const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
-    const pieces = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = linkRegex.exec(text)) !== null) {
-      if (match.index > lastIndex) {
-        pieces.push(text.slice(lastIndex, match.index));
-      }
-      pieces.push(
-        <a key={match.index} href={match[2]} target="_blank" rel="noopener noreferrer" className="text-emerald-700 dark:text-emerald-300 hover:underline">
-          {match[1]}
-          <ExternalLink className="w-3 h-3 inline-block ml-1" />
-        </a>
-      );
-      lastIndex = match.index + match[0].length;
-    }
-
-    if (lastIndex < text.length) {
-      pieces.push(text.slice(lastIndex));
-    }
-
-    return pieces.length ? pieces : text;
-  };
-
-  const renderMarkdownBlock = (text) => {
-    const lines = (text || '').split('\n');
-    return lines.map((line, idx) => {
-      if (!line.trim()) return <br key={idx} />;
-
-      if (line.startsWith('- [')) {
-        const match = line.match(/- \[([^\]]+)\]\(([^)]+)\): (.+)/);
-        if (match) {
-          const [, title, url, snippet] = match;
-          return (
-            <div key={idx} className="mb-2 p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded border-l-4 border-emerald-500">
-              <a href={url} target="_blank" rel="noopener noreferrer" className="text-emerald-700 dark:text-emerald-300 hover:underline font-medium flex items-center gap-1">
-                {title}
-                <ExternalLink className="w-3 h-3" />
-              </a>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{snippet}</p>
-            </div>
-          );
-        }
-      }
-
-      return (
-        <p key={idx} className="mb-2 last:mb-0">
-          {renderMarkdownInline(line)}
-        </p>
-      );
-    });
-  };
+  const isWelcome = message.isWelcome;
+  const cleanedContent = !isUser ? sanitizeAssistantAnswer(message.content) || message.content : message.content;
+  const cleanedWebSearchAnswer = sanitizeAssistantAnswer(message.webSearchAnswer) || message.webSearchAnswer;
+  const isStandaloneWebSearch = isWebSearch && !message.webSearchAnswer;
 
   return (
     <div className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
       {!isUser && (
         <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0 shadow-sm animate-pulse">
-          {isWebSearch ? <Globe className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
+          {isStandaloneWebSearch ? <Globe className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
         </div>
       )}
 
@@ -98,45 +294,21 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
         'rounded-2xl px-4 py-3 text-sm leading-relaxed transition-all duration-300 hover:shadow-md',
         isUser ? 'max-w-[85%]' : 'max-w-[90%]',
         isUser
-          ? 'bg-primary text-primary-foreground rounded-br-md shadow-sm shadow-emerald-600/20'
+          ? 'rounded-br-md border border-emerald-200/80 bg-emerald-100 text-emerald-950 shadow-sm shadow-emerald-500/10 dark:border-emerald-800/70 dark:bg-emerald-900/35 dark:text-emerald-50'
           : isError
             ? 'bg-red-50 border border-red-200 text-red-900 rounded-bl-md dark:bg-red-900/20 dark:border-red-800 dark:text-red-100'
-            : isWebSearch
-              ? 'bg-emerald-50 border border-emerald-200 text-emerald-950 rounded-bl-md dark:bg-emerald-950/25 dark:border-emerald-800 dark:text-emerald-50'
+            : isStandaloneWebSearch
+              ? 'rounded-bl-md border border-amber-200 bg-amber-50 text-stone-900 dark:border-amber-800/70 dark:bg-amber-950/25 dark:text-amber-50'
               : 'bg-white/80 border border-gray-200 text-gray-900 rounded-bl-md dark:bg-gray-800/80 dark:border-gray-700 dark:text-gray-100 backdrop-blur-sm'
       )}>
-        {table ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  {table.headers.map((header, idx) => (
-                    <th key={idx} className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      {header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {table.rows.map((row, rowIdx) => (
-                  <tr key={rowIdx} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    {row.map((cell, cellIdx) => (
-                      <td key={cellIdx} className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        {cell}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="prose prose-sm max-w-none dark:prose-invert break-words whitespace-normal w-full">
-            {renderMarkdownBlock(message.content)}
-          </div>
-        )}
+        <div className={cn(
+          'prose prose-sm max-w-none break-words whitespace-normal w-full',
+          isUser ? 'prose-stone dark:prose-invert' : 'dark:prose-invert'
+        )}>
+          {renderMarkdownContent(cleanedContent)}
+        </div>
 
-        {!isUser && !isError && onWebSearch && !message.webSearchAnswer && (
+        {!isUser && !isError && !isWelcome && onWebSearch && !message.webSearchAnswer && (
           <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => onWebSearch({
@@ -159,60 +331,13 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
         )}
 
         {message.webSearchAnswer && (
-          <div className="mt-3 pt-3 border-t border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20 p-3 rounded-lg">
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50/80 p-3 dark:border-amber-800/60 dark:bg-amber-950/20">
+            <div className="mb-3 flex items-center gap-2 text-amber-700 dark:text-amber-300">
                 <Globe className="w-4 h-4" />
-                <span className="text-xs font-semibold uppercase tracking-wide">Web Insights</span>
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-widest rounded-full bg-emerald-100/80 dark:bg-emerald-900/30 px-2 py-0.5 text-emerald-700 dark:text-emerald-300">
-                Grounded
-              </span>
+                <span className="text-xs font-semibold uppercase tracking-wide">Web Answer</span>
             </div>
-            <div className="prose prose-sm max-w-none dark:prose-invert break-words whitespace-normal w-full text-stone-700 dark:text-stone-200">
-              {renderMarkdownBlock(message.webSearchAnswer)}
-            </div>
-            {message.webSearchSources && message.webSearchSources.length > 0 && (
-              <div className="pt-3 mt-3 border-t border-emerald-200/70 dark:border-emerald-800/60">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-                  Sources
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {message.webSearchSources.slice(0, 5).map((source, idx) => (
-                    <a
-                      key={idx}
-                      href={source.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-700 text-[11px] text-emerald-700 dark:text-emerald-300 hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors shadow-sm"
-                    >
-                      <span className="truncate max-w-[180px] font-medium">
-                        {source.title || source.url}
-                      </span>
-                      <ExternalLink className="w-3 h-3 shrink-0" />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {message.sources && message.sources.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2 mb-2">
-              <Network className="w-4 h-4 text-emerald-600" />
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Sources:</span>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {message.sources.slice(0, 5).map((source, idx) => (
-                <Badge key={idx} variant="outline" className="text-xs">
-                  {source.node_type || source.type || 'Node'}
-                </Badge>
-              ))}
-              {message.sources.length > 5 && (
-                <Badge variant="outline" className="text-xs">+{message.sources.length - 5} more</Badge>
-              )}
+            <div className="prose prose-sm max-w-none break-words whitespace-normal w-full text-stone-800 dark:prose-invert dark:text-stone-100">
+              {renderMarkdownContent(cleanedWebSearchAnswer)}
             </div>
           </div>
         )}

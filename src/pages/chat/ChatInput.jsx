@@ -5,13 +5,13 @@ import { Send, Loader2, Globe } from 'lucide-react';
 
 export function ChatInput({ input, setInput, onSubmit, onWebSearch, loading, inputRef }) {
   return (
-    <div className="p-4 border-t border-border/30 bg-card/50 backdrop-blur-sm">
+    <div className="border-t border-border/30 bg-card/50 px-4 py-3 backdrop-blur-sm">
       <form onSubmit={onSubmit} className="flex gap-2">
         <Input
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask anything about your knowledge graph or search the web..."
+          placeholder="Ask anything about your knowledge graph. Use the globe for web search."
           className="flex-1 h-11 bg-muted/20 transition-all duration-300 focus:shadow-lg focus:shadow-primary/10 focus:ring-2 focus:ring-primary/20 rounded-xl"
           disabled={loading}
         />
@@ -40,13 +40,6 @@ export function ChatInput({ input, setInput, onSubmit, onWebSearch, loading, inp
           )}
         </Button>
       </form>
-      <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-        <span>Press Enter to send, click globe for web search</span>
-        <span className="flex items-center gap-1">
-          <Globe className="w-3 h-3" />
-          Web Search Available
-        </span>
-      </div>
     </div>
   );
 }

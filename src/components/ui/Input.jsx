@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { cn } from '../../utils/cn';
 
-export function Input({ className, type = 'text', ...props }) {
+export const Input = forwardRef(function Input({ className, type = 'text', ...props }, ref) {
   return (
     <input
+      ref={ref}
       type={type}
       className={cn(
         'flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm transition-all duration-200',
@@ -16,7 +17,8 @@ export function Input({ className, type = 'text', ...props }) {
       {...props}
     />
   );
-}
+});
+Input.displayName = 'Input';
 
 export function Label({ className, children, ...props }) {
   return (
