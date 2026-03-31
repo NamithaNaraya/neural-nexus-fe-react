@@ -10,11 +10,13 @@ import { GraphNodeCrudModal } from '../../components/crud';
 export default function GraphPropertyTablePage(props) {
   const {
     folderId,
+    graphData: graphDataProp = null,
     nodeTypeFilters,
     relationshipTypeFilters,
     minDegree,
     showOrphans,
     nodeSearch,
+    searchResultIds = null,
   } = props;
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [loading, setLoading] = useState(false);
@@ -44,6 +46,10 @@ export default function GraphPropertyTablePage(props) {
           setGraphData({ nodes: [], links: [] });
           return;
         }
+        if (graphDataProp) {
+          setGraphData(graphDataProp);
+          return;
+        }
         const data = await graphService.getFolder(folderId, 10000, { force: forceRefreshRef.current });
         setGraphData(data);
       } catch (err) {
@@ -54,11 +60,11 @@ export default function GraphPropertyTablePage(props) {
       }
     };
     load();
-  }, [folderId, refreshToken]);
+  }, [folderId, refreshToken, graphDataProp]);
 
   const filteredGraph = useMemo(
-    () => filterGraphData(graphData, { nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch }),
-    [graphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch]
+    () => filterGraphData(graphData, { nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch, searchResultIds }),
+    [graphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch, searchResultIds]
   );
 
   const sortedNodes = useMemo(() => {

@@ -5,6 +5,7 @@ export function filterGraphData(graphData, options = {}) {
     minDegree = 0,
     showOrphans = true,
     nodeSearch = '',
+    searchResultIds = null,
   } = options;
 
   const allNodes = Array.isArray(graphData?.nodes) ? graphData.nodes : [];
@@ -28,7 +29,13 @@ export function filterGraphData(graphData, options = {}) {
     if (!activeNodeTypes.has(type)) return false;
     if (!showOrphans && (node.degree ?? 0) === 0) return false;
     if ((node.degree ?? 0) < minDegree) return false;
-    if (normalizedSearch && !(node.name || '').toLowerCase().includes(normalizedSearch)) return false;
+    if (normalizedSearch) {
+      if (searchResultIds instanceof Set && searchResultIds.size > 0) {
+        if (!searchResultIds.has(String(node.id))) return false;
+      } else if (!(node.name || '').toLowerCase().includes(normalizedSearch)) {
+        return false;
+      }
+    }
     return true;
   });
 
