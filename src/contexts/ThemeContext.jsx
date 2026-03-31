@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useLayoutEffect, useState } from 'react';
 
 const ThemeContext = createContext(undefined);
 
@@ -7,7 +7,7 @@ export function ThemeProvider({ children }) {
     () => localStorage.getItem('theme') || 'light'
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
@@ -15,7 +15,12 @@ export function ThemeProvider({ children }) {
   }, [theme]);
 
   const toggleTheme = () => {
+    const root = window.document.documentElement;
+    root.classList.add('theme-switching');
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+    window.setTimeout(() => {
+      root.classList.remove('theme-switching');
+    }, 160);
   };
 
   return (

@@ -73,6 +73,13 @@
     transition-duration: 200ms;
   }
 
+  .theme-switching *,
+  .theme-switching *::before,
+  .theme-switching *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+
   html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
