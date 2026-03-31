@@ -1,16 +1,35 @@
 import React from 'react';
 import { Button } from '../../components/ui/Button';
-import { ClipboardCopy, Trash2, Clock, MessageSquare } from 'lucide-react';
+import { ClipboardCopy, Trash2, Clock, MessageSquare, X, History } from 'lucide-react';
 
-export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onExportText, onExportJson }) {
+export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onExportText, onExportJson, onClose }) {
   return (
-    <div className="h-full overflow-y-auto border-l border-border/40 bg-gradient-to-b from-background/40 to-muted/20 p-3 backdrop-blur-sm">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-        <Clock className="w-4 h-4" />
-        Chat History
-      </h2>
+    <div className="flex h-full flex-col overflow-hidden rounded-[28px] border border-border/50 bg-card/90 shadow-[0_24px_70px_-50px_rgba(92,72,58,0.45)] backdrop-blur-xl">
+      <div className="flex items-start justify-between gap-3 border-b border-border/40 px-4 py-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <History className="w-4 h-4" />
+            Chat History
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Saved sessions live here. Restore one to continue where you left off.
+          </p>
+        </div>
+        {onClose && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={onClose}
+            aria-label="Close chat history"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
 
-      <div className="space-y-2 mb-4">
+      <div className="space-y-2 border-b border-border/30 px-4 py-4">
         <Button size="sm" variant="outline" onClick={onExportText} className="w-full gap-1 hover:bg-emerald-50 dark:hover:bg-emerald-950/20">
           <MessageSquare className="w-4 h-4" /> Export All as Text
         </Button>
@@ -19,16 +38,16 @@ export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onExportTex
         </Button>
       </div>
 
-      <ul className="space-y-2">
+      <ul className="flex-1 space-y-2 overflow-y-auto p-4">
         {chatHistory.length === 0 && (
-          <li className="rounded-xl border border-border/30 bg-muted/10 p-3 text-xs text-muted-foreground text-center">
+          <li className="rounded-2xl border border-border/30 bg-muted/10 p-4 text-xs text-muted-foreground text-center">
             No saved sessions yet. Start chatting to create history!
           </li>
         )}
         {chatHistory.map((session) => (
-          <li key={session.id} className="rounded-xl border border-border/30 bg-white/80 p-3 shadow-sm hover:shadow-md transition-shadow backdrop-blur-sm">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1">
+          <li key={session.id} className="rounded-2xl border border-border/30 bg-background/80 p-3 shadow-sm transition-shadow hover:shadow-md">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{session.label}</div>
                 <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                   <Clock className="w-3 h-3" />

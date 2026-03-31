@@ -1,13 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { RotateCcw, History } from 'lucide-react';
+import { RotateCcw, ChevronRight, ArrowDownToLine, Sparkles, PanelRightClose, FolderOpen } from 'lucide-react';
 import { MessageBubble, TypingIndicator } from './MessageBubble';
 import { ChatInput } from './ChatInput';
-import { ChatToolbar } from './ChatToolbar';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
 import api from '../../services/api';
 import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
+import { cn } from '../../utils/cn';
 
 const INITIAL_MESSAGE = {
   role: 'assistant',
@@ -20,7 +19,7 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
-  const [isHistoryOpen, setHistoryOpen] = useState(true);
+  const [isHistoryOpen, setHistoryOpen] = useState(false);
   const [sessionName, setSessionName] = useState('Chat Session');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -271,45 +270,100 @@ export default function ChatPage() {
   const readOnlyMessageCount = useMemo(() => messages.length, [messages]);
 
   return (
-    <div className="flex h-[calc(100vh-theme(spacing.16)-theme(spacing.10))] flex-col gap-3 bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="flex flex-col gap-2 rounded-xl border border-border/50 bg-card/60 p-3 shadow-md backdrop-blur-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Chat</h1>
-            <p className="text-sm text-muted-foreground">
-              {currentFolder?.name
-                ? `Chat with knowledge graph + web search (folder: ${currentFolder.name})`
-                : 'Chat with knowledge graph + web search'}
-            </p>
+    <div className="-mx-6 -my-5 flex h-[calc(100vh-theme(spacing.16))] w-[calc(100%+theme(spacing.12))] flex-col bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="px-6 pt-5">
+        <section className="rounded-[30px] border border-border/50 bg-card/75 px-5 py-4 shadow-[0_18px_50px_-36px_rgba(92,72,58,0.35)] backdrop-blur-xl">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/80">
+                <Sparkles className="h-3.5 w-3.5" />
+                Conversation Workspace
+              </div>
+              <div className="space-y-1">
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground">Chat</h1>
+                <p className="max-w-3xl text-sm text-muted-foreground">
+                  {currentFolder?.name
+                    ? `Ask about the selected folder, inspect answers, and open web sources when needed. Folder: ${currentFolder.name}.`
+                    : 'Ask about your knowledge graph, review grounded answers, and open web sources when needed.'}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2.5 py-1">
+                  <FolderOpen className="h-3.5 w-3.5 text-emerald-600" />
+                  {currentFolder?.name || 'No folder selected'}
+                </span>
+                <span className="rounded-full border border-border/60 bg-background/60 px-2.5 py-1">
+                  {readOnlyMessageCount} message{readOnlyMessageCount === 1 ? '' : 's'}
+                </span>
+                <span className="rounded-full border border-border/60 bg-background/60 px-2.5 py-1 text-emerald-700 dark:text-emerald-300">
+                  Web search ready
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5"
+                onClick={scrollToBottom}
+                aria-label="Scroll to latest message"
+              >
+                <ArrowDownToLine className="h-4 w-4" />
+                Latest
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setHistoryOpen((v) => !v)}
+                aria-expanded={isHistoryOpen}
+                aria-controls="chat-history-drawer"
+              >
+                <PanelRightClose className="h-4 w-4" />
+                {isHistoryOpen ? 'Hide history' : 'Open history'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={clearChat} className="gap-1.5">
+                <RotateCcw className="h-4 w-4" />
+                Clear chat
+              </Button>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" size="sm" className="gap-1" onClick={() => setHistoryOpen((v) => !v)}>
-              <History className="h-4 w-4" />
-              {isHistoryOpen ? 'Collapse History' : 'Open History'}
-            </Button>
-            <Button variant="outline" size="sm" onClick={clearChat} className="gap-1">
-              <RotateCcw className="h-4 w-4" />
-              Clear Chat
-            </Button>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="font-medium">Messages:</span>
-          <span className="rounded-full bg-muted/40 px-2 py-0.5">{readOnlyMessageCount}</span>
-          <span className="font-medium">Mode:</span>
-          <span className="rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2 py-0.5">Full Response</span>
-        </div>
+        </section>
       </div>
 
-      <div className="flex flex-1 gap-4 min-h-0">
-        <Card className="flex-1 flex flex-col bg-card/70 backdrop-blur-md border-border/60 shadow-lg">
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden px-6 pb-5 pt-4">
+        <div className={cn(
+          'flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-border/50 bg-card/75 shadow-[0_24px_70px_-48px_rgba(92,72,58,0.45)] backdrop-blur-xl',
+          isHistoryOpen ? 'lg:pr-[22rem]' : ''
+        )}>
+          <div className="flex items-center justify-between gap-3 border-b border-border/40 px-5 py-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Conversation</p>
+              <p className="text-xs text-muted-foreground">
+                Messages stay here while history opens as a drawer on the right.
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden gap-1.5 lg:inline-flex"
+              onClick={scrollToBottom}
+              aria-label="Jump to latest message"
+            >
+              <ChevronRight className="h-4 w-4 rotate-90" />
+              Latest
+            </Button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4 lg:px-6">
             {messages.map((message, index) => (
               <MessageBubble key={index} message={message} onWebSearch={performWebSearch} messageIndex={index} />
             ))}
             {loading && <TypingIndicator />}
             <div ref={messagesEndRef} />
           </div>
+
           <ChatInput
             input={input}
             setInput={setInput}
@@ -324,19 +378,34 @@ export default function ChatPage() {
             loading={loading}
             inputRef={inputRef}
           />
-        </Card>
+        </div>
 
-        {isHistoryOpen && (
-          <div className="w-72 shrink-0">
-            <ChatHistoryPanel
-              chatHistory={chatHistory}
-              onRestore={restoreSession}
-              onDelete={deleteSession}
-              onExportText={exportToText}
-              onExportJson={exportToJson}
-            />
-          </div>
-        )}
+        <div
+          className={cn(
+            'absolute inset-0 z-10 bg-stone-950/10 backdrop-blur-[1px] transition-opacity lg:hidden',
+            isHistoryOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+          )}
+          onClick={() => setHistoryOpen(false)}
+          aria-hidden={!isHistoryOpen}
+        />
+
+        <aside
+          id="chat-history-drawer"
+          className={cn(
+            'absolute right-6 top-4 bottom-5 z-20 w-[min(100vw-3rem,22rem)] translate-x-[110%] transition-transform duration-300 ease-out',
+            isHistoryOpen ? 'translate-x-0' : 'pointer-events-none'
+          )}
+          aria-hidden={!isHistoryOpen}
+        >
+          <ChatHistoryPanel
+            chatHistory={chatHistory}
+            onRestore={restoreSession}
+            onDelete={deleteSession}
+            onExportText={exportToText}
+            onExportJson={exportToJson}
+            onClose={() => setHistoryOpen(false)}
+          />
+        </aside>
       </div>
     </div>
   );
