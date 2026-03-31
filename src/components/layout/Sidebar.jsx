@@ -160,7 +160,7 @@ export function Sidebar() {
           !expanded && 'justify-center p-2'
         )}>
           {/* Avatar */}
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-amber-700 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
             {user?.email?.[0]?.toUpperCase() || 'U'}
           </div>
 

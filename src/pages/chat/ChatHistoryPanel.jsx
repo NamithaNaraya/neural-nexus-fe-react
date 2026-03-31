@@ -11,7 +11,7 @@ export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onExportTex
       </h2>
 
       <div className="space-y-2 mb-4">
-        <Button size="sm" variant="outline" onClick={onExportText} className="w-full gap-1 hover:bg-blue-50 dark:hover:bg-blue-900/20">
+        <Button size="sm" variant="outline" onClick={onExportText} className="w-full gap-1 hover:bg-emerald-50 dark:hover:bg-emerald-950/20">
           <MessageSquare className="w-4 h-4" /> Export All as Text
         </Button>
         <Button size="sm" variant="outline" onClick={onExportJson} className="w-full gap-1 hover:bg-green-50 dark:hover:bg-green-900/20">
@@ -37,7 +37,7 @@ export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onExportTex
                 <div className="text-xs text-muted-foreground mt-1">{session.messages.length} messages</div>
               </div>
               <div className="flex flex-col gap-1">
-                <Button size="xs" variant="outline" onClick={() => onRestore(session.id)} className="gap-1 hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                <Button size="xs" variant="outline" onClick={() => onRestore(session.id)} className="gap-1 hover:bg-emerald-50 dark:hover:bg-emerald-950/20">
                   <ClipboardCopy className="w-3 h-3" /> Restore
                 </Button>
                 <Button size="xs" variant="ghost" onClick={() => onDelete(session.id)} className="hover:bg-red-50 dark:hover:bg-red-900/20">

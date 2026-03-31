@@ -19,12 +19,12 @@ export function ChatInput({ input, setInput, onSubmit, onWebSearch, loading, inp
           type="button"
           variant="outline"
           size="icon"
-          className="h-11 w-11 shrink-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200"
+          className="h-11 w-11 shrink-0 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-colors duration-200"
           onClick={() => onWebSearch?.(input.trim())}
           disabled={loading || !input.trim()}
           title="Search Web"
         >
-          <Globe className="w-4 h-4 text-blue-600" />
+          <Globe className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
         </Button>
         <Button
           type="submit"

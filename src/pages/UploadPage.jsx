@@ -211,7 +211,7 @@ export default function UploadPage() {
                   {uploading && (
                     <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-300"
+                        className="h-full bg-gradient-to-r from-emerald-600 to-amber-700 rounded-full transition-all duration-300"
                         style={{ width: `${uploadProgress}%` }}
                       />
                     </div>

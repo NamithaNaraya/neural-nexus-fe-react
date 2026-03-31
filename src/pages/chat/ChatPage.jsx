@@ -297,7 +297,7 @@ export default function ChatPage() {
           <span className="font-medium">Messages:</span>
           <span className="rounded-full bg-muted/40 px-2 py-0.5">{readOnlyMessageCount}</span>
           <span className="font-medium">Mode:</span>
-          <span className="rounded-full bg-blue-500/20 text-blue-700 px-2 py-0.5">Full Response</span>
+          <span className="rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2 py-0.5">Full Response</span>
         </div>
       </div>
 

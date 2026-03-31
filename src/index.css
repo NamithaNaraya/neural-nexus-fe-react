@@ -130,11 +130,19 @@
   }
 
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 via-lime-600 to-amber-700;
+    @apply text-emerald-700;
   }
 
   .dark .gradient-text {
-    @apply from-emerald-300 via-lime-300 to-amber-300;
+    @apply text-emerald-300;
+  }
+
+  .brand-earth {
+    @apply text-amber-800;
+  }
+
+  .dark .brand-earth {
+    @apply text-amber-300;
   }
 
   .glow {

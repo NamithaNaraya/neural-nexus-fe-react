@@ -33,9 +33,9 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-[55%] relative flex-col justify-between p-12 overflow-hidden">
         {/* Animated background blobs */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-[10%] left-[15%] w-[500px] h-[500px] rounded-full bg-blue-500/8 blur-[120px] animate-float" />
-          <div className="absolute bottom-[15%] right-[10%] w-[400px] h-[400px] rounded-full bg-purple-500/8 blur-[100px] animate-float" style={{ animationDelay: '1.5s' }} />
-          <div className="absolute top-[50%] left-[50%] w-[300px] h-[300px] rounded-full bg-cyan-500/6 blur-[80px] animate-float" style={{ animationDelay: '3s' }} />
+          <div className="absolute top-[10%] left-[15%] w-[500px] h-[500px] rounded-full bg-emerald-700/8 blur-[120px] animate-float" />
+          <div className="absolute bottom-[15%] right-[10%] w-[400px] h-[400px] rounded-full bg-amber-700/8 blur-[100px] animate-float" style={{ animationDelay: '1.5s' }} />
+          <div className="absolute top-[50%] left-[50%] w-[300px] h-[300px] rounded-full bg-stone-700/6 blur-[80px] animate-float" style={{ animationDelay: '3s' }} />
         </div>
 
         {/* Grid pattern overlay */}
@@ -48,11 +48,11 @@ export default function LoginPage() {
 
         {/* Top — Logo */}
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+          <div className="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-700/20">
             <Network className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold gradient-text">Neural Nexus</h1>
+            <h1 className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">Neural Nexus</h1>
             <p className="text-xs text-muted-foreground font-medium tracking-wider uppercase">Knowledge Graph Platform</p>
           </div>
         </div>
@@ -62,7 +62,7 @@ export default function LoginPage() {
           <div className="space-y-4">
             <h2 className="text-5xl font-extrabold leading-tight tracking-tight">
               <span className="text-foreground">Explore your </span>
-              <span className="gradient-text">knowledge</span>
+              <span className="text-emerald-700 dark:text-emerald-300">knowledge</span>
               <span className="text-foreground"> like never before</span>
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
@@ -100,10 +100,10 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-8">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-700/20">
               <Network className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-xl font-bold gradient-text">Neural Nexus</h1>
+            <h1 className="text-xl font-bold text-emerald-700 dark:text-emerald-300">Neural Nexus</h1>
           </div>
 
           {/* Form card */}

@@ -8,8 +8,8 @@ const themes = [
     value: 'light',
     label: 'Light',
     icon: Sun,
-    description: 'Clean bright workspace with soft blue surfaces.',
-    preview: 'from-slate-100 via-white to-sky-50',
+    description: 'Clean bright workspace with soft green and cream surfaces.',
+    preview: 'from-stone-100 via-emerald-50 to-amber-50',
   },
   {
     value: 'dark',
@@ -47,7 +47,7 @@ export function AppearanceCard() {
               className={cn(
                 'rounded-[28px] border p-5 text-left transition',
                 active
-                  ? 'border-primary/40 bg-primary/[0.08] shadow-[0_16px_40px_-28px_rgba(59,130,246,0.42)]'
+                  ? 'border-primary/40 bg-primary/[0.08] shadow-[0_16px_40px_-28px_rgba(22,101,52,0.34)]'
                   : 'border-border/60 bg-background/70 hover:border-primary/20 hover:bg-background'
               )}
             >

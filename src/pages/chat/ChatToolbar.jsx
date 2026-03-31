@@ -5,19 +5,19 @@ import { Download, FileText, History, Scroll, Trash2, Sparkles } from 'lucide-re
 export function ChatToolbar({ onClear, onExportText, onExportJson, onToggleHistory, isHistoryOpen, onScrollBottom, loading }) {
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-border/40 bg-gradient-to-r from-background/70 to-muted/30 p-2 backdrop-blur-sm">
-      <Button size="sm" variant="secondary" onClick={onScrollBottom} className="gap-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+      <Button size="sm" variant="secondary" onClick={onScrollBottom} className="gap-1 hover:bg-emerald-50 dark:hover:bg-emerald-950/25 transition-colors">
         <Scroll className="w-4 h-4" /> Scroll to bottom
       </Button>
 
-      <Button size="sm" variant="secondary" onClick={onToggleHistory} className="gap-1 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors">
+      <Button size="sm" variant="secondary" onClick={onToggleHistory} className="gap-1 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors">
         <History className="w-4 h-4" /> {isHistoryOpen ? 'Hide History' : 'Show History'}
       </Button>
 
-      <Button size="sm" onClick={onExportText} className="gap-1 bg-gradient-to-r from-sky-500 to-indigo-500 text-white hover:opacity-90 shadow-md hover:shadow-lg transition-shadow">
+      <Button size="sm" onClick={onExportText} className="gap-1 bg-gradient-to-r from-emerald-600 to-amber-700 text-white hover:opacity-90 shadow-md hover:shadow-lg transition-shadow">
         <FileText className="w-4 h-4" /> Export TXT
       </Button>
 
-      <Button size="sm" onClick={onExportJson} className="gap-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:opacity-90 shadow-md hover:shadow-lg transition-shadow">
+      <Button size="sm" onClick={onExportJson} className="gap-1 bg-gradient-to-r from-emerald-600 to-amber-700 text-white hover:opacity-90 shadow-md hover:shadow-lg transition-shadow">
         <Download className="w-4 h-4" /> Export JSON
       </Button>
 
@@ -26,7 +26,7 @@ export function ChatToolbar({ onClear, onExportText, onExportJson, onToggleHisto
       </Button>
 
       <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-        <Sparkles className="w-4 h-4 text-yellow-500" />
+        <Sparkles className="w-4 h-4 text-amber-600" />
         <span>Advanced Features Active</span>
       </div>
     </div>
