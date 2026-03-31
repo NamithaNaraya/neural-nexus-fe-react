@@ -5,6 +5,7 @@ import { MessageBubble, TypingIndicator } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
 import api from '../../services/api';
+import chatService from '../../services/chatService';
 import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../utils/cn';
@@ -45,6 +46,17 @@ export default function ChatPage() {
   const chatHistory = workspace.sessions.slice().sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
   const hasPendingWebSearchMessage = messages.some((message) => message?.webSearchPending);
 
+  const normalizeBackendMessages = (rawMessages = []) =>
+    Array.isArray(rawMessages)
+      ? rawMessages.map((msg) => ({
+          role: msg.role || 'assistant',
+          content: msg.message || msg.content || '',
+          citations: msg.citations || msg.sources || [],
+          timestamp: msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now(),
+          ...msg,
+        }))
+      : [];
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -68,6 +80,47 @@ export default function ChatPage() {
       hasHydratedWorkspaceRef.current = true;
     });
   }, [storageKey]);
+
+  // Sync from backend when user logs in
+  useEffect(() => {
+    if (!user || !user.id) {
+      // User logged out - clear will happen on next login
+      return;
+    }
+
+    const syncFromBackend = async () => {
+      hasHydratedWorkspaceRef.current = false;
+      try {
+        const backendWorkspace = await chatService.syncWorkspaceFromBackend();
+        if (backendWorkspace) {
+          setWorkspace((prev) => {
+            const backendSet = new Set(backendWorkspace.sessions.map((session) => session.id));
+            const mergedSessions = [
+              ...backendWorkspace.sessions.map((session) => ({
+                ...session,
+                messages: Array.isArray(session.messages) && session.messages.length > 0 ? session.messages : [WELCOME_MESSAGE],
+              })),
+              ...prev.sessions.filter((session) => !backendSet.has(session.id)),
+            ];
+
+            return {
+              ...prev,
+              sessions: mergedSessions,
+              currentSessionId: backendWorkspace.currentSessionId || prev.currentSessionId || mergedSessions[0]?.id,
+            };
+          });
+        }
+      } catch (error) {
+        console.error('Failed to sync from backend:', error);
+        // Fall back to localStorage if backend sync fails
+      }
+      queueMicrotask(() => {
+        hasHydratedWorkspaceRef.current = true;
+      });
+    };
+
+    syncFromBackend();
+  }, [user?.id]);
 
   useEffect(() => {
     if (!selectedFolderId) return;
@@ -432,29 +485,35 @@ export default function ChatPage() {
     doc.save(`chat-${Date.now()}.pdf`);
   };
 
-  const restoreSession = (id) => {
+  const restoreSession = async (id) => {
     const session = chatHistory.find((item) => item.id === id);
-    if (session) {
-      const nextWorkspace = {
-        currentSessionId: session.id,
-        sessions: workspace.sessions.map((entry) =>
-          entry.id === session.id
-            ? {
-                ...entry,
-                messages: session.messages,
-                folderId: session.folderId || entry.folderId,
-                folderName: session.folderName || entry.folderName,
-                updatedAt: Date.now(),
-              }
-            : entry
-        ),
-      };
-      persistWorkspace(nextWorkspace);
-      if (session.folderId) {
-        setSelectedFolderId(String(session.folderId));
-      }
-      setHistoryOpen(false);
+    if (!session) return;
+
+    let sessionMessages = session.messages || [];
+    if ((!sessionMessages || sessionMessages.length === 0) && user?.id) {
+      const backendMessages = await chatService.getSessionHistory(id, 200);
+      sessionMessages = normalizeBackendMessages(backendMessages);
     }
+
+    const nextWorkspace = {
+      currentSessionId: session.id,
+      sessions: workspace.sessions.map((entry) =>
+        entry.id === session.id
+          ? {
+              ...entry,
+              messages: sessionMessages.length > 0 ? sessionMessages : [WELCOME_MESSAGE],
+              folderId: session.folderId || entry.folderId,
+              folderName: session.folderName || entry.folderName,
+              updatedAt: Date.now(),
+            }
+          : entry
+      ),
+    };
+    persistWorkspace(nextWorkspace);
+    if (session.folderId) {
+      setSelectedFolderId(String(session.folderId));
+    }
+    setHistoryOpen(false);
   };
 
   const deleteSession = (id) => {
