@@ -19,6 +19,7 @@ import {
   GitFork,
   Search,
   Pencil,
+  AlertTriangle,
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { folderService } from '../services/folderService';
@@ -55,6 +56,7 @@ export default function FoldersPage() {
   const pendingFolderSyncRef = useRef('');
 
   const [deleting, setDeleting] = useState(null);
+  const [deletePromptFolder, setDeletePromptFolder] = useState(null);
   const [editingFolder, setEditingFolder] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
 
@@ -133,7 +135,6 @@ export default function FoldersPage() {
   };
 
   const deleteFolder = async (folderId) => {
-    if (!confirm('Delete this folder and all its data? This cannot be undone.')) return;
     setDeleting(folderId);
     try {
       await folderService.delete(folderId);
@@ -443,7 +444,7 @@ export default function FoldersPage() {
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
+                          onClick={(e) => { e.stopPropagation(); setDeletePromptFolder(folder); }}
                           className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/10 text-muted-foreground hover:text-red-500 transition-all duration-200"
                           title="Delete folder"
                         >
@@ -647,6 +648,71 @@ export default function FoldersPage() {
           await refreshFolders();
         }}
       />
+
+      {deletePromptFolder && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <Card className="w-full max-w-lg overflow-hidden border-border/60 bg-card shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border/40 px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10 text-red-600">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold">Delete folder</h2>
+                  <p className="text-xs text-muted-foreground">This action cannot be undone.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeletePromptFolder(null)}
+                className="rounded-lg p-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                aria-label="Close delete dialog"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 px-5 py-5">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete <span className="font-semibold text-foreground">{deletePromptFolder.name}</span>?
+                All linked data, files, and nodes in this folder will be removed.
+              </p>
+              <div className="rounded-xl border border-border/40 bg-muted/20 p-3 text-sm text-muted-foreground">
+                Tip: if you only want to remove a few items, edit the folder instead of deleting the whole collection.
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t border-border/40 px-5 py-4">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setDeletePromptFolder(null)}
+                disabled={deleting === deletePromptFolder.id}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                className="gap-2"
+                disabled={deleting === deletePromptFolder.id}
+                onClick={async () => {
+                  const folderId = deletePromptFolder.id;
+                  setDeletePromptFolder(null);
+                  await deleteFolder(folderId);
+                }}
+              >
+                {deleting === deletePromptFolder.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Delete Folder
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
