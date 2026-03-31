@@ -79,8 +79,10 @@ export function Sidebar() {
             'transition-all duration-200 overflow-hidden whitespace-nowrap',
             expanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'
           )}>
-            <h1 className="font-extrabold text-base leading-tight text-emerald-600 dark:text-emerald-300">NESSO</h1>
-            <p className="text-[10px] font-medium tracking-widest uppercase text-emerald-600/60 dark:text-emerald-300/60">Botanica</p>
+            <h1 className="font-extrabold text-base leading-tight text-emerald-600 dark:text-emerald-300">NESSO Botanica</h1>
+            <p className="text-[10px] font-medium tracking-widest uppercase text-emerald-600/60 dark:text-emerald-300/60">
+              Natural &amp; Essential Oils
+            </p>
           </div>
         </div>
       </div>
