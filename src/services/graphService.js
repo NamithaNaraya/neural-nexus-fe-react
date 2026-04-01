@@ -118,7 +118,7 @@ export const graphService = {
   },
 
   async findPath(sourceId, targetId) {
-    const response = await api.get(`/graph/path?source=${sourceId}&target=${targetId}`);
+    const response = await api.get(`/graph/path/${encodeURIComponent(sourceId)}/${encodeURIComponent(targetId)}`);
     return response.data;
   },
 

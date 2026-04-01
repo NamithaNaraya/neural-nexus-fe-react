@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
+import { withAlpha } from '../colorSystem';
 
 export function GraphColorFilterSection({
   title,
@@ -69,6 +70,10 @@ export function GraphColorFilterSection({
         {items.map((item) => {
           const color = getColor(item, colorMap);
           const active = !hasNone && (activeItems.size === 0 || activeItems.has(item));
+          const chipSurface = withAlpha(color, active ? 'F2' : '18');
+          const chipBorder = withAlpha(color, active ? '70' : '42');
+          const chipGlow = withAlpha(color, '30');
+          const chipText = active ? '#FFFFFF' : color;
 
           return (
             <div
@@ -76,18 +81,28 @@ export function GraphColorFilterSection({
               className={cn(
                 'group relative overflow-hidden rounded-full border transition',
                 active
-                  ? 'border-transparent shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)]'
-                  : 'border-border/50 bg-background/70'
+                  ? 'shadow-[0_14px_28px_-18px_rgba(15,23,42,0.28)]'
+                  : 'shadow-[0_10px_24px_-22px_rgba(15,23,42,0.18)]'
               )}
-              style={active ? { backgroundColor: color } : undefined}
+              style={{
+                background: active
+                  ? `linear-gradient(180deg, ${withAlpha(color, 'FF')}, ${withAlpha(color, 'E8')})`
+                  : `linear-gradient(180deg, ${chipSurface}, rgba(255,255,255,0.96))`,
+                borderColor: chipBorder,
+                boxShadow: active ? `0 10px 24px -18px ${chipGlow}` : undefined,
+              }}
             >
+              <span
+                className="pointer-events-none absolute inset-y-[3px] left-[3px] w-1.5 rounded-full opacity-90"
+                style={{ backgroundColor: active ? withAlpha('#FFFFFF', '9A') : withAlpha(color, '6A') }}
+              />
               <button
                 type="button"
                 onClick={() => toggleItem(item)}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold transition',
-                  active ? 'text-white' : 'text-foreground'
+                  'flex items-center gap-2 pl-4 pr-3 py-1.5 text-[11px] font-semibold transition'
                 )}
+                style={{ color: chipText }}
               >
                 <span
                   className={cn(

@@ -1,53 +1,97 @@
 const NODE_COLOR_PALETTE = [
-  '#7C6CF2',
-  '#3B82F6',
-  '#14B8A6',
-  '#F59E0B',
-  '#EF5DA8',
-  '#10B981',
-  '#8B5CF6',
-  '#F97316',
-  '#06B6D4',
-  '#84CC16',
-  '#EC4899',
-  '#6366F1',
+  '#A78BFA',
+  '#F472B6',
+  '#FB923C',
+  '#FCD34D',
+  '#6EE7B7',
+  '#7DD3FC',
+  '#FCA5A5',
+  '#86EFAC',
+  '#C084FC',
+  '#5EEAD4',
+  '#818CF8',
+  '#BEF264',
+  '#FDA4AF',
+  '#67E8F9',
+  '#FDE047',
+  '#93C5FD',
+  '#D8B4FE',
+  '#FDBA74',
+  '#99F6E4',
+  '#E9D5FF',
+  '#FECDD3',
+  '#BBF7D0',
+  '#BFDBFE',
+  '#FED7AA',
 ];
 
 const RELATIONSHIP_COLOR_PALETTE = [
-  '#2563EB',
-  '#0F766E',
-  '#D97706',
-  '#7C3AED',
-  '#DB2777',
-  '#0891B2',
-  '#DC2626',
-  '#65A30D',
-  '#9333EA',
-  '#0F766E',
-  '#C2410C',
-  '#1D4ED8',
+  '#355070',
+  '#4A5568',
+  '#5F6F52',
+  '#6B7280',
+  '#4B5563',
+  '#516B8B',
+  '#7C6A58',
+  '#5B7065',
+  '#475569',
+  '#6C757D',
+  '#556B7A',
+  '#7A6F5A',
+  '#526D82',
+  '#667761',
+  '#6B7280',
+  '#4C5C68',
+  '#5E6472',
+  '#7D7461',
+  '#5C677D',
+  '#6E7F80',
 ];
+
+const assignedNodeTypeColors = new Map();
+const usedNodeColorIndices = new Set();
+const assignedRelationshipColors = new Map();
+const usedRelationshipColorIndices = new Set();
 
 function hashString(value = '') {
   let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(i);
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value.charCodeAt(index);
+    hash = (hash << 5) - hash + char;
     hash |= 0;
   }
   return Math.abs(hash);
 }
 
-function getPaletteColor(value, palette, fallback) {
-  if (!value) return fallback;
-  return palette[hashString(value) % palette.length] || fallback;
+function assignUniqueColor(type, palette, assignedMap, usedIndices, fallback) {
+  if (!type) return fallback;
+  if (assignedMap.has(type)) return assignedMap.get(type);
+
+  const hash = hashString(type);
+  const startIndex = hash % palette.length;
+
+  for (let attempt = 0; attempt < palette.length; attempt += 1) {
+    const paletteIndex = (startIndex + attempt) % palette.length;
+    if (!usedIndices.has(paletteIndex)) {
+      usedIndices.add(paletteIndex);
+      const color = palette[paletteIndex];
+      assignedMap.set(type, color);
+      return color;
+    }
+  }
+
+  const hue = (assignedMap.size * 137.508) % 360;
+  const generated = `hsl(${Math.round(hue)}, 70%, 75%)`;
+  assignedMap.set(type, generated);
+  return generated;
 }
 
 export function getNodeTypeColor(type, overrides = {}) {
-  return overrides[type] || getPaletteColor(type, NODE_COLOR_PALETTE, '#64748B');
+  return overrides[type] || assignUniqueColor(type, NODE_COLOR_PALETTE, assignedNodeTypeColors, usedNodeColorIndices, '#6B7280');
 }
 
 export function getRelationshipTypeColor(type, overrides = {}) {
-  return overrides[type] || getPaletteColor(type, RELATIONSHIP_COLOR_PALETTE, '#475569');
+  return overrides[type] || assignUniqueColor(type, RELATIONSHIP_COLOR_PALETTE, assignedRelationshipColors, usedRelationshipColorIndices, '#64748B');
 }
 
 export function withAlpha(hexColor, alphaHex = '18') {

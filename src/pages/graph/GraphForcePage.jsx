@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
-import { ChevronLeft, Link2, Loader2, PanelRightOpen, RotateCcw, Type, Waypoints } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { graphService } from '../../services/graphService';
 import { getNodeTypeColor, getRelationshipTypeColor, withAlpha } from './colorSystem';
-import { Button } from '../../components/ui/Button';
 import { GraphNodeCrudModal } from '../../components/crud';
 import { capGraphData } from './graphDisplayData';
 import { GraphFocusDrawer } from './GraphFocusDrawer';
 import { buildNodeFocusGraph, buildRelationshipFocusGraph } from './graphFocusUtils';
+import { annotateParallelLinks, getLinkLabelPlacement } from './rendering/linkLabelLayout';
 
 export default function GraphForcePage({
   folderId,
@@ -20,6 +20,9 @@ export default function GraphForcePage({
   showOrphans,
   nodeSearch,
   searchResultIds = null,
+  jumpRequest = null,
+  highlightedNodeIds = new Set(),
+  highlightedLinkIds = new Set(),
   displayGraphData = null,
   traversalModeActive = false,
   onTraversalToggle = null,
@@ -31,8 +34,12 @@ export default function GraphForcePage({
   showRelationshipLabels = false,
   onToggleNodeLabels = null,
   onToggleRelationshipLabels = null,
+  onJumpHandled = null,
   onStatsChange,
   addNodeSignal,
+  resetPinnedSignal = 0,
+  resetViewSignal = 0,
+  lockDraggedNodes = true,
   graphDataOverride = null,
   disableRemoteLoad = false,
   _traversalMode = false,
@@ -51,6 +58,8 @@ export default function GraphForcePage({
   const [activeRelationship, setActiveRelationship] = useState(null);
   const [refreshToken, setRefreshToken] = useState(0);
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [expandDepth, setExpandDepth] = useState(1);
+  const [expandRelationshipTypes, setExpandRelationshipTypes] = useState([]);
   const forceRefreshRef = useRef(false);
   const graphRef = useRef(null);
 
@@ -94,7 +103,11 @@ export default function GraphForcePage({
         if (focusType === 'node' && activeNode?.id) {
           setFocusLoading(true);
           try {
-            const expanded = await graphService.expandNode(activeNode.id, { force: forceRefreshRef.current });
+            const expanded = await graphService.expandNode(activeNode.id, {
+              depth: expandDepth,
+              relationshipTypes: expandRelationshipTypes,
+              force: forceRefreshRef.current,
+            });
             setFocusedGraphData(buildNodeFocusGraph(data, expanded, activeNode));
           } catch (focusError) {
             console.error('Failed to restore focused node:', focusError);
@@ -122,7 +135,7 @@ export default function GraphForcePage({
 
     loadGraph();
     return () => window.removeEventListener('nnv2:graph-crud', handleCrud);
-  }, [folderId, refreshToken, graphData, graphDataOverride, disableRemoteLoad]);
+  }, [folderId, refreshToken, graphData, graphDataOverride, disableRemoteLoad, focusType, activeNode, activeRelationship, expandDepth, expandRelationshipTypes]);
 
   useEffect(() => {
     if (!addNodeSignal) return;
@@ -189,7 +202,7 @@ export default function GraphForcePage({
       color: getNodeTypeColor(node.type || 'Unknown', nodeTypeColors),
     }));
 
-    return { nodes: enrichedNodes, links };
+    return { nodes: enrichedNodes, links: annotateParallelLinks(links) };
   }, [
     activeGraphData,
     nodeTypes,
@@ -218,6 +231,25 @@ export default function GraphForcePage({
     setCrudOpen(true);
   };
 
+  const refreshNodeFocus = async (node) => {
+    if (!node?.id) return;
+    setFocusLoading(true);
+    try {
+      const expanded = await graphService.expandNode(node.id, {
+        depth: expandDepth,
+        relationshipTypes: expandRelationshipTypes,
+        force: true,
+      });
+      setFocusedGraphData(buildNodeFocusGraph(fullGraphData, expanded, node));
+      setTimeout(() => graphRef.current?.zoomToFit(420, 180), 80);
+    } catch (err) {
+      console.error('Failed to refresh focused node:', err);
+      setFocusedGraphData(buildNodeFocusGraph(fullGraphData, { nodes: [node], links: [] }, node));
+    } finally {
+      setFocusLoading(false);
+    }
+  };
+
   const handleNodeClick = async (node) => {
     if (traversalModeActive && onTraversalNodeClick) {
       onTraversalNodeClick(node);
@@ -236,17 +268,13 @@ export default function GraphForcePage({
     setFocusLabel(node.name || node.id);
     setInspectorOpen(true);
     setCrudOpen(false);
-    setFocusLoading(true);
-    try {
-      const expanded = await graphService.expandNode(node.id, { force: true });
-      setFocusedGraphData(buildNodeFocusGraph(fullGraphData, expanded, node));
-      setTimeout(() => graphRef.current?.zoomToFit(420, 180), 80);
-    } catch (err) {
-      console.error('Failed to focus node:', err);
-      setFocusedGraphData(buildNodeFocusGraph(fullGraphData, { nodes: [node], links: [] }, node));
-    } finally {
-      setFocusLoading(false);
-    }
+    await refreshNodeFocus(node);
+  };
+
+  const handleNodeSelectFromDrawer = async (node) => {
+    if (!node?.id) return;
+    const nextNode = fullGraphData.nodes.find((item) => String(item.id) === String(node.id)) || node;
+    await handleNodeClick(nextNode);
   };
 
   const handleRelationshipClick = (link) => {
@@ -269,36 +297,99 @@ export default function GraphForcePage({
     setInspectorOpen(false);
   };
 
+  const handleNodeDragEnd = (node) => {
+    if (!node) return;
+    if (lockDraggedNodes) {
+      node.fx = node.x;
+      node.fy = node.y;
+      return;
+    }
+    node.fx = undefined;
+    node.fy = undefined;
+  };
+
+  useEffect(() => {
+    const current = graphRef.current?.graphData?.();
+    current?.nodes?.forEach((node) => {
+      node.fx = undefined;
+      node.fy = undefined;
+    });
+    graphRef.current?.d3ReheatSimulation?.();
+    setTimeout(() => {
+      graphRef.current?.zoomToFit?.(420, 180);
+    }, 80);
+  }, [resetPinnedSignal, resetViewSignal]);
+
+  useEffect(() => {
+    if (!jumpRequest?.nodeId) return;
+    const nextNode = fullGraphData.nodes.find((node) => String(node.id) === String(jumpRequest.nodeId));
+    if (!nextNode) {
+      onJumpHandled?.();
+      return;
+    }
+
+    if (jumpRequest.depth || (jumpRequest.relationshipTypes && jumpRequest.relationshipTypes.length)) {
+      setExpandDepth(jumpRequest.depth || 1);
+      setExpandRelationshipTypes(jumpRequest.relationshipTypes || []);
+    }
+
+    handleNodeClick(nextNode).finally(() => {
+      onJumpHandled?.();
+    });
+  }, [jumpRequest, fullGraphData, onJumpHandled]);
+
+  const hasPathHighlights = highlightedNodeIds.size > 0 || highlightedLinkIds.size > 0;
+
+  useEffect(() => {
+    if (!hasPathHighlights) return;
+    setTimeout(() => {
+      graphRef.current?.zoomToFit(520, 120);
+    }, 120);
+  }, [hasPathHighlights, highlightedNodeIds, highlightedLinkIds]);
+
   const drawNodeCanvasObject = (node, ctx, globalScale) => {
-    const label = node.name || node.id;
-    const shouldShowLabel = showNodeLabels || node.id === activeNode?.id;
-    if (!shouldShowLabel || !label) return;
+    const baseMetric = Math.max(1, Number(node.size || node.degree || 1));
+    const radius = Math.max(8, Math.min(14, 8 + Math.log2(baseMetric + 1) * 1.6));
+    const x = node.x || 0;
+    const y = node.y || 0;
+    const nodeColor = node.color || '#93C5FD';
+    const isHighlighted = highlightedNodeIds.has(String(node.id));
+    const shouldShowLabel = showNodeLabels || node.id === activeNode?.id || isHighlighted;
 
-    const fontSize = Math.max(10 / globalScale, 8);
-    ctx.font = `${fontSize}px Inter, ui-sans-serif, system-ui, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.save();
 
-    const textWidth = ctx.measureText(label).width;
-    const paddingX = 8 / globalScale;
-    const paddingY = 4 / globalScale;
-    const boxWidth = textWidth + paddingX * 2;
-    const boxHeight = fontSize + paddingY * 2;
-    const yOffset = (node.val ? Math.max(18, node.val * 1.1) : 18) / globalScale;
-
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.lineWidth = 1 / globalScale;
     ctx.beginPath();
-    ctx.roundRect((node.x || 0) - boxWidth / 2, (node.y || 0) - yOffset - boxHeight / 2, boxWidth, boxHeight, 999);
+    ctx.fillStyle = withAlpha(nodeColor, isHighlighted ? '3D' : '24');
+    ctx.arc(x, y, radius + 5, 0, 2 * Math.PI, false);
     ctx.fill();
+
+    ctx.beginPath();
+    ctx.fillStyle = nodeColor;
+    ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = withAlpha(nodeColor, isHighlighted ? 'DD' : 'AA');
+    ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
     ctx.stroke();
-    ctx.fillStyle = '#fff';
-    ctx.fillText(label, node.x || 0, (node.y || 0) - yOffset);
+
+    if (shouldShowLabel) {
+      const label = node.name || node.id;
+      const fontSize = Math.max(11 / globalScale, 8.5);
+      ctx.font = `${fontSize}px Inter, ui-sans-serif, system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = '#1F2937';
+      ctx.fillText(label, x, y + radius + 8);
+    }
+
+    ctx.restore();
   };
 
   const drawLinkCanvasObject = (link, ctx, globalScale) => {
     if (!showRelationshipLabels) return;
+    if (globalScale < 0.95) return;
     const source = link.source;
     const target = link.target;
     if (!source || !target) return;
@@ -309,119 +400,38 @@ export default function GraphForcePage({
     const targetY = typeof target === 'object' ? target.y : 0;
     const label = link.type || '';
     if (!label) return;
-
-    const x = (sourceX + targetX) / 2;
-    const y = (sourceY + targetY) / 2;
+    const placement = getLinkLabelPlacement(
+      link,
+      { x: sourceX, y: sourceY },
+      { x: targetX, y: targetY },
+      1 / Math.max(globalScale, 0.75)
+    );
+    if (!placement || placement.length < 36) return;
     const fontSize = Math.max(9 / globalScale, 7);
+
     ctx.font = `${fontSize}px Inter, ui-sans-serif, system-ui, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
     const width = ctx.measureText(label).width + 10 / globalScale;
     const height = fontSize + 6 / globalScale;
 
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.78)';
+    ctx.save();
+    ctx.translate(placement.x, placement.y);
+    ctx.rotate(placement.angle);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
     ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
     ctx.lineWidth = 1 / globalScale;
     ctx.beginPath();
-    ctx.roundRect(x - width / 2, y - height / 2, width, height, 999);
+    ctx.roundRect(-width / 2, -height / 2, width, height, 999);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#334155';
-    ctx.fillText(label, x, y + 0.5);
+    ctx.fillText(label, 0, 0.5);
+    ctx.restore();
   };
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden rounded-[26px] bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,247,251,0.92))] dark:bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_26%),linear-gradient(180deg,rgba(15,23,42,0.92),rgba(17,24,39,0.94))]">
-      <div className="flex items-center justify-between gap-3 border-b border-border/50 px-6 py-3">
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold">2D Graph</h2>
-          <p className="text-xs text-muted-foreground">Click a node to inspect it on the right, or a relationship to focus the link.</p>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {onTraversalToggle ? (
-            <Button
-              variant={traversalModeActive ? 'outline' : 'ghost'}
-              size="sm"
-              className="gap-2 rounded-full"
-              type="button"
-              onClick={onTraversalToggle}
-              aria-label="Toggle traversal mode"
-              title="Traversal mode"
-            >
-              <Waypoints className="h-4 w-4" />
-              Traversal
-            </Button>
-          ) : null}
-          {traversalModeActive && onTraversalBack ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2 rounded-full"
-              type="button"
-              onClick={onTraversalBack}
-              disabled={!traversalPath.length}
-              title="Go back one step"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Back
-            </Button>
-          ) : null}
-          {traversalModeActive && onTraversalReset ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2 rounded-full"
-              type="button"
-              onClick={onTraversalReset}
-              disabled={!traversalPath.length}
-              title="Reset traversal"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset
-            </Button>
-          ) : null}
-          {onToggleNodeLabels ? (
-            <Button
-              variant={showNodeLabels ? 'outline' : 'ghost'}
-              size="sm"
-              className="gap-2 rounded-full"
-              type="button"
-              onClick={onToggleNodeLabels}
-              aria-label="Toggle node labels"
-              title="Show node names"
-            >
-              <Type className="h-4 w-4" />
-              Names
-            </Button>
-          ) : null}
-          {onToggleRelationshipLabels ? (
-            <Button
-              variant={showRelationshipLabels ? 'outline' : 'ghost'}
-              size="sm"
-              className="gap-2 rounded-full"
-              type="button"
-              onClick={onToggleRelationshipLabels}
-              aria-label="Toggle relationship labels"
-              title="Show relationship names"
-            >
-              <Link2 className="h-4 w-4" />
-              Relations
-            </Button>
-          ) : null}
-          <Button
-            variant={inspectorOpen ? 'outline' : 'ghost'}
-            size="sm"
-            className="gap-2 rounded-full"
-            type="button"
-            onClick={() => setInspectorOpen((value) => !value)}
-            disabled={!focusLabel}
-          >
-            {inspectorOpen ? <PanelRightOpen className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            {inspectorOpen ? 'Hide details' : 'Show details'}
-          </Button>
-        </div>
-      </div>
-
+    <div className="flex h-full w-full flex-col overflow-hidden rounded-[26px] border border-border/60 bg-background">
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <div className="absolute inset-0">
           {loading || focusLoading ? (
@@ -437,20 +447,36 @@ export default function GraphForcePage({
                 ref={graphRef}
                 graphData={renderedGraph}
                 backgroundColor="rgba(0,0,0,0)"
-                nodeColor={(node) => node.color}
+                nodeColor={(node) => {
+                  const isHighlighted = highlightedNodeIds.has(String(node.id));
+                  if (!hasPathHighlights) return node.color;
+                  return isHighlighted ? node.color : withAlpha(node.color || '#94A3B8', '30');
+                }}
                 nodeRelSize={7}
-                nodeVal={(node) => Math.max(1, Number(node.size || node.degree || 1))}
-                nodeLabel={(node) => `${node.name || node.id}${node.type ? ` (${node.type})` : ''}`}
+                nodeVal={(node) => {
+                  const base = Math.max(1, Number(node.size || node.degree || 1));
+                  const normalized = 1 + Math.log2(base + 1) * 0.55;
+                  return highlightedNodeIds.has(String(node.id)) ? normalized * 1.15 : normalized;
+                }}
+                nodeLabel={() => ''}
                 nodeCanvasObject={drawNodeCanvasObject}
-                nodeCanvasObjectMode={() => 'after'}
-                linkColor={(link) => withAlpha(link.color || '#94A3B8', '66')}
-                linkDirectionalParticles={1}
+                nodeCanvasObjectMode={() => 'replace'}
+                linkColor={(link) => {
+                  const isHighlighted = highlightedLinkIds.has(String(link.id));
+                  if (!hasPathHighlights) return withAlpha(link.color || '#94A3B8', '55');
+                  return isHighlighted ? withAlpha(link.color || '#94A3B8', 'B8') : withAlpha(link.color || '#94A3B8', '20');
+                }}
+                linkDirectionalParticles={(link) => (highlightedLinkIds.has(String(link.id)) ? 3 : 1)}
                 linkDirectionalParticleColor={(link) => link.color}
                 linkDirectionalParticleSpeed={0.005}
-                linkWidth={(link) => (link.type ? 1.4 : 1)}
+                linkDirectionalArrowLength={4}
+                linkDirectionalArrowRelPos={1}
+                linkDirectionalArrowColor={(link) => link.color || '#64748B'}
+                linkWidth={(link) => (highlightedLinkIds.has(String(link.id)) ? 2 : (link.type ? 0.85 : 0.7))}
                 linkCanvasObject={drawLinkCanvasObject}
                 linkCanvasObjectMode={() => (showRelationshipLabels ? 'after' : undefined)}
                 onNodeClick={handleNodeClick}
+                onNodeDragEnd={handleNodeDragEnd}
                 onLinkClick={handleRelationshipClick}
                 width={undefined}
                 height={undefined}
@@ -472,6 +498,14 @@ export default function GraphForcePage({
             onClose={() => setInspectorOpen(false)}
             onClear={clearFocus}
             onEdit={activeNode ? openNodeEditor : null}
+            onSelectNode={handleNodeSelectFromDrawer}
+            relationshipTypeOptions={relationshipTypes}
+            expandDepth={expandDepth}
+            setExpandDepth={setExpandDepth}
+            expandRelationshipTypes={expandRelationshipTypes}
+            setExpandRelationshipTypes={setExpandRelationshipTypes}
+            onExpandNode={activeNode ? () => refreshNodeFocus(activeNode) : null}
+            expandLoading={focusLoading}
             onSelectLink={(link) => {
               setActiveRelationship(link);
               setActiveNode(null);

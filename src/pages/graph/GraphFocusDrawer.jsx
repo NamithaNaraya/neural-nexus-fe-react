@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link2, Pencil, Save, Sparkles, Target, X } from 'lucide-react';
+import { ArrowRight, GitBranch, Link2, Pencil, RefreshCw, Save, Sparkles, Target, X } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -8,7 +8,7 @@ import { graphService } from '../../services/graphService';
 import { GraphFocusConnections } from './GraphFocusConnections';
 
 function resolveValue(value) {
-  if (value === null || value === undefined || value === '') return '—';
+  if (value === null || value === undefined || value === '') return '-';
   if (typeof value === 'object') {
     return value.name || value.label || value.id || value.type || JSON.stringify(value);
   }
@@ -72,12 +72,21 @@ export function GraphFocusDrawer({
   links = [],
   onClose,
   onEdit,
+  onSelectNode,
   onSelectLink,
+  relationshipTypeOptions = [],
+  expandDepth = 1,
+  setExpandDepth,
+  expandRelationshipTypes = [],
+  setExpandRelationshipTypes,
+  onExpandNode,
+  expandLoading = false,
 }) {
   const [nodeForm, setNodeForm] = useState({
     name: '',
     type: '',
     description: '',
+    notes: '',
     color: '',
     size: '',
     propertiesText: '{}',
@@ -96,6 +105,7 @@ export function GraphFocusDrawer({
       name: activeNode.name || '',
       type: activeNode.type || '',
       description: activeNode.description || '',
+      notes: activeNode.properties?.notes || activeNode.properties?.user_notes || '',
       color: activeNode.color || '',
       size: activeNode.size ?? '',
       propertiesText: JSON.stringify(activeNode.properties || {}, null, 2),
@@ -116,21 +126,60 @@ export function GraphFocusDrawer({
   const nodeProperties = useMemo(() => formatEntries(activeNode?.properties), [activeNode]);
   const relationshipProperties = useMemo(() => formatEntries(activeRelationship?.properties), [activeRelationship]);
   const relationSummary = activeRelationship
-    ? `${resolveValue(activeRelationship.source)} → ${resolveValue(activeRelationship.target)}`
+    ? `${resolveValue(activeRelationship.source)} -> ${resolveValue(activeRelationship.target)}`
     : '';
+
+  const neighboringNodes = useMemo(() => {
+    if (!activeNode?.id) return [];
+
+    const seen = new Set();
+    return links.reduce((collection, link) => {
+      const source = typeof link.source === 'object' ? link.source : { id: link.source, name: link.source };
+      const target = typeof link.target === 'object' ? link.target : { id: link.target, name: link.target };
+      const currentId = String(activeNode.id);
+      let neighbor = null;
+      let direction = '';
+
+      if (String(source.id) === currentId) {
+        neighbor = target;
+        direction = 'Outgoing';
+      } else if (String(target.id) === currentId) {
+        neighbor = source;
+        direction = 'Incoming';
+      }
+
+      if (!neighbor?.id || seen.has(String(neighbor.id))) return collection;
+      seen.add(String(neighbor.id));
+      collection.push({
+        id: neighbor.id,
+        name: neighbor.name || neighbor.label || neighbor.id,
+        type: neighbor.type || 'Unknown',
+        direction,
+      });
+      return collection;
+    }, []);
+  }, [activeNode, links]);
 
   const handleSaveNode = async () => {
     if (!activeNode?.id) return;
     setSaving(true);
     setError('');
     try {
+      const properties = parseProperties(nodeForm.propertiesText);
+      const noteValue = nodeForm.notes.trim();
+      if (noteValue) {
+        properties.notes = noteValue;
+      } else {
+        delete properties.notes;
+        delete properties.user_notes;
+      }
       await graphService.updateNode(activeNode.id, {
         name: nodeForm.name.trim(),
         type: nodeForm.type.trim(),
         description: nodeForm.description.trim(),
         color: nodeForm.color.trim() || undefined,
         size: nodeForm.size === '' ? undefined : Number(nodeForm.size),
-        properties: parseProperties(nodeForm.propertiesText),
+        properties,
         folder_id: folderId || undefined,
       });
     } catch (err) {
@@ -161,29 +210,29 @@ export function GraphFocusDrawer({
   return (
     <aside
       className={[
-        'absolute inset-y-0 right-0 z-20 w-[360px] border-l border-border/50 bg-background/88 shadow-2xl backdrop-blur-xl transition-transform duration-300 ease-out',
-        open ? 'translate-x-0' : 'translate-x-[calc(100%+20px)] pointer-events-none',
+        'absolute bottom-5 right-5 top-5 z-20 w-[360px] overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/96 shadow-[0_26px_70px_rgba(15,23,42,0.14)] backdrop-blur-xl transition-all duration-300 ease-out',
+        open ? 'translate-x-0 opacity-100' : 'translate-x-[calc(100%+24px)] opacity-0 pointer-events-none',
       ].join(' ')}
     >
       <div className="flex h-full min-h-0 flex-col">
-        <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-slate-200/80 px-5 py-4">
           <div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px] uppercase tracking-[0.18em]">
+              <Badge variant="outline" className="border-slate-200 bg-slate-50 text-[10px] uppercase tracking-[0.18em] text-slate-600">
                 Inspector
               </Badge>
-              <span className="text-sm font-semibold">Focused details</span>
+              <span className="text-sm font-semibold text-slate-900">Focused details</span>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Edit the active node or relationship while the graph stays clean.
+            <p className="mt-1 max-w-[240px] text-xs leading-5 text-muted-foreground">
+              Inspect a node, move through neighbors, and edit graph details without losing the canvas.
             </p>
           </div>
-          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" type="button" onClick={onClose} aria-label="Close inspector">
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full bg-slate-50" type="button" onClick={onClose} aria-label="Close inspector">
             <X className="h-4 w-4" />
           </Button>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto p-4">
+        <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {!focusLabel ? (
             <Card className="border-dashed border-border/50 bg-background/40">
               <CardContent className="space-y-3 p-4 text-sm text-muted-foreground">
@@ -191,7 +240,7 @@ export function GraphFocusDrawer({
                   <Sparkles className="h-4 w-4 text-primary" />
                   Start exploring
                 </div>
-                <p>Click a node to inspect its neighborhood or click a relationship to focus that link.</p>
+                <p>Click a node to inspect its neighbors and paths, or click a relationship to focus that directed link.</p>
               </CardContent>
             </Card>
           ) : null}
@@ -220,7 +269,7 @@ export function GraphFocusDrawer({
                       <Target className="h-4 w-4 text-primary" />
                       <h3 className="text-sm font-semibold">Node details</h3>
                     </div>
-                    <p className="text-xs text-muted-foreground">This node is now driving the focused graph view.</p>
+                    <p className="text-xs text-muted-foreground">This node is driving the current focused graph view.</p>
                   </div>
                   {onEdit ? (
                     <Button variant="outline" size="sm" className="gap-2" type="button" onClick={onEdit}>
@@ -238,11 +287,11 @@ export function GraphFocusDrawer({
                 <div className="grid gap-2 sm:grid-cols-2">
                   <div className="space-y-2 sm:col-span-2">
                     <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Name</Label>
-                    <Input value={nodeForm.name} onChange={(e) => setNodeForm((prev) => ({ ...prev, name: e.target.value }))} />
+                    <Input value={nodeForm.name} onChange={(event) => setNodeForm((prev) => ({ ...prev, name: event.target.value }))} />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Type</Label>
-                    <Input value={nodeForm.type} onChange={(e) => setNodeForm((prev) => ({ ...prev, type: e.target.value }))} />
+                    <Input value={nodeForm.type} onChange={(event) => setNodeForm((prev) => ({ ...prev, type: event.target.value }))} />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Degree</Label>
@@ -250,11 +299,11 @@ export function GraphFocusDrawer({
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Color</Label>
-                    <Input value={nodeForm.color} onChange={(e) => setNodeForm((prev) => ({ ...prev, color: e.target.value }))} placeholder="#7C6CF2" />
+                    <Input value={nodeForm.color} onChange={(event) => setNodeForm((prev) => ({ ...prev, color: event.target.value }))} placeholder="#A78BFA" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Size</Label>
-                    <Input value={nodeForm.size} onChange={(e) => setNodeForm((prev) => ({ ...prev, size: e.target.value }))} placeholder="1" />
+                    <Input value={nodeForm.size} onChange={(event) => setNodeForm((prev) => ({ ...prev, size: event.target.value }))} placeholder="1" />
                   </div>
                 </div>
 
@@ -264,6 +313,14 @@ export function GraphFocusDrawer({
                   onChange={(value) => setNodeForm((prev) => ({ ...prev, description: value }))}
                   rows={3}
                   placeholder="Short description"
+                />
+
+                <EditableTextarea
+                  label="Notes"
+                  value={nodeForm.notes}
+                  onChange={(value) => setNodeForm((prev) => ({ ...prev, notes: value }))}
+                  rows={4}
+                  placeholder="Add analyst notes, reminders, or interpretation"
                 />
 
                 <EditableTextarea
@@ -279,6 +336,107 @@ export function GraphFocusDrawer({
                     <Save className="h-4 w-4" />
                     Save Node
                   </Button>
+                </div>
+
+                {neighboringNodes.length > 0 ? (
+                  <div className="space-y-3 rounded-2xl border border-border/40 bg-background/40 p-3">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-primary" />
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Neighbors</div>
+                        <p className="mt-1 text-xs text-muted-foreground">Move through the graph from this node one neighbor at a time.</p>
+                      </div>
+                    </div>
+                    <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
+                      {neighboringNodes.map((neighbor) => (
+                        <button
+                          key={neighbor.id}
+                          type="button"
+                          onClick={() => onSelectNode?.(neighbor)}
+                          className="flex w-full items-center justify-between gap-3 rounded-xl border border-border/40 bg-white px-3 py-2 text-left transition hover:border-primary/30 hover:bg-primary/5"
+                        >
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium">{neighbor.name}</div>
+                            <div className="truncate text-xs text-muted-foreground">{neighbor.direction} • {neighbor.type}</div>
+                          </div>
+                          <ArrowRight className="h-4 w-4 shrink-0 text-primary" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="space-y-3 rounded-2xl border border-border/40 bg-background/40 p-3">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="h-4 w-4 text-primary" />
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Expansion controls</div>
+                      <p className="mt-1 text-xs text-muted-foreground">Reload this node with deeper hops or narrower relationship types.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Depth</Label>
+                    <div className="flex items-center gap-2">
+                      {[1, 2, 3].map((depth) => (
+                        <Button
+                          key={depth}
+                          variant={expandDepth === depth ? 'outline' : 'ghost'}
+                          size="sm"
+                          className="rounded-full"
+                          onClick={() => setExpandDepth?.(depth)}
+                        >
+                          {depth} hop{depth === 1 ? '' : 's'}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {relationshipTypeOptions.length ? (
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Relationship types</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {relationshipTypeOptions.slice(0, 12).map((type) => {
+                          const active = expandRelationshipTypes.includes(type);
+                          return (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => {
+                                if (!setExpandRelationshipTypes) return;
+                                setExpandRelationshipTypes((current) => (
+                                  current.includes(type)
+                                    ? current.filter((item) => item !== type)
+                                    : [...current, type]
+                                ));
+                              }}
+                              className={[
+                                'rounded-full border px-3 py-1.5 text-xs font-medium transition',
+                                active
+                                  ? 'border-primary/40 bg-primary/10 text-primary'
+                                  : 'border-border/40 bg-background/50 text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                              ].join(' ')}
+                            >
+                              {type}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 rounded-full"
+                      onClick={onExpandNode}
+                      disabled={expandLoading}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${expandLoading ? 'animate-spin' : ''}`} />
+                      Refresh neighborhood
+                    </Button>
+                  </div>
                 </div>
 
                 {nodeProperties.length > 0 ? (
@@ -303,7 +461,7 @@ export function GraphFocusDrawer({
                     <Link2 className="h-4 w-4 text-primary" />
                     <h3 className="text-sm font-semibold">Relationship details</h3>
                   </div>
-                  <p className="text-xs text-muted-foreground">This link is isolated in the focused graph.</p>
+                  <p className="text-xs text-muted-foreground">This link is isolated with its source-to-target direction preserved.</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -326,20 +484,20 @@ export function GraphFocusDrawer({
                     <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Type</Label>
                     <Input
                       value={relationshipForm.type}
-                      onChange={(e) => setRelationshipForm((prev) => ({ ...prev, type: e.target.value }))}
+                      onChange={(event) => setRelationshipForm((prev) => ({ ...prev, type: event.target.value }))}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Strength</Label>
                     <Input
                       value={relationshipForm.strength}
-                      onChange={(e) => setRelationshipForm((prev) => ({ ...prev, strength: e.target.value }))}
+                      onChange={(event) => setRelationshipForm((prev) => ({ ...prev, strength: event.target.value }))}
                       placeholder="1"
                     />
                   </div>
                   <div className="space-y-2 sm:col-span-2">
                     <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">ID</Label>
-                    <Input value={activeRelationship.id || activeRelationship.key || '—'} disabled />
+                    <Input value={activeRelationship.id || activeRelationship.key || '-'} disabled />
                   </div>
                 </div>
 
@@ -375,7 +533,7 @@ export function GraphFocusDrawer({
           ) : null}
 
           {focusType === 'node' && links.length > 0 ? (
-            <GraphFocusConnections links={links} onSelectLink={onSelectLink} />
+            <GraphFocusConnections activeNode={activeNode} links={links} onSelectLink={onSelectLink} />
           ) : null}
         </div>
       </div>
