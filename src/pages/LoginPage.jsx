@@ -145,7 +145,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); clearError(); }}
                     required
-                    minLength={4}
+                    minLength={3}
                     className="h-11 pr-10"
                   />
                   <button

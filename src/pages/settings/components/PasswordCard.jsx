@@ -52,12 +52,15 @@ export function PasswordCard() {
           <Input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>New password</Label>
-          <Input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
+          <div className="flex items-center justify-between">
+            <Label>New password</Label>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">Min. 3 characters</span>
+          </div>
+          <Input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} minLength={3} />
         </div>
         <div className="space-y-2">
           <Label>Confirm new password</Label>
-          <Input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+          <Input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength={3} />
         </div>
         <Button type="submit" variant="gradient" className="gap-2" disabled={saving || !currentPassword || !newPassword || !confirmPassword}>
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
