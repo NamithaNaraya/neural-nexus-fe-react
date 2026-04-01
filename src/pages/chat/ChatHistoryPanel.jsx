@@ -39,9 +39,11 @@ export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onClose, ac
 
         {chatHistory.map((session) => {
           const isActive = session.id === activeSessionId;
-          const preview = session.messages.find((message) => message.role === 'user' && message.content)?.content
+          const preview =
+            session.messages.find((message) => message.role === 'user' && message.content)?.content
             || session.messages.find((message) => message.role === 'assistant' && !message.isWelcome)?.content
             || '';
+          const previewSingleLine = String(preview || '').split('\n')[0].trim();
 
           return (
             <li
@@ -73,31 +75,22 @@ export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onClose, ac
                     </div>
                   ) : null}
 
-                  {preview ? (
-                    <div className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                      {preview}
+                  {previewSingleLine ? (
+                    <div className="mt-2 line-clamp-1 text-xs leading-relaxed text-muted-foreground overflow-hidden text-ellipsis">
+                      {previewSingleLine}
                     </div>
                   ) : null}
 
-                  <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span>{new Date(session.createdAt).toLocaleString()}</span>
-                    <span className="text-stone-300 dark:text-stone-600">&bull;</span>
-                    <span>{session.messages.length} messages</span>
+                          <div className="mt-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-3 w-3" />
+                      <span>{new Date(session.createdAt).toLocaleString()}</span>
+                    </div>
+                    <div className="text-xs text-foreground/80 mt-1">{session.messages.length} messages</div>
                   </div>
                 </button>
 
                 <div className="flex flex-col justify-center gap-1 border-l border-border/40 px-2">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => onRestore(session.id)}
-                    className="h-8 w-8 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
-                    title="Open conversation"
-                    aria-label="Open conversation"
-                  >
-                    <ClipboardCopy className="h-3.5 w-3.5" />
-                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"

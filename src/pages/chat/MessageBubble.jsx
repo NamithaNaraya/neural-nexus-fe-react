@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Bot, Globe, ExternalLink, Loader2 } from 'lucide-react';
+import { Bot, Globe, ExternalLink, Loader2, User } from 'lucide-react';
 
 const MD_INLINE_REGEX = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(\*\*([^*]+)\*\*)|(`([^`]+)`)|(\*([^*\n]+)\*)/g;
 
@@ -281,10 +281,15 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
   const cleanedContent = !isUser ? sanitizeAssistantAnswer(message.content) || message.content : message.content;
   const cleanedWebSearchAnswer = sanitizeAssistantAnswer(message.webSearchAnswer) || message.webSearchAnswer;
   const isStandaloneWebSearch = isWebSearch && !message.webSearchAnswer;
+  const hasWebSearchResponse = Boolean(isWebSearch || message.webSearchAnswer);
 
   return (
     <div className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
-      {!isUser && (
+      {isUser ? (
+        <div className="w-8 h-8 rounded-lg bg-slate-500 flex items-center justify-center shrink-0 shadow-sm">
+          <User className="w-4 h-4 text-white" />
+        </div>
+      ) : (
         <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0 shadow-sm animate-pulse">
           {isStandaloneWebSearch ? <Globe className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
         </div>
@@ -297,8 +302,8 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
           ? 'rounded-br-md border border-emerald-200/80 bg-emerald-100 text-emerald-950 shadow-sm shadow-emerald-500/10 dark:border-emerald-800/70 dark:bg-emerald-900/35 dark:text-emerald-50'
           : isError
             ? 'bg-red-50 border border-red-200 text-red-900 rounded-bl-md dark:bg-red-900/20 dark:border-red-800 dark:text-red-100'
-            : isStandaloneWebSearch
-              ? 'rounded-bl-md border border-amber-200 bg-amber-50 text-stone-900 dark:border-amber-800/70 dark:bg-amber-950/25 dark:text-amber-50'
+            : (isStandaloneWebSearch || hasWebSearchResponse)
+              ? 'rounded-bl-md border border-amber-200 bg-amber-50 text-stone-900 shadow-sm shadow-amber-500/10 dark:border-amber-800/70 dark:bg-amber-950/25 dark:text-amber-50'
               : 'bg-white/80 border border-gray-200 text-gray-900 rounded-bl-md dark:bg-gray-800/80 dark:border-gray-700 dark:text-gray-100 backdrop-blur-sm'
       )}>
         <div className={cn(
