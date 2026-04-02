@@ -79,28 +79,21 @@ export function GraphColorFilterSection({
             <div
               key={item}
               className={cn(
-                'group relative overflow-hidden rounded-full border transition',
-                active
-                  ? 'shadow-[0_14px_28px_-18px_rgba(15,23,42,0.28)]'
-                  : 'shadow-[0_10px_24px_-22px_rgba(15,23,42,0.18)]'
+                'group relative rounded-full border transition'
               )}
               style={{
                 background: active
                   ? `linear-gradient(180deg, ${withAlpha(color, 'FF')}, ${withAlpha(color, 'E8')})`
                   : `linear-gradient(180deg, ${chipSurface}, rgba(255,255,255,0.96))`,
                 borderColor: chipBorder,
-                boxShadow: active ? `0 10px 24px -18px ${chipGlow}` : undefined,
+                boxShadow: active ? `inset 0 0 0 1px ${withAlpha('#111827', '10')}` : `inset 0 0 0 1px ${withAlpha(color, '12')}`,
               }}
             >
-              <span
-                className="pointer-events-none absolute inset-y-[3px] left-[3px] w-1.5 rounded-full opacity-90"
-                style={{ backgroundColor: active ? withAlpha('#FFFFFF', '9A') : withAlpha(color, '6A') }}
-              />
               <button
                 type="button"
                 onClick={() => toggleItem(item)}
                 className={cn(
-                  'flex items-center gap-2 pl-4 pr-3 py-1.5 text-[11px] font-semibold transition'
+                  'flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold transition'
                 )}
                 style={{ color: chipText }}
               >

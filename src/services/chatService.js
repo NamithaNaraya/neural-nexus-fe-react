@@ -68,30 +68,22 @@ export const chatService = {
         return null; // No data in backend, use localStorage fallback
       }
 
-      const reconstructedSessions = await Promise.all(
-        sessions.map(async (backendSession) => {
-          const rawMessages = await this.getSessionHistory(backendSession.session_id, 200);
-          const messages = Array.isArray(rawMessages) && rawMessages.length > 0
-            ? rawMessages.map((msg) => ({
-                role: msg.role || 'assistant',
-                content: msg.message || '',
-                citations: msg.citations || [],
-                timestamp: msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now(),
-                ...msg,
-              }))
-            : [];
-
+      // Only create session shells from metadata — do NOT fetch messages for every session (avoids N+1 API calls).
+      // Messages are lazy-loaded when a session is clicked via restoreSession.
+      const reconstructedSessions = sessions
+        .filter((s) => s && s.session_id)
+        .map((backendSession) => {
+          const lastActivity = backendSession.last_activity ? new Date(backendSession.last_activity).getTime() : Date.now();
           return {
             id: backendSession.session_id,
-            messages,
+            messages: [], // Empty — loaded on demand when user clicks the session
             folderId: '',
             folderName: '',
-            createdAt: messages.length > 0 ? messages[0].timestamp || Date.now() : Date.now(),
-            updatedAt: new Date(backendSession.last_activity).getTime() || Date.now(),
-            title: backendSession.last_message?.substring(0, 42) || 'Chat Session',
+            createdAt: Number.isFinite(lastActivity) ? lastActivity : Date.now(),
+            updatedAt: Number.isFinite(lastActivity) ? lastActivity : Date.now(),
+            title: backendSession.last_message?.substring(0, 42) || 'New Chat',
           };
-        })
-      );
+        });
 
       return {
         sessions: reconstructedSessions,

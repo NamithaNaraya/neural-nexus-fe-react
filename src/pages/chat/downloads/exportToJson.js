@@ -13,7 +13,7 @@ export const exportToJson = ({ messages, folderName, sessionId, activeSessionTit
       exportedAt: new Date().toISOString(),
       folderName: folderName || 'Global',
       sessionId: sessionId || 'unknown',
-      sessionTitle: activeSessionTitle || 'Chat Session',
+      sessionTitle: activeSessionTitle || 'New Chat',
     },
     conversation: messages.map((m) => ({
       role: m.role,

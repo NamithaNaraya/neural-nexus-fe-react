@@ -1,8 +1,10 @@
 import React from 'react';
 import { Button } from '../../components/ui/Button';
-import { ClipboardCopy, Trash2, Clock, X, History } from 'lucide-react';
+import { Trash2, Clock, X, History } from 'lucide-react';
 
 export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onClose, activeSessionId }) {
+  const safeHistory = Array.isArray(chatHistory) ? chatHistory : [];
+
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[26px] border border-border/50 bg-card/92 shadow-[0_24px_70px_-50px_rgba(92,72,58,0.45)] backdrop-blur-xl">
       <div className="flex items-start justify-between gap-3 border-b border-border/40 px-4 py-3.5">
@@ -31,23 +33,25 @@ export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onClose, ac
       </div>
 
       <ul className="flex-1 space-y-2 overflow-y-auto p-4">
-        {chatHistory.length === 0 ? (
+        {safeHistory.length === 0 ? (
           <li className="rounded-2xl border border-border/30 bg-muted/10 p-4 text-center text-xs text-muted-foreground">
             No saved conversations yet.
           </li>
         ) : null}
 
-        {chatHistory.map((session) => {
+        {safeHistory.map((session) => {
           const isActive = session.id === activeSessionId;
+          const sessionMessages = Array.isArray(session?.messages) ? session.messages : [];
           const preview =
-            session.messages.find((message) => message.role === 'user' && message.content)?.content
-            || session.messages.find((message) => message.role === 'assistant' && !message.isWelcome)?.content
+            sessionMessages.find((message) => message?.role === 'user' && message?.content)?.content
+            || sessionMessages.find((message) => message?.role === 'assistant' && !message?.isWelcome)?.content
             || '';
           const previewSingleLine = String(preview || '').split('\n')[0].trim();
+          const createdAtLabel = session?.createdAt ? new Date(session.createdAt).toLocaleString() : 'Unknown time';
 
           return (
             <li
-              key={session.id}
+              key={session?.id || Math.random().toString(36).slice(2, 11)}
               className={`rounded-2xl border shadow-sm transition-shadow hover:shadow-md ${
                 isActive
                   ? 'border-emerald-300 bg-emerald-50/60 dark:border-emerald-800 dark:bg-emerald-950/20'
@@ -57,11 +61,11 @@ export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onClose, ac
               <div className="flex items-stretch">
                 <button
                   type="button"
-                  onClick={() => onRestore(session.id)}
+                  onClick={() => session?.id && onRestore(session.id)}
                   className="min-w-0 flex-1 rounded-l-2xl px-3 py-3 text-left transition-colors hover:bg-emerald-50/70 dark:hover:bg-emerald-950/20"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="truncate text-sm font-semibold text-foreground">{session.title}</div>
+                    <div className="truncate text-sm font-semibold text-foreground">{session?.title || 'New Chat'}</div>
                     {isActive ? (
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                         Active
@@ -69,7 +73,7 @@ export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onClose, ac
                     ) : null}
                   </div>
 
-                  {session.folderName ? (
+                  {session?.folderName ? (
                     <div className="mt-1 inline-flex items-center rounded-full border border-border/50 bg-background/60 px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                       {session.folderName}
                     </div>
@@ -84,9 +88,9 @@ export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onClose, ac
                           <div className="mt-2 text-xs text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Clock className="h-3 w-3" />
-                      <span>{new Date(session.createdAt).toLocaleString()}</span>
+                      <span>{createdAtLabel}</span>
                     </div>
-                    <div className="text-xs text-foreground/80 mt-1">{session.messages.length} messages</div>
+                    <div className="mt-1 text-xs text-foreground/80">{sessionMessages.length} messages</div>
                   </div>
                 </button>
 
@@ -94,7 +98,7 @@ export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onClose, ac
                   <Button
                     size="icon"
                     variant="ghost"
-                    onClick={() => onDelete(session.id)}
+                    onClick={() => session?.id && onDelete(session.id)}
                     className="h-8 w-8 hover:bg-red-50 dark:hover:bg-red-900/20"
                     title="Delete conversation"
                     aria-label="Delete conversation"

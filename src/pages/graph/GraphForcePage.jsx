@@ -145,10 +145,9 @@ export default function GraphForcePage({
     setInspectorOpen(false);
   }, [addNodeSignal]);
 
-  const graphState = focusedGraphData || fullGraphData;
   const activeGraphData = traversalModeActive
     ? displayGraphData || graphData || graphDataOverride || fullGraphData
-    : graphState;
+    : fullGraphData;
 
   const nodeTypes = useMemo(
     () => [...new Set(activeGraphData.nodes.map((node) => node.type || 'Unknown'))].sort(),
@@ -241,7 +240,6 @@ export default function GraphForcePage({
         force: true,
       });
       setFocusedGraphData(buildNodeFocusGraph(fullGraphData, expanded, node));
-      setTimeout(() => graphRef.current?.zoomToFit(420, 180), 80);
     } catch (err) {
       console.error('Failed to refresh focused node:', err);
       setFocusedGraphData(buildNodeFocusGraph(fullGraphData, { nodes: [node], links: [] }, node));
@@ -285,7 +283,6 @@ export default function GraphForcePage({
     setInspectorOpen(true);
     setCrudOpen(false);
     setFocusedGraphData(buildRelationshipFocusGraph(fullGraphData, link));
-    setTimeout(() => graphRef.current?.zoomToFit(420, 180), 80);
   };
 
   const clearFocus = () => {

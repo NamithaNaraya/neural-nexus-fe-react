@@ -449,6 +449,8 @@ export function GraphWorkspaceSidebar({
   onTraversalBack,
   onTraversalReset,
   activePanel = 'filters',
+  panelTitle = 'Graph tools',
+  panelDescription = '',
 }) {
   const activeFilterCount = countActiveFilters({
     nodeTypeFilters,
@@ -464,9 +466,9 @@ export function GraphWorkspaceSidebar({
       <CardContent className="flex min-h-0 flex-1 flex-col gap-4 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">Graph tools</div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">{panelTitle}</div>
             <p className="max-w-[220px] text-xs leading-5 text-muted-foreground">
-              {activeFilterCount > 0 ? `${activeFilterCount} active filters in this view.` : 'Open one tool at a time and keep the canvas clear.'}
+              {panelDescription || (activeFilterCount > 0 ? `${activeFilterCount} active filters in this view.` : 'Open one tool at a time and keep the canvas clear.')}
             </p>
           </div>
           <Button

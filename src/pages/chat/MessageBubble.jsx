@@ -26,6 +26,7 @@ const sanitizeAssistantAnswer = (text) => {
     const trimmedLine = currentLine.trim();
     const nextLine = lines[index + 1]?.trim() || '';
 
+    // Skip "source/search" tables (metadata tables the user doesn't need)
     if (looksLikeTableRow(trimmedLine) && isTableDivider(nextLine) && /\b(source|search)\b/i.test(trimmedLine)) {
       index += 1;
       while (index + 1 < lines.length && looksLikeTableRow(lines[index + 1].trim())) {
@@ -34,26 +35,56 @@ const sanitizeAssistantAnswer = (text) => {
       continue;
     }
 
+    // Skip lines referencing search methods
+    if (/\b(semantic search|structural search)\b/i.test(trimmedLine)) continue;
+
     cleanedLines.push(currentLine);
   }
 
-  return cleanedLines
-    .join('\n')
-    .split(/\n{2,}/)
-    .map((paragraph) => {
-      const normalizedParagraph = paragraph
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .join(' ');
+  // Reassemble: preserve table blocks as-is, normalize plain text paragraphs
+  const result = [];
+  let i = 0;
+  while (i < cleanedLines.length) {
+    const trimmed = cleanedLines[i].trim();
 
-      if (!normalizedParagraph) return '';
-      if (/\b(semantic search|structural search)\b/i.test(normalizedParagraph)) return '';
-      return normalizedParagraph;
-    })
-    .filter(Boolean)
-    .join('\n\n')
-    .trim();
+    // Detect table block: a row with | followed by a divider row
+    if (looksLikeTableRow(trimmed) && i + 1 < cleanedLines.length && isTableDivider(cleanedLines[i + 1].trim())) {
+      // Collect entire table block (header + divider + data rows)
+      while (i < cleanedLines.length && (looksLikeTableRow(cleanedLines[i].trim()) || isTableDivider(cleanedLines[i].trim()))) {
+        result.push(cleanedLines[i].trim());
+        i++;
+      }
+      continue;
+    }
+
+    // Detect orphan table rows (data without explicit divider — still a table)
+    if (looksLikeTableRow(trimmed) && trimmed.split('|').length >= 3) {
+      result.push(trimmed);
+      i++;
+      continue;
+    }
+
+    // Empty line → preserve as paragraph break
+    if (!trimmed) {
+      result.push('');
+      i++;
+      continue;
+    }
+
+    // Regular text paragraph — collect contiguous non-table, non-empty lines
+    const paragraphLines = [];
+    while (i < cleanedLines.length) {
+      const line = cleanedLines[i].trim();
+      if (!line || looksLikeTableRow(line) || isTableDivider(line) || /^```/.test(line) || /^#{1,6}\s/.test(line) || /^[-*+]\s/.test(line) || /^\d+\.\s/.test(line) || /^>\s/.test(line)) break;
+      paragraphLines.push(line);
+      i++;
+    }
+    if (paragraphLines.length > 0) {
+      result.push(paragraphLines.join(' '));
+    }
+  }
+
+  return result.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 };
 
 const renderInlineMarkdown = (text, keyPrefix = 'inline') => {
@@ -118,7 +149,6 @@ const renderMarkdownContent = (text) => {
     const trimmed = line.trim();
 
     if (!trimmed) {
-      blocks.push(<br key={`br-${index}`} />);
       index += 1;
       continue;
     }
@@ -148,8 +178,8 @@ const renderMarkdownContent = (text) => {
       blocks.push(
         <Tag
           key={`heading-${index}`}
-          className={`mt-3 mb-2 font-semibold tracking-tight ${
-            level === 1 ? 'text-xl' : level === 2 ? 'text-lg' : 'text-base'
+          className={`mt-4 mb-2 font-bold tracking-tight border-l-3 pl-3 ${
+            level === 1 ? 'text-xl border-emerald-500' : level === 2 ? 'text-lg border-emerald-400' : 'text-base border-emerald-300 dark:border-emerald-700'
           } text-stone-900 dark:text-stone-100`}
         >
           {renderInlineMarkdown(headingMatch[2], `heading-${index}`)}
@@ -174,12 +204,12 @@ const renderMarkdownContent = (text) => {
       }
 
       blocks.push(
-        <div key={`table-${index}`} className="my-3 overflow-x-auto rounded-xl border border-border/60">
+        <div key={`table-${index}`} className="my-4 overflow-x-auto rounded-xl border border-stone-200/80 shadow-sm dark:border-stone-700/60">
           <table className="min-w-full border-collapse text-left text-sm">
-            <thead className="bg-stone-100 dark:bg-stone-900">
+            <thead className="bg-emerald-50/80 dark:bg-emerald-950/30">
               <tr>
                 {header.map((cell, cellIndex) => (
-                  <th key={cellIndex} className="border-b border-border/60 px-3 py-2 font-semibold text-stone-800 dark:text-stone-100">
+                  <th key={cellIndex} className="border-b border-stone-200 px-4 py-2.5 font-semibold text-stone-800 dark:border-stone-700 dark:text-stone-100">
                     {renderInlineMarkdown(cell, `table-header-${index}-${cellIndex}`)}
                   </th>
                 ))}
@@ -187,9 +217,9 @@ const renderMarkdownContent = (text) => {
             </thead>
             <tbody>
               {rowLines.map((row, rowIndex) => (
-                <tr key={rowIndex} className="border-b border-border/40 last:border-b-0">
+                <tr key={rowIndex} className={cn('border-b border-stone-100 last:border-b-0 dark:border-stone-800', rowIndex % 2 === 1 && 'bg-stone-50/50 dark:bg-stone-900/30')}>
                   {row.map((cell, cellIndex) => (
-                    <td key={cellIndex} className="px-3 py-2 align-top text-stone-700 dark:text-stone-200">
+                    <td key={cellIndex} className="px-4 py-2 align-top text-stone-700 dark:text-stone-200">
                       {renderInlineMarkdown(cell, `table-row-${index}-${rowIndex}-${cellIndex}`)}
                     </td>
                   ))}
@@ -210,9 +240,9 @@ const renderMarkdownContent = (text) => {
       }
 
       blocks.push(
-        <ul key={`ul-${index}`} className="my-3 list-disc space-y-1 pl-5">
+        <ul key={`ul-${index}`} className="my-3 list-disc space-y-2 pl-5 text-stone-700 dark:text-stone-200">
           {items.map((item, itemIndex) => (
-            <li key={itemIndex} className="pl-1">
+            <li key={itemIndex} className="pl-1 leading-relaxed">
               {renderInlineMarkdown(item, `ul-${index}-${itemIndex}`)}
             </li>
           ))}
@@ -229,9 +259,9 @@ const renderMarkdownContent = (text) => {
       }
 
       blocks.push(
-        <ol key={`ol-${index}`} className="my-3 list-decimal space-y-1 pl-5">
+        <ol key={`ol-${index}`} className="my-3 list-decimal space-y-2 pl-5 text-stone-700 dark:text-stone-200">
           {items.map((item, itemIndex) => (
-            <li key={itemIndex} className="pl-1">
+            <li key={itemIndex} className="pl-1 leading-relaxed">
               {renderInlineMarkdown(item, `ol-${index}-${itemIndex}`)}
             </li>
           ))}
@@ -262,7 +292,7 @@ const renderMarkdownContent = (text) => {
     }
 
     blocks.push(
-      <p key={`p-${index}`} className="mb-2 last:mb-0 leading-relaxed text-stone-800 dark:text-stone-100">
+      <p key={`p-${index}`} className="mb-3 last:mb-0 leading-[1.75] text-stone-800 dark:text-stone-100">
         {renderInlineMarkdown(paragraphLines.join(' '), `p-${index}`)}
       </p>
     );
@@ -280,8 +310,7 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
   const isWelcome = message.isWelcome;
   const cleanedContent = !isUser ? sanitizeAssistantAnswer(message.content) || message.content : message.content;
   const cleanedWebSearchAnswer = sanitizeAssistantAnswer(message.webSearchAnswer) || message.webSearchAnswer;
-  const isStandaloneWebSearch = isWebSearch && !message.webSearchAnswer;
-  const hasWebSearchResponse = Boolean(isWebSearch || message.webSearchAnswer);
+  const isStandaloneWebSearch = isWebSearch && !message.content && !message.webSearchAnswer;
 
   return (
     <div className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
@@ -290,7 +319,7 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
           <User className="w-4 h-4 text-white" />
         </div>
       ) : (
-        <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0 shadow-sm animate-pulse">
+        <div className={cn('w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0 shadow-sm', message.isStreaming && 'animate-pulse')}>
           {isStandaloneWebSearch ? <Globe className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
         </div>
       )}
@@ -302,7 +331,7 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
           ? 'rounded-br-md border border-emerald-200/80 bg-emerald-100 text-emerald-950 shadow-sm shadow-emerald-500/10 dark:border-emerald-800/70 dark:bg-emerald-900/35 dark:text-emerald-50'
           : isError
             ? 'bg-red-50 border border-red-200 text-red-900 rounded-bl-md dark:bg-red-900/20 dark:border-red-800 dark:text-red-100'
-            : (isStandaloneWebSearch || hasWebSearchResponse)
+            : isStandaloneWebSearch
               ? 'rounded-bl-md border border-amber-200 bg-amber-50 text-stone-900 shadow-sm shadow-amber-500/10 dark:border-amber-800/70 dark:bg-amber-950/25 dark:text-amber-50'
               : 'bg-white/80 border border-gray-200 text-gray-900 rounded-bl-md dark:bg-gray-800/80 dark:border-gray-700 dark:text-gray-100 backdrop-blur-sm'
       )}>
@@ -311,10 +340,13 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
           isUser ? 'prose-stone dark:prose-invert' : 'dark:prose-invert'
         )}>
           {renderMarkdownContent(cleanedContent)}
+          {message.isStreaming && (
+            <span className="inline-block w-2 h-4 ml-0.5 bg-emerald-500 dark:bg-emerald-400 rounded-sm animate-pulse align-text-bottom" />
+          )}
         </div>
 
-        {!isUser && !isError && !isWelcome && onWebSearch && !message.webSearchAnswer && (
-          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+        {!isUser && !isError && !isWelcome && !message.isStreaming && onWebSearch && !message.webSearchAnswer && message.content && (
+          <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/50">
             <button
               onClick={() => onWebSearch({
                 question: message.webSearchQuery || message.content,
@@ -323,19 +355,19 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
               })}
               disabled={webSearchPending}
               className={cn(
-                'flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium disabled:opacity-60',
-                webSearchSuggested
-                  ? 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800'
-                  : 'bg-emerald-50 dark:bg-emerald-950/25 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                'flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors text-xs font-medium disabled:opacity-60',
+                webSearchPending
+                  ? 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                  : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-300'
               )}
             >
-              {webSearchPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-              {webSearchPending ? 'Searching the Web...' : 'Search Web for More Info'}
+              {webSearchPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />}
+              {webSearchPending ? 'Searching...' : 'Search Web'}
             </button>
           </div>
         )}
 
-        {message.webSearchAnswer && (
+        {(message.webSearchAnswer || message.isStreamingWebSearch) && (
           <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50/80 p-3 dark:border-amber-800/60 dark:bg-amber-950/20">
             <div className="mb-3 flex items-center gap-2 text-amber-700 dark:text-amber-300">
                 <Globe className="w-4 h-4" />
@@ -343,7 +375,36 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
             </div>
             <div className="prose prose-sm max-w-none break-words whitespace-normal w-full text-stone-800 dark:prose-invert dark:text-stone-100">
               {renderMarkdownContent(cleanedWebSearchAnswer)}
+              {message.isStreamingWebSearch && (
+                <span className="inline-block w-2 h-4 ml-0.5 bg-amber-500 dark:bg-amber-400 rounded-sm animate-pulse align-text-bottom" />
+              )}
             </div>
+
+            {Array.isArray(message.webSearchSources) && message.webSearchSources.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-amber-200/60 dark:border-amber-800/40">
+                <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-600 dark:text-amber-400">Sources</div>
+                <div className="flex flex-wrap gap-2">
+                  {message.webSearchSources.map((source, idx) => {
+                    const url = source?.url || source?.uri || '';
+                    const title = source?.title || source?.name || (url ? new URL(url).hostname : `Source ${idx + 1}`);
+                    const domain = url ? (() => { try { return new URL(url).hostname.replace('www.', ''); } catch { return ''; } })() : '';
+                    return url ? (
+                      <a
+                        key={idx}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-amber-800 shadow-sm transition-all hover:bg-amber-100 hover:shadow-md dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:bg-amber-900/40"
+                        title={title}
+                      >
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                        <span className="max-w-[180px] truncate">{domain || title}</span>
+                      </a>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

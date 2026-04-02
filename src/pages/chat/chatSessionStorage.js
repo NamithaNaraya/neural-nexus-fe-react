@@ -32,9 +32,9 @@ const normalizeUserKey = (userKey) => {
 
 export const getChatStorageKey = (userKey) => `${STORAGE_PREFIX}:${normalizeUserKey(userKey)}`;
 
-export const getDefaultSessionTitle = (folderName = 'Chat Session') => folderName || 'Chat Session';
+export const getDefaultSessionTitle = (folderName = 'New Chat') => folderName || 'New Chat';
 
-export const getSessionTitleFromMessages = (messages = [], fallback = 'Chat Session') => {
+export const getSessionTitleFromMessages = (messages = [], fallback = 'New Chat') => {
   const firstUserMessage = messages.find((message) => message?.role === 'user' && String(message?.content || '').trim());
   const content = String(firstUserMessage?.content || '').trim();
 
@@ -89,7 +89,7 @@ export const loadChatWorkspace = (userKey) => {
           id: String(session.id || generateId()),
           folderId: session.folderId ? String(session.folderId) : '',
           folderName: session.folderName || '',
-          title: session.title || getSessionTitleFromMessages(session.messages || [], getDefaultSessionTitle(session.folderName || 'Chat Session')),
+          title: session.title || getSessionTitleFromMessages(session.messages || [], getDefaultSessionTitle(session.folderName || 'New Chat')),
           createdAt: Number(session.createdAt || Date.now()),
           updatedAt: Number(session.updatedAt || session.createdAt || Date.now()),
           messages: Array.isArray(session.messages) && session.messages.length > 0 ? session.messages : [WELCOME_MESSAGE],
@@ -101,9 +101,9 @@ export const loadChatWorkspace = (userKey) => {
     return { currentSessionId: session.id, sessions: [session] };
   }
 
-  const currentSessionId = sessions.some((session) => session.id === parsed.currentSessionId)
-    ? parsed.currentSessionId
-    : sessions[0].id;
+  // Always load the most recently updated session on refresh
+  const sortedByRecent = sessions.slice().sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+  const currentSessionId = sortedByRecent[0]?.id || sessions[0].id;
 
   return {
     currentSessionId,
@@ -179,7 +179,7 @@ const serializeWorkspace = (workspace, options = {}) => {
       id: String(session?.id || createChatSession().id),
       folderId: session?.folderId ? String(session.folderId) : '',
       folderName: session?.folderName || '',
-      title: session?.title || getDefaultSessionTitle(session?.folderName || 'Chat Session'),
+      title: session?.title || getDefaultSessionTitle(session?.folderName || 'New Chat'),
       createdAt: Number(session?.createdAt || Date.now()),
       updatedAt: Number(session?.updatedAt || session?.createdAt || Date.now()),
       messages: Array.isArray(session?.messages) && session.messages.length > 0
@@ -200,7 +200,7 @@ const serializeWorkspace = (workspace, options = {}) => {
 export const upsertSession = (workspace, session) => {
   const nextSession = {
     ...session,
-    title: session.title || getSessionTitleFromMessages(session.messages || [], getDefaultSessionTitle(session.folderName || 'Chat Session')),
+    title: session.title || getSessionTitleFromMessages(session.messages || [], getDefaultSessionTitle(session.folderName || 'New Chat')),
     updatedAt: Date.now(),
   };
 
@@ -218,7 +218,7 @@ export const replaceSessionMessages = (workspace, sessionId, messages, patch = {
       ...session,
       ...patch,
       messages,
-      title: patch.title || session.title || getSessionTitleFromMessages(messages, getDefaultSessionTitle(patch.folderName || session.folderName || 'Chat Session')),
+      title: patch.title || session.title || getSessionTitleFromMessages(messages, getDefaultSessionTitle(patch.folderName || session.folderName || 'New Chat')),
       updatedAt: Date.now(),
     };
   });

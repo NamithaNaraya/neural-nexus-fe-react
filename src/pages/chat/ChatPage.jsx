@@ -49,19 +49,49 @@ export default function ChatPage() {
     [workspace]
   );
   const messages = activeSession?.messages || [WELCOME_MESSAGE];
-  const chatHistory = workspace.sessions.slice().sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+  const chatHistory = useMemo(
+    () => (Array.isArray(workspace?.sessions) ? workspace.sessions : [])
+      .filter(Boolean)
+      .map((session) => ({
+        ...session,
+        messages: Array.isArray(session?.messages) ? session.messages : [],
+      }))
+      .sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0)),
+    [workspace]
+  );
   const hasPendingWebSearchMessage = messages.some((message) => message?.webSearchPending);
 
-  const normalizeBackendMessages = (rawMessages = []) =>
-    Array.isArray(rawMessages)
-      ? rawMessages.map((msg) => ({
-          role: msg.role || 'assistant',
-          content: msg.message || msg.content || '',
-          citations: msg.citations || msg.sources || [],
-          timestamp: msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now(),
-          ...msg,
-        }))
-      : [];
+  const normalizeBackendMessages = (rawMessages = []) => {
+    if (!Array.isArray(rawMessages)) return [];
+    const result = [];
+    for (const msg of rawMessages) {
+      if (msg.role === 'web_search') {
+        // Attach web search answer to the previous assistant message
+        const lastMsg = result[result.length - 1];
+        if (lastMsg && lastMsg.role === 'assistant') {
+          lastMsg.webSearchAnswer = msg.message || msg.content || '';
+          // Parse citations JSON → webSearchSources array
+          let sources = [];
+          try {
+            const raw = msg.citations || '[]';
+            sources = typeof raw === 'string' ? JSON.parse(raw) : Array.isArray(raw) ? raw : [];
+          } catch { sources = []; }
+          lastMsg.webSearchSources = sources.map((s) => ({
+            title: s?.title || 'Source',
+            url: s?.uri || s?.url || '',
+          })).filter((s) => s.url);
+        }
+        continue;
+      }
+      result.push({
+        role: msg.role || 'assistant',
+        content: msg.message || msg.content || '',
+        citations: msg.citations || msg.sources || [],
+        timestamp: msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now(),
+      });
+    }
+    return result;
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -112,19 +142,31 @@ export default function ChatPage() {
         if (backendWorkspace) {
           setWorkspace((prev) => {
             const backendSet = new Set(backendWorkspace.sessions.map((session) => session.id));
+            // Merge: keep local sessions that already have messages (they're richer than backend shells)
+            const localSessionMap = new Map(prev.sessions.map((s) => [s.id, s]));
             const mergedSessions = [
-              ...backendWorkspace.sessions.map((session) => ({
-                ...session,
-                messages: Array.isArray(session.messages) && session.messages.length > 0 ? session.messages : [WELCOME_MESSAGE],
-              })),
+              ...backendWorkspace.sessions.map((backendSession) => {
+                const local = localSessionMap.get(backendSession.id);
+                // If local version exists AND has real messages, keep local
+                if (local && Array.isArray(local.messages) && local.messages.length > 0 && !local.messages[0]?.isWelcome) {
+                  return local;
+                }
+                return {
+                  ...backendSession,
+                  messages: Array.isArray(backendSession.messages) && backendSession.messages.length > 0 ? backendSession.messages : [WELCOME_MESSAGE],
+                };
+              }),
               ...prev.sessions.filter((session) => !backendSet.has(session.id)),
             ];
 
-            return {
+            const merged = {
               ...prev,
               sessions: mergedSessions,
-              currentSessionId: backendWorkspace.currentSessionId || prev.currentSessionId || mergedSessions[0]?.id,
+              currentSessionId: prev.currentSessionId || backendWorkspace.currentSessionId || mergedSessions[0]?.id,
             };
+            // Explicitly save merged data so it persists across refreshes
+            saveChatWorkspace(userKey, merged);
+            return merged;
           });
         }
       } catch (error) {
@@ -151,18 +193,34 @@ export default function ChatPage() {
       return;
     }
     lastFolderIdRef.current = selectedFolderId;
+    // Just update the current session's folder context — do NOT auto-switch sessions
+    // User stays on the same chat until they click "New Chat"
     setWorkspace((prev) => {
       const currentSession = prev.sessions.find((session) => session.id === prev.currentSessionId);
-      if (String(currentSession?.folderId || '') === String(selectedFolderId)) {
-        return prev;
-      }
-      return selectSessionForFolder(prev, selectedFolderId, currentFolder?.name || '');
+      if (!currentSession) return prev;
+      return {
+        ...prev,
+        sessions: prev.sessions.map((session) =>
+          session.id === prev.currentSessionId
+            ? { ...session, folderId: String(selectedFolderId), folderName: currentFolder?.name || session.folderName }
+            : session
+        ),
+      };
     });
   }, [selectedFolderId, currentFolder?.name]);
 
   useEffect(() => {
     if (!hasHydratedWorkspaceRef.current) return;
     saveChatWorkspace(userKey, workspace);
+  }, [workspace, userKey]);
+
+  // Safety net: save workspace before page close/refresh
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      saveChatWorkspace(userKey, workspace);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [workspace, userKey]);
 
   if (isWorkspaceLoading) {
@@ -204,7 +262,10 @@ export default function ChatPage() {
       const current = prev.sessions.find((session) => session.id === prev.currentSessionId);
       if (!current) return prev;
       const nextSession = updater(current);
-      const sessions = [nextSession, ...prev.sessions.filter((session) => session.id !== nextSession.id)];
+      // Update in-place — do NOT reorder sessions
+      const sessions = prev.sessions.map((session) =>
+        session.id === nextSession.id ? nextSession : session
+      );
       const nextWorkspace = { currentSessionId: nextSession.id, sessions };
       saveChatWorkspace(userKey, nextWorkspace);
       return nextWorkspace;
@@ -215,7 +276,7 @@ export default function ChatPage() {
     updateCurrentSession((session) => ({
       ...session,
       messages: session.messages.map((message, messageIndex) => (messageIndex === index ? updater(message) : message)),
-      title: session.title || getSessionTitleFromMessages(session.messages, getDefaultSessionTitle(currentFolder?.name || 'Chat Session')),
+      title: session.title || getSessionTitleFromMessages(session.messages, getDefaultSessionTitle(currentFolder?.name || 'New Chat')),
       updatedAt: Date.now(),
     }));
   };
@@ -260,33 +321,58 @@ export default function ChatPage() {
       const response = await api.post('/combined-chat/web-search', {
         question: searchQuery,
         context_hint: fallbackContext,
+        session_id: workspace.currentSessionId || null,
       });
 
-      const answer = response.data?.answer || response.data?.response || 'No results found from web search.';
+      const fullAnswer = response.data?.answer || response.data?.response || 'No results found from web search.';
       const sources = normalizeWebSearchSources(response.data?.grounding_metadata);
 
-      if (typeof messageIndex === 'number') {
-        updateMessageAtIndex(messageIndex, (message) => ({
+      // Helper to typewrite the web search answer word-by-word
+      const typewriteWebAnswer = (targetIndex) => {
+        const words = fullAnswer.split(' ');
+        let wordIdx = 0;
+
+        // Set initial state with empty answer + streaming flag
+        updateMessageAtIndex(targetIndex, (message) => ({
           ...message,
           webSearchPending: false,
-          webSearchAnswer: answer,
+          webSearchAnswer: '',
           webSearchSources: sources,
           isWebSearch: true,
+          isStreamingWebSearch: true,
           webSearchQuery: searchQuery,
           webSearchContextHint: fallbackContext,
         }));
+
+        const interval = setInterval(() => {
+          if (wordIdx >= words.length) {
+            clearInterval(interval);
+            // Finalize: remove streaming flag
+            updateMessageAtIndex(targetIndex, (message) => ({
+              ...message,
+              isStreamingWebSearch: false,
+            }));
+            return;
+          }
+          const nextWord = words[wordIdx];
+          wordIdx++;
+          updateMessageAtIndex(targetIndex, (message) => ({
+            ...message,
+            webSearchAnswer: (message.webSearchAnswer || '') + (message.webSearchAnswer ? ' ' : '') + nextWord,
+          }));
+        }, 20);
+      };
+
+      if (typeof messageIndex === 'number') {
+        typewriteWebAnswer(messageIndex);
       } else if (appendMessage && typeof appendedMessageIndex === 'number') {
         updateMessageAtIndex(appendedMessageIndex, (message) => ({
           ...message,
           content: `Web search results for "${searchQuery}"`,
-          webSearchPending: false,
-          webSearchAnswer: answer,
-          webSearchSources: sources,
-          isWebSearch: true,
-          webSearchQuery: searchQuery,
-          webSearchContextHint: fallbackContext,
         }));
+        typewriteWebAnswer(appendedMessageIndex);
       } else {
+        // Append new message then typewrite into it
         updateCurrentSession((session) => ({
           ...session,
           messages: [
@@ -296,7 +382,8 @@ export default function ChatPage() {
               content: `Web search results for "${searchQuery}"`,
               isWebSearch: true,
               webSearchPending: false,
-              webSearchAnswer: answer,
+              webSearchAnswer: '',
+              isStreamingWebSearch: true,
               webSearchSources: sources,
               webSearchQuery: searchQuery,
               webSearchContextHint: fallbackContext,
@@ -304,6 +391,26 @@ export default function ChatPage() {
           ],
           updatedAt: Date.now(),
         }));
+        // Typewrite the last message
+        const targetIdx = messages.length; // will be the newly appended message
+        const words = fullAnswer.split(' ');
+        let wordIdx = 0;
+        const interval = setInterval(() => {
+          if (wordIdx >= words.length) {
+            clearInterval(interval);
+            updateMessageAtIndex(targetIdx, (message) => ({
+              ...message,
+              isStreamingWebSearch: false,
+            }));
+            return;
+          }
+          const nextWord = words[wordIdx];
+          wordIdx++;
+          updateMessageAtIndex(targetIdx, (message) => ({
+            ...message,
+            webSearchAnswer: (message.webSearchAnswer || '') + (message.webSearchAnswer ? ' ' : '') + nextWord,
+          }));
+        }, 20);
       }
     } catch {
       const errorMessage = {
@@ -339,13 +446,19 @@ export default function ChatPage() {
 
     const userMessage = input.trim();
     setInput('');
-    const nextSessionTitle = getSessionTitleFromMessages([...messages.filter((msg) => !msg.isWelcome), { role: 'user', content: userMessage }], currentFolder?.name || 'Chat Session');
+    const nextSessionTitle = getSessionTitleFromMessages([...messages.filter((msg) => !msg.isWelcome), { role: 'user', content: userMessage }], currentFolder?.name || 'New Chat');
+
+    // 1. Add user message + empty assistant placeholder (for streaming into)
     updateCurrentSession((session) => ({
       ...session,
-      title: session.title && session.title !== getDefaultSessionTitle(currentFolder?.name || 'Chat Session') ? session.title : nextSessionTitle,
+      title: session.title && session.title !== getDefaultSessionTitle(currentFolder?.name || 'New Chat') ? session.title : nextSessionTitle,
       folderId: selectedFolderId ? String(selectedFolderId) : session.folderId,
       folderName: currentFolder?.name || session.folderName,
-      messages: [...session.messages, { role: 'user', content: userMessage }],
+      messages: [
+        ...session.messages,
+        { role: 'user', content: userMessage },
+        { role: 'assistant', content: '', isStreaming: true },
+      ],
       updatedAt: Date.now(),
     }));
     setLoading(true);
@@ -355,61 +468,145 @@ export default function ChatPage() {
         .filter((message) => message.role !== 'system' && !message.isWelcome)
         .map((message) => ({ role: message.role, content: message.content }));
 
-      // Call non-streaming endpoint that returns full response
-      const response = await api.post('/combined-chat/answer', {
-        question: userMessage,
-        folder_id: selectedFolderId || null,
-        session_id: workspace.currentSessionId || null,
-        history: activeMessages.slice(-10),
+      // 2. Use fetch + ReadableStream for real-time token streaming
+      const token = localStorage.getItem('neural_nexus_token');
+      const response = await fetch('/api/v1/combined-chat/stream-answer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          question: userMessage,
+          folder_id: selectedFolderId || null,
+          session_id: workspace.currentSessionId || null,
+          history: activeMessages.slice(-10),
+        }),
       });
 
-      console.log('Full API response:', response.data);
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
 
-      // Extract all fields from the response
-      const answer = response.data?.answer || response.data?.response || 'I could not generate a response.';
-      const sources = response.data?.results || response.data?.sources || response.data?.context_nodes || [];
-      const suggestWebSearch = response.data?.suggest_web_search ?? response.data?.web_search_emphasized ?? true;
-      const contextSummary = response.data?.context_summary || '';
-      const intent = response.data?.intent || {};
-      const algorithm = response.data?.algorithm || null;
-      const results = response.data?.results || null;
-      const webSearchQuery = response.data?.web_search_query || userMessage;
-      const webSearchSources = normalizeWebSearchSources(response.data?.grounding_metadata);
+      // 3. Read the NDJSON stream line by line
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response stream available');
 
-      updateCurrentSession((session) => ({
-        ...session,
-        messages: [
-          ...session.messages,
-          {
-            role: 'assistant',
-            content: answer,
-            sources,
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let streamedIntent = {};
+      let streamedAlgorithm = null;
+      let streamedResults = null;
+      let suggestWebSearch = true;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+
+          try {
+            const chunk = JSON.parse(trimmed);
+
+            switch (chunk.type) {
+              case 'content':
+                // 4. Append each content token to the assistant message in real-time
+                setWorkspace((prev) => {
+                  const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
+                  if (!session) return prev;
+                  const msgs = [...session.messages];
+                  const lastMsg = msgs[msgs.length - 1];
+                  if (lastMsg?.role === 'assistant') {
+                    msgs[msgs.length - 1] = { ...lastMsg, content: lastMsg.content + chunk.data };
+                  }
+                  return {
+                    ...prev,
+                    sessions: prev.sessions.map((s) =>
+                      s.id === prev.currentSessionId ? { ...s, messages: msgs, updatedAt: Date.now() } : s
+                    ),
+                  };
+                });
+                break;
+
+              case 'intent':
+                streamedIntent = chunk.data || {};
+                break;
+
+              case 'gds_results':
+                streamedAlgorithm = chunk.data?.algorithm || null;
+                streamedResults = chunk.data?.results || null;
+                break;
+
+              case 'web_search_suggestion':
+                suggestWebSearch = chunk.data ?? true;
+                break;
+
+              case 'step':
+                // Could be used for progress indicators in the future
+                break;
+            }
+          } catch {
+            // Skip malformed JSON lines (flush padding etc.)
+          }
+        }
+      }
+
+      // 5. Finalize the assistant message: remove streaming flag, add metadata
+      setWorkspace((prev) => {
+        const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
+        if (!session) return prev;
+        const msgs = [...session.messages];
+        const lastMsg = msgs[msgs.length - 1];
+        if (lastMsg?.role === 'assistant') {
+          msgs[msgs.length - 1] = {
+            ...lastMsg,
+            isStreaming: false,
+            intent: streamedIntent,
+            algorithm: streamedAlgorithm,
+            results: streamedResults,
             webSearchSuggested: suggestWebSearch,
-            webSearchQuery,
-            webSearchSources,
-            contextSummary,
-            intent,
-            algorithm,
-            results,
-          },
-        ],
-        updatedAt: Date.now(),
-      }));
+            webSearchQuery: userMessage,
+          };
+        }
+        const nextWorkspace = {
+          ...prev,
+          sessions: prev.sessions.map((s) =>
+            s.id === prev.currentSessionId ? { ...s, messages: msgs, updatedAt: Date.now() } : s
+          ),
+        };
+        saveChatWorkspace(userKey, nextWorkspace);
+        return nextWorkspace;
+      });
 
     } catch (error) {
       console.error('Chat error', error);
-      updateCurrentSession((session) => ({
-        ...session,
-        messages: [
-          ...session.messages,
-          {
-            role: 'assistant',
+      // Update the placeholder message with error
+      setWorkspace((prev) => {
+        const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
+        if (!session) return prev;
+        const msgs = [...session.messages];
+        const lastMsg = msgs[msgs.length - 1];
+        if (lastMsg?.role === 'assistant') {
+          msgs[msgs.length - 1] = {
+            ...lastMsg,
             content: 'Sorry, I encountered an error. Please make sure the backend is running and try again.',
             isError: true,
-          },
-        ],
-        updatedAt: Date.now(),
-      }));
+            isStreaming: false,
+          };
+        }
+        return {
+          ...prev,
+          sessions: prev.sessions.map((s) =>
+            s.id === prev.currentSessionId ? { ...s, messages: msgs, updatedAt: Date.now() } : s
+          ),
+        };
+      });
     } finally {
       setLoading(false);
       inputRef.current?.focus();
@@ -433,7 +630,7 @@ export default function ChatPage() {
   const clearChat = () => {
     updateCurrentSession((session) => ({
       ...session,
-      title: getDefaultSessionTitle(currentFolder?.name || session.folderName || 'Chat Session'),
+      title: getDefaultSessionTitle(currentFolder?.name || session.folderName || 'New Chat'),
       messages: [WELCOME_MESSAGE],
       updatedAt: Date.now(),
     }));
@@ -467,34 +664,49 @@ export default function ChatPage() {
   };
 
   const restoreSession = async (id) => {
-    const session = chatHistory.find((item) => item.id === id);
-    if (!session) return;
+    try {
+      // Find session from current chatHistory
+      const session = chatHistory.find((item) => item.id === id);
+      if (!session) return;
 
-    let sessionMessages = session.messages || [];
-    if ((!sessionMessages || sessionMessages.length === 0) && user?.id) {
-      const backendMessages = await chatService.getSessionHistory(id, 200);
-      sessionMessages = normalizeBackendMessages(backendMessages);
-    }
+      let sessionMessages = Array.isArray(session.messages) ? [...session.messages] : [];
 
-    const nextWorkspace = {
-      currentSessionId: session.id,
-      sessions: workspace.sessions.map((entry) =>
-        entry.id === session.id
-          ? {
-              ...entry,
-              messages: sessionMessages.length > 0 ? sessionMessages : [WELCOME_MESSAGE],
-              folderId: session.folderId || entry.folderId,
-              folderName: session.folderName || entry.folderName,
-              updatedAt: Date.now(),
-            }
-          : entry
-      ),
-    };
-    persistWorkspace(nextWorkspace);
-    if (session.folderId) {
-      setSelectedFolderId(String(session.folderId));
+      // Filter out welcome-only messages (they're just placeholders)
+      const realMessages = sessionMessages.filter((m) => !m?.isWelcome);
+
+      // Lazy-load from backend if no real messages
+      if (realMessages.length === 0 && user?.id) {
+        const backendMessages = await chatService.getSessionHistory(id, 200);
+        const normalized = normalizeBackendMessages(backendMessages);
+        if (normalized.length > 0) sessionMessages = normalized;
+      }
+
+      // Use functional update to avoid stale closure
+      setWorkspace((prev) => {
+        const nextWorkspace = {
+          ...prev,
+          currentSessionId: id,
+          sessions: prev.sessions.map((entry) =>
+            entry.id === id
+              ? {
+                  ...entry,
+                  messages: sessionMessages.length > 0 ? sessionMessages : [WELCOME_MESSAGE],
+                  folderId: session.folderId || entry.folderId,
+                  folderName: session.folderName || entry.folderName,
+                }
+              : entry
+          ),
+        };
+        saveChatWorkspace(userKey, nextWorkspace);
+        return nextWorkspace;
+      });
+
+      if (session.folderId) {
+        setSelectedFolderId(String(session.folderId));
+      }
+    } catch (error) {
+      console.error('Failed to restore session:', error);
     }
-    // Keep history panel open until user explicitly closes it
   };
 
   const deleteSession = (id) => {
@@ -591,7 +803,14 @@ export default function ChatPage() {
             {messages.map((message, index) => (
               <MessageBubble key={index} message={message} onWebSearch={performWebSearch} messageIndex={index} />
             ))}
-            {loading && !hasPendingWebSearchMessage ? <TypingIndicator /> : null}
+            {loading && (() => {
+              const lastMsg = messages[messages.length - 1];
+              // Don't show typing dots if a streaming message already exists (it has its own cursor)
+              if (lastMsg?.isStreaming) return null;
+              // Show typing indicator only while waiting for first content token
+              const isWaitingForFirstToken = !lastMsg || lastMsg.role !== 'assistant' || !lastMsg.content;
+              return isWaitingForFirstToken && !hasPendingWebSearchMessage ? <TypingIndicator /> : null;
+            })()}
             <div ref={messagesEndRef} />
           </div>
 

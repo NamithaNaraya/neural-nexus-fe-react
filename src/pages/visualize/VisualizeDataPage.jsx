@@ -1,12 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { SlidersHorizontal } from 'lucide-react';
-import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
 import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
 import { graphService } from '../../services/graphService';
 import { GraphViewsNavigation } from '../graph/GraphViewsNavigation';
-import { GraphWorkspaceSidebar } from '../graph/GraphWorkspaceSidebar';
 import { visualizeDataSections } from '../graph/graphViewSections';
 import GraphSunburstPage from '../graph/GraphSunburstPage';
 import GraphTreemapPage from '../graph/GraphTreemapPage';
@@ -16,7 +13,6 @@ import GraphRelationshipMatrixPage from '../graph/GraphRelationshipMatrixPage';
 
 export default function VisualizeDataPage() {
   const { selectedFolderId: folderId, currentFolder } = useGlobalFolder();
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [nodeSearch, setNodeSearch] = useState('');
   const [minDegree, setMinDegree] = useState(0);
   const [showOrphans, setShowOrphans] = useState(true);
@@ -77,42 +73,9 @@ export default function VisualizeDataPage() {
 
   return (
     <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden">
-      <GraphWorkspaceSidebar
-        open={filtersOpen}
-        onClose={() => setFiltersOpen(false)}
-        nodeSearch={nodeSearch}
-        setNodeSearch={setNodeSearch}
-        minDegree={minDegree}
-        setMinDegree={setMinDegree}
-        showOrphans={showOrphans}
-        setShowOrphans={setShowOrphans}
-        nodeTypes={nodeTypes}
-        nodeTypeFilters={nodeTypeFilters}
-        setNodeTypeFilters={setNodeTypeFilters}
-        relationshipTypes={relationshipTypes}
-        relationshipTypeFilters={relationshipTypeFilters}
-        setRelationshipTypeFilters={setRelationshipTypeFilters}
-        nodeTypeColors={nodeTypeColors}
-        setNodeTypeColors={setNodeTypeColors}
-        relationshipTypeColors={relationshipTypeColors}
-        setRelationshipTypeColors={setRelationshipTypeColors}
-      />
-
       <Card className="flex-shrink-0 rounded-b-none border-b-0 border-border/60 bg-card/70 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
         <CardContent className="flex items-center justify-between gap-4 p-4">
           <div className="flex min-w-0 items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2 rounded-full border border-border/40 bg-background/70 px-3 text-xs"
-              type="button"
-              onClick={() => setFiltersOpen((value) => !value)}
-              aria-label={filtersOpen ? 'Close visualize filters' : 'Open visualize filters'}
-              title={filtersOpen ? 'Close filters' : 'Open filters'}
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              Filters
-            </Button>
             <GraphViewsNavigation sections={visualizeDataSections} basePath="/visualize" />
           </div>
           <div className="hidden rounded-full border border-emerald-600/20 bg-emerald-600/5 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 md:block">
@@ -122,15 +85,17 @@ export default function VisualizeDataPage() {
       </Card>
 
       <div className="min-h-0 flex-1 overflow-hidden rounded-b-2xl border border-t-0 border-border/60 bg-card/50">
-        <Routes>
-          <Route path="" element={<Navigate to="sunburst" replace />} />
-          <Route path="sunburst" element={<GraphSunburstPage {...sharedGraphProps} />} />
-          <Route path="treemap" element={<GraphTreemapPage {...sharedGraphProps} />} />
-          <Route path="schema" element={<GraphSchemaExplorerPage {...sharedGraphProps} />} />
-          <Route path="degree" element={<GraphDegreeDistributionPage {...sharedGraphProps} />} />
-          <Route path="matrix" element={<GraphRelationshipMatrixPage {...sharedGraphProps} />} />
-          <Route path="*" element={<Navigate to="sunburst" replace />} />
-        </Routes>
+        <div className="h-full overflow-y-auto overflow-x-hidden p-4">
+          <Routes>
+            <Route path="" element={<Navigate to="sunburst" replace />} />
+            <Route path="sunburst" element={<GraphSunburstPage {...sharedGraphProps} />} />
+            <Route path="treemap" element={<GraphTreemapPage {...sharedGraphProps} />} />
+            <Route path="schema" element={<GraphSchemaExplorerPage {...sharedGraphProps} />} />
+            <Route path="degree" element={<GraphDegreeDistributionPage {...sharedGraphProps} />} />
+            <Route path="matrix" element={<GraphRelationshipMatrixPage {...sharedGraphProps} />} />
+            <Route path="*" element={<Navigate to="sunburst" replace />} />
+          </Routes>
+        </div>
       </div>
     </div>
   );

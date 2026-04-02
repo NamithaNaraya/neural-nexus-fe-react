@@ -1,10 +1,21 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent } from '../../components/ui/Card';
 import { graphService } from '../../services/graphService';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { filterGraphData } from './filterGraphData';
 import { capGraphData } from './graphDisplayData';
+
+function StatCard({ label, value, accentClass = 'text-foreground' }) {
+  return (
+    <Card className="border-border/60 bg-card/80 shadow-sm">
+      <CardContent className="p-5">
+        <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">{label}</p>
+        <p className={`mt-2 text-3xl font-semibold ${accentClass}`}>{value}</p>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function GraphDegreeDistributionPage(props) {
   const {
@@ -34,6 +45,7 @@ export default function GraphDegreeDistributionPage(props) {
         setLoading(false);
       }
     };
+
     load();
   }, [folderId]);
 
@@ -50,72 +62,92 @@ export default function GraphDegreeDistributionPage(props) {
       const degree = node.degree || 0;
       degrees[degree] = (degrees[degree] || 0) + 1;
     });
+
     return Object.entries(degrees)
-      .map(([degree, count]) => ({ degree: parseInt(degree), count }))
+      .map(([degree, count]) => ({ degree: parseInt(degree, 10), count }))
       .sort((a, b) => a.degree - b.degree)
       .slice(0, 30);
   }, [renderedGraph.nodes]);
 
+  const maxDegree = Math.max(...renderedGraph.nodes.map((node) => node.degree || 0), 0);
+  const avgDegree = renderedGraph.nodes.length > 0
+    ? (renderedGraph.nodes.reduce((sum, node) => sum + (node.degree || 0), 0) / renderedGraph.nodes.length).toFixed(2)
+    : '0.00';
+  const orphanCount = renderedGraph.nodes.filter((node) => !node.degree || node.degree === 0).length;
+  const hubCount = renderedGraph.nodes.filter((node) => (node.degree || 0) > 5).length;
+
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Degree Distribution</h1>
-        <p className="text-sm text-muted-foreground">Node connectivity distribution (reveals hubs, influencers, orphans).</p>
-      </div>
-
+    <div className="space-y-5 p-1">
       {loading ? (
-        <Skeleton className="h-96 rounded-lg" />
-      ) : (
-        <Card>
-          <CardContent className="h-[400px] p-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={degreeData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                <XAxis
-                  dataKey="degree"
-                  label={{ value: 'Node Degree', position: 'insideBottom', offset: -10 }}
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis label={{ value: 'Count', angle: -90, position: 'insideLeft' }} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-                  labelStyle={{ color: '#fff' }}
-                />
-                <Legend />
-                <Bar dataKey="count" fill="#10b981" name="Nodes" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardContent className="p-4">
-          <h2 className="text-sm font-semibold mb-3">Statistics</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Max Degree</p>
-                <p className="text-lg font-bold">{Math.max(...renderedGraph.nodes.map((n) => n.degree || 0), 0)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Avg Degree</p>
-              <p className="text-lg font-bold">
-                  {renderedGraph.nodes.length > 0
-                  ? (renderedGraph.nodes.reduce((sum, n) => sum + (n.degree || 0), 0) / renderedGraph.nodes.length).toFixed(2)
-                  : 0}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Orphans (Degree 0)</p>
-              <p className="text-lg font-bold">{renderedGraph.nodes.filter((n) => !n.degree || n.degree === 0).length}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Hubs (Degree {'>'} 5)</p>
-              <p className="text-lg font-bold">{renderedGraph.nodes.filter((n) => (n.degree || 0) > 5).length}</p>
-            </div>
+        <>
+          <Skeleton className="h-[30rem] rounded-2xl" />
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} className="h-28 rounded-2xl" />
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        </>
+      ) : (
+        <>
+          <Card className="border-border/60 bg-card/85 shadow-sm">
+            <CardContent className="space-y-4 p-5">
+              <div className="flex flex-col gap-1">
+                <div className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Degree distribution</div>
+                <p className="text-sm text-muted-foreground">
+                  Cleaner view of how many nodes exist at each connection level.
+                </p>
+              </div>
+
+              <div className="h-[430px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={degreeData} margin={{ top: 12, right: 20, left: 6, bottom: 34 }}>
+                    <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="rgba(148,163,184,0.24)" />
+                    <XAxis
+                      dataKey="degree"
+                      tick={{ fontSize: 12, fill: '#64748B' }}
+                      tickLine={false}
+                      axisLine={{ stroke: 'rgba(148,163,184,0.35)' }}
+                      tickMargin={10}
+                      label={{ value: 'Node degree', position: 'bottom', offset: 12, fill: '#64748B' }}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12, fill: '#64748B' }}
+                      tickLine={false}
+                      axisLine={{ stroke: 'rgba(148,163,184,0.35)' }}
+                      label={{ value: 'Count', angle: -90, position: 'insideLeft', fill: '#64748B' }}
+                    />
+                    <Tooltip
+                      cursor={{ fill: 'rgba(16,185,129,0.08)' }}
+                      contentStyle={{
+                        backgroundColor: 'rgba(255,255,255,0.96)',
+                        border: '1px solid rgba(16,185,129,0.18)',
+                        borderRadius: '14px',
+                        boxShadow: '0 10px 30px rgba(15,23,42,0.08)',
+                      }}
+                      formatter={(value) => [`${value} nodes`, 'Count']}
+                      labelFormatter={(label) => `Degree ${label}`}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="#14B8A6"
+                      radius={[10, 10, 0, 0]}
+                      barSize={48}
+                      name="Count"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <StatCard label="Max Degree" value={maxDegree} />
+            <StatCard label="Avg Degree" value={avgDegree} accentClass="text-emerald-700 dark:text-emerald-300" />
+            <StatCard label="Orphans" value={orphanCount} />
+            <StatCard label="Hubs > 5" value={hubCount} />
+          </div>
+        </>
+      )}
     </div>
   );
 }
