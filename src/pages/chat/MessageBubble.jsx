@@ -301,6 +301,21 @@ const renderMarkdownContent = (text) => {
   return blocks;
 };
 
+const AnimatedDots = ({ tone = 'neutral' }) => {
+  const dotClassName =
+    tone === 'amber'
+      ? 'bg-amber-500 dark:bg-amber-400'
+      : 'bg-gray-400 dark:bg-gray-500';
+
+  return (
+    <span className="inline-flex items-center gap-1 align-middle">
+      <span className={cn('h-2 w-2 rounded-full animate-bounce', dotClassName)} />
+      <span className={cn('h-2 w-2 rounded-full animate-bounce', dotClassName)} style={{ animationDelay: '0.1s' }} />
+      <span className={cn('h-2 w-2 rounded-full animate-bounce', dotClassName)} style={{ animationDelay: '0.2s' }} />
+    </span>
+  );
+};
+
 export function MessageBubble({ message, onWebSearch, messageIndex }) {
   const isUser = message.role === 'user';
   const isError = message.isError;
@@ -311,6 +326,8 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
   const cleanedContent = !isUser ? sanitizeAssistantAnswer(message.content) || message.content : message.content;
   const cleanedWebSearchAnswer = sanitizeAssistantAnswer(message.webSearchAnswer) || message.webSearchAnswer;
   const isStandaloneWebSearch = isWebSearch && !message.content && !message.webSearchAnswer;
+  const hasAssistantText = Boolean(String(cleanedContent || '').trim());
+  const hasWebSearchText = Boolean(String(cleanedWebSearchAnswer || '').trim());
 
   return (
     <div className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
@@ -339,8 +356,11 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
           'prose prose-sm max-w-none break-words whitespace-normal w-full',
           isUser ? 'prose-stone dark:prose-invert' : 'dark:prose-invert'
         )}>
-          {renderMarkdownContent(cleanedContent)}
-          {message.isStreaming && (
+          {hasAssistantText ? renderMarkdownContent(cleanedContent) : null}
+          {message.isStreaming && !hasAssistantText && (
+            <AnimatedDots />
+          )}
+          {message.isStreaming && hasAssistantText && (
             <span className="inline-block w-2 h-4 ml-0.5 bg-emerald-500 dark:bg-emerald-400 rounded-sm animate-pulse align-text-bottom" />
           )}
         </div>
@@ -374,8 +394,11 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
                 <span className="text-xs font-semibold uppercase tracking-wide">Web Answer</span>
             </div>
             <div className="prose prose-sm max-w-none break-words whitespace-normal w-full text-stone-800 dark:prose-invert dark:text-stone-100">
-              {renderMarkdownContent(cleanedWebSearchAnswer)}
-              {message.isStreamingWebSearch && (
+              {hasWebSearchText ? renderMarkdownContent(cleanedWebSearchAnswer) : null}
+              {message.isStreamingWebSearch && !hasWebSearchText && (
+                <AnimatedDots tone="amber" />
+              )}
+              {message.isStreamingWebSearch && hasWebSearchText && (
                 <span className="inline-block w-2 h-4 ml-0.5 bg-amber-500 dark:bg-amber-400 rounded-sm animate-pulse align-text-bottom" />
               )}
             </div>
@@ -387,7 +410,6 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
                   {message.webSearchSources.map((source, idx) => {
                     const url = source?.url || source?.uri || '';
                     const title = source?.title || source?.name || (url ? new URL(url).hostname : `Source ${idx + 1}`);
-                    const domain = url ? (() => { try { return new URL(url).hostname.replace('www.', ''); } catch { return ''; } })() : '';
                     return url ? (
                       <a
                         key={idx}
@@ -398,7 +420,7 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
                         title={title}
                       >
                         <ExternalLink className="h-3 w-3 shrink-0" />
-                        <span className="max-w-[180px] truncate">{domain || title}</span>
+                        <span className="max-w-[220px] truncate">{title}</span>
                       </a>
                     ) : null;
                   })}
@@ -419,11 +441,7 @@ export function TypingIndicator() {
         <Bot className="w-4 h-4 text-white" />
       </div>
       <div className="bg-white/80 border border-gray-200 rounded-2xl px-4 py-3 dark:bg-gray-800/80 dark:border-gray-700 backdrop-blur-sm">
-        <div className="flex space-x-1">
-          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-        </div>
+        <AnimatedDots />
       </div>
     </div>
   );

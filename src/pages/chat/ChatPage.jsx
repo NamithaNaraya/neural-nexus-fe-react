@@ -27,6 +27,90 @@ import { exportToText } from './downloads/exportToText';
 import { exportToJson } from './downloads/exportToJson';
 import { exportToPdf } from './downloads/exportToPdf';
 
+const hasStoredChatContent = (messages = []) =>
+  Array.isArray(messages) &&
+  messages.some((message) => {
+    const content = String(message?.content || '').trim();
+    return (
+      (!message?.isWelcome && content.length > 0) ||
+      Boolean(message?.webSearchAnswer) ||
+      Boolean(message?.webSearchPending) ||
+      Boolean(message?.webSearchSuggested) ||
+      (Array.isArray(message?.webSearchSources) && message.webSearchSources.length > 0) ||
+      (Array.isArray(message?.results) && message.results.length > 0)
+    );
+  });
+
+const MAX_WEB_SOURCE_COUNT = 6;
+const INTERNAL_SOURCE_HOSTS = new Set([
+  'vertexaisearch.cloud.google.com',
+  'generativelanguage.googleapis.com',
+]);
+
+const toDisplayableSource = (rawSource) => {
+  const source = rawSource?.web || rawSource || {};
+  const rawUrl = source?.uri || source?.url || '';
+  if (!rawUrl) return null;
+
+  try {
+    const parsedUrl = new URL(rawUrl);
+    const hostname = parsedUrl.hostname.replace(/^www\./, '').toLowerCase();
+    const isInternal = !hostname || INTERNAL_SOURCE_HOSTS.has(hostname);
+
+    return {
+      title: source?.title || source?.source || source?.name || (isInternal ? 'Search reference' : hostname),
+      url: parsedUrl.toString(),
+      snippet: source?.snippet || source?.description || '',
+      hostname,
+      isInternal,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const normalizeWebSearchSources = (metadataOrSources) => {
+  const rawSources = Array.isArray(metadataOrSources)
+    ? metadataOrSources
+    : metadataOrSources?.grounding_chunks || [];
+
+  const preferredSources = [];
+  const fallbackSources = [];
+  const seenUrls = new Set();
+
+  for (const rawSource of rawSources) {
+    const source = toDisplayableSource(rawSource);
+    if (!source || seenUrls.has(source.url)) continue;
+    seenUrls.add(source.url);
+    if (source.isInternal) {
+      fallbackSources.push(source);
+    } else {
+      preferredSources.push(source);
+    }
+  }
+
+  const chosenSources = preferredSources.length > 0
+    ? preferredSources
+    : fallbackSources.slice(0, Math.min(3, MAX_WEB_SOURCE_COUNT));
+
+  return chosenSources.slice(0, MAX_WEB_SOURCE_COUNT).map(({ isInternal, hostname, ...source }) => {
+    if (!source.title || source.title === 'Search reference') {
+      return {
+        ...source,
+        title: hostname || source.title || 'Search reference',
+      };
+    }
+    return source;
+  });
+};
+
+const isUntitledSession = (session, currentFolderName) => {
+  const sessionTitle = String(session?.title || '').trim();
+  const folderTitle = String(session?.folderName || '').trim();
+  const currentFolderTitle = String(currentFolderName || '').trim();
+  return !sessionTitle || sessionTitle === 'New Chat' || sessionTitle === folderTitle || sessionTitle === currentFolderTitle;
+};
+
 export default function ChatPage() {
   const { currentFolder, selectedFolderId, setSelectedFolderId } = useGlobalFolder();
   const { user } = useAuth();
@@ -41,6 +125,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const downloadMenuRef = useRef(null);
+  const saveTimeoutRef = useRef(null);
   const hasHydratedWorkspaceRef = useRef(false);
   const lastFolderIdRef = useRef(selectedFolderId || '');
 
@@ -48,7 +133,7 @@ export default function ChatPage() {
     () => workspace.sessions.find((session) => session.id === workspace.currentSessionId) || null,
     [workspace]
   );
-  const messages = activeSession?.messages || [WELCOME_MESSAGE];
+  const messages = activeSession?.messages?.length ? activeSession.messages : [WELCOME_MESSAGE];
   const chatHistory = useMemo(
     () => (Array.isArray(workspace?.sessions) ? workspace.sessions : [])
       .filter(Boolean)
@@ -70,16 +155,15 @@ export default function ChatPage() {
         const lastMsg = result[result.length - 1];
         if (lastMsg && lastMsg.role === 'assistant') {
           lastMsg.webSearchAnswer = msg.message || msg.content || '';
+          lastMsg.isWebSearch = true;
+          lastMsg.webSearchPending = false;
           // Parse citations JSON → webSearchSources array
           let sources = [];
           try {
             const raw = msg.citations || '[]';
             sources = typeof raw === 'string' ? JSON.parse(raw) : Array.isArray(raw) ? raw : [];
           } catch { sources = []; }
-          lastMsg.webSearchSources = sources.map((s) => ({
-            title: s?.title || 'Source',
-            url: s?.uri || s?.url || '',
-          })).filter((s) => s.url);
+          lastMsg.webSearchSources = normalizeWebSearchSources(sources);
         }
         continue;
       }
@@ -93,11 +177,15 @@ export default function ChatPage() {
     return result;
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (behavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
-  useEffect(scrollToBottom, [messages]);
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    const isStreamingUpdate = Boolean(lastMessage?.isStreaming || lastMessage?.isStreamingWebSearch || lastMessage?.webSearchPending);
+    scrollToBottom(isStreamingUpdate ? 'auto' : 'smooth');
+  }, [messages]);
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -147,8 +235,8 @@ export default function ChatPage() {
             const mergedSessions = [
               ...backendWorkspace.sessions.map((backendSession) => {
                 const local = localSessionMap.get(backendSession.id);
-                // If local version exists AND has real messages, keep local
-                if (local && Array.isArray(local.messages) && local.messages.length > 0 && !local.messages[0]?.isWelcome) {
+                // Keep richer local sessions, including ones that only differ by stored web-search data.
+                if (local && hasStoredChatContent(local.messages)) {
                   return local;
                 }
                 return {
@@ -211,12 +299,28 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!hasHydratedWorkspaceRef.current) return;
-    saveChatWorkspace(userKey, workspace);
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      saveChatWorkspace(userKey, workspace);
+      saveTimeoutRef.current = null;
+    }, 180);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, [workspace, userKey]);
 
   // Safety net: save workspace before page close/refresh
   useEffect(() => {
     const handleBeforeUnload = () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
       saveChatWorkspace(userKey, workspace);
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -234,23 +338,6 @@ export default function ChatPage() {
       </div>
     );
   }
-
-  const normalizeWebSearchSources = (metadata) => {
-    const chunks = metadata?.grounding_chunks || [];
-    return chunks
-      .map((chunk) => {
-        const source = chunk?.web || chunk;
-        const title = source?.title || source?.source || source?.name || 'Source';
-        const url = source?.uri || source?.url || '';
-        if (!url) return null;
-        return {
-          title,
-          url,
-          snippet: source?.snippet || source?.description || '',
-        };
-      })
-      .filter(Boolean);
-  };
 
   const persistWorkspace = (nextWorkspace) => {
     setWorkspace(nextWorkspace);
@@ -292,6 +379,8 @@ export default function ChatPage() {
       updateMessageAtIndex(messageIndex, (message) => ({
         ...message,
         webSearchPending: true,
+        webSearchAnswer: '',
+        webSearchSources: [],
         webSearchQuery: searchQuery,
         webSearchContextHint: fallbackContext,
         isWebSearch: true,
@@ -304,7 +393,7 @@ export default function ChatPage() {
           ...session.messages,
           {
             role: 'assistant',
-            content: `Searching web for: "${searchQuery}"...`,
+            content: '',
             isWebSearch: true,
             webSearchPending: true,
             webSearchQuery: searchQuery,
@@ -327,63 +416,41 @@ export default function ChatPage() {
       const fullAnswer = response.data?.answer || response.data?.response || 'No results found from web search.';
       const sources = normalizeWebSearchSources(response.data?.grounding_metadata);
 
-      // Helper to typewrite the web search answer word-by-word
-      const typewriteWebAnswer = (targetIndex) => {
-        const words = fullAnswer.split(' ');
-        let wordIdx = 0;
-
-        // Set initial state with empty answer + streaming flag
-        updateMessageAtIndex(targetIndex, (message) => ({
+      if (typeof messageIndex === 'number') {
+        updateMessageAtIndex(messageIndex, (message) => ({
           ...message,
           webSearchPending: false,
-          webSearchAnswer: '',
+          webSearchAnswer: fullAnswer,
           webSearchSources: sources,
           isWebSearch: true,
-          isStreamingWebSearch: true,
+          isStreamingWebSearch: false,
           webSearchQuery: searchQuery,
           webSearchContextHint: fallbackContext,
         }));
-
-        const interval = setInterval(() => {
-          if (wordIdx >= words.length) {
-            clearInterval(interval);
-            // Finalize: remove streaming flag
-            updateMessageAtIndex(targetIndex, (message) => ({
-              ...message,
-              isStreamingWebSearch: false,
-            }));
-            return;
-          }
-          const nextWord = words[wordIdx];
-          wordIdx++;
-          updateMessageAtIndex(targetIndex, (message) => ({
-            ...message,
-            webSearchAnswer: (message.webSearchAnswer || '') + (message.webSearchAnswer ? ' ' : '') + nextWord,
-          }));
-        }, 20);
-      };
-
-      if (typeof messageIndex === 'number') {
-        typewriteWebAnswer(messageIndex);
       } else if (appendMessage && typeof appendedMessageIndex === 'number') {
         updateMessageAtIndex(appendedMessageIndex, (message) => ({
           ...message,
-          content: `Web search results for "${searchQuery}"`,
+          content: '',
+          webSearchPending: false,
+          webSearchAnswer: fullAnswer,
+          webSearchSources: sources,
+          isWebSearch: true,
+          isStreamingWebSearch: false,
+          webSearchQuery: searchQuery,
+          webSearchContextHint: fallbackContext,
         }));
-        typewriteWebAnswer(appendedMessageIndex);
       } else {
-        // Append new message then typewrite into it
         updateCurrentSession((session) => ({
           ...session,
           messages: [
             ...session.messages,
             {
               role: 'assistant',
-              content: `Web search results for "${searchQuery}"`,
+              content: '',
               isWebSearch: true,
               webSearchPending: false,
-              webSearchAnswer: '',
-              isStreamingWebSearch: true,
+              webSearchAnswer: fullAnswer,
+              isStreamingWebSearch: false,
               webSearchSources: sources,
               webSearchQuery: searchQuery,
               webSearchContextHint: fallbackContext,
@@ -391,26 +458,6 @@ export default function ChatPage() {
           ],
           updatedAt: Date.now(),
         }));
-        // Typewrite the last message
-        const targetIdx = messages.length; // will be the newly appended message
-        const words = fullAnswer.split(' ');
-        let wordIdx = 0;
-        const interval = setInterval(() => {
-          if (wordIdx >= words.length) {
-            clearInterval(interval);
-            updateMessageAtIndex(targetIdx, (message) => ({
-              ...message,
-              isStreamingWebSearch: false,
-            }));
-            return;
-          }
-          const nextWord = words[wordIdx];
-          wordIdx++;
-          updateMessageAtIndex(targetIdx, (message) => ({
-            ...message,
-            webSearchAnswer: (message.webSearchAnswer || '') + (message.webSearchAnswer ? ' ' : '') + nextWord,
-          }));
-        }, 20);
       }
     } catch {
       const errorMessage = {
@@ -451,7 +498,7 @@ export default function ChatPage() {
     // 1. Add user message + empty assistant placeholder (for streaming into)
     updateCurrentSession((session) => ({
       ...session,
-      title: session.title && session.title !== getDefaultSessionTitle(currentFolder?.name || 'New Chat') ? session.title : nextSessionTitle,
+      title: isUntitledSession(session, currentFolder?.name) ? nextSessionTitle : session.title,
       folderId: selectedFolderId ? String(selectedFolderId) : session.folderId,
       folderName: currentFolder?.name || session.folderName,
       messages: [
@@ -671,11 +718,8 @@ export default function ChatPage() {
 
       let sessionMessages = Array.isArray(session.messages) ? [...session.messages] : [];
 
-      // Filter out welcome-only messages (they're just placeholders)
-      const realMessages = sessionMessages.filter((m) => !m?.isWelcome);
-
-      // Lazy-load from backend if no real messages
-      if (realMessages.length === 0 && user?.id) {
+      // Lazy-load from backend only when we truly have no persisted session content.
+      if (!hasStoredChatContent(sessionMessages) && user?.id) {
         const backendMessages = await chatService.getSessionHistory(id, 200);
         const normalized = normalizeBackendMessages(backendMessages);
         if (normalized.length > 0) sessionMessages = normalized;

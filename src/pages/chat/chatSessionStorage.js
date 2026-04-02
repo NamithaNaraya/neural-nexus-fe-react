@@ -101,9 +101,13 @@ export const loadChatWorkspace = (userKey) => {
     return { currentSessionId: session.id, sessions: [session] };
   }
 
-  // Always load the most recently updated session on refresh
-  const sortedByRecent = sessions.slice().sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
-  const currentSessionId = sortedByRecent[0]?.id || sessions[0].id;
+  const requestedCurrentSessionId = String(parsed.currentSessionId || '');
+  const hasRequestedCurrentSession = sessions.some((session) => session.id === requestedCurrentSessionId);
+
+  // Prefer the explicitly saved current session so refreshes do not unexpectedly switch chats.
+  const currentSessionId = hasRequestedCurrentSession
+    ? requestedCurrentSessionId
+    : sessions.slice().sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0))[0]?.id || sessions[0].id;
 
   return {
     currentSessionId,
