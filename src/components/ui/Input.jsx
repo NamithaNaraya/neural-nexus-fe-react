@@ -1,9 +1,11 @@
 import React, { forwardRef } from 'react';
+import { Input as ChakraInput } from '@chakra-ui/react';
 import { cn } from '../../utils/cn';
 
 export const Input = forwardRef(function Input({ className, type = 'text', ...props }, ref) {
   return (
-    <input
+    <ChakraInput
+      unstyled
       ref={ref}
       type={type}
       className={cn(

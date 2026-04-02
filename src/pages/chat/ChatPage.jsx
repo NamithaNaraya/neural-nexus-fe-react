@@ -111,6 +111,31 @@ const normalizeWebSearchSources = (metadataOrSources) => {
   });
 };
 
+const parseBackendCitations = (rawCitations) => {
+  if (!rawCitations) return null;
+  if (typeof rawCitations === 'string') {
+    try {
+      return JSON.parse(rawCitations);
+    } catch {
+      return null;
+    }
+  }
+  return rawCitations;
+};
+
+const extractWebSearchAttachment = (rawCitations) => {
+  const citations = parseBackendCitations(rawCitations);
+  if (!citations || Array.isArray(citations)) return null;
+
+  const attachment = citations?.web_search_attachment;
+  if (!attachment || typeof attachment !== 'object') return null;
+
+  return {
+    answer: attachment.answer || '',
+    sources: normalizeWebSearchSources(attachment.sources || []),
+  };
+};
+
 const isUntitledSession = (session, currentFolderName) => {
   const sessionTitle = String(session?.title || '').trim();
   const folderTitle = String(session?.folderName || '').trim();
@@ -139,7 +164,7 @@ export default function ChatPage() {
 
   const activeSession = useMemo(
     () => workspace.sessions.find((session) => session.id === workspace.currentSessionId) || null,
-    [workspace]
+    [workspace.currentSessionId, workspace.sessions]
   );
   const messages = activeSession?.messages?.length ? activeSession.messages : [WELCOME_MESSAGE];
   const chatHistory = useMemo(
@@ -150,7 +175,7 @@ export default function ChatPage() {
         messages: Array.isArray(session?.messages) ? session.messages : [],
       }))
       .sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0)),
-    [workspace]
+    [workspace.sessions]
   );
   const hasPendingWebSearchMessage = messages.some((message) => message?.webSearchPending);
 
@@ -158,6 +183,7 @@ export default function ChatPage() {
     if (!Array.isArray(rawMessages)) return [];
     const result = [];
     for (const msg of rawMessages) {
+      const webAttachment = extractWebSearchAttachment(msg.citations);
       if (msg.role === 'web_search') {
         // Attach web search answer to the previous assistant message
         const lastMsg = result[result.length - 1];
@@ -175,12 +201,21 @@ export default function ChatPage() {
         }
         continue;
       }
-      result.push({
+      const normalizedMessage = {
         role: msg.role || 'assistant',
         content: msg.message || msg.content || '',
         citations: msg.citations || msg.sources || [],
         timestamp: msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now(),
-      });
+      };
+
+      if (webAttachment) {
+        normalizedMessage.webSearchAnswer = webAttachment.answer;
+        normalizedMessage.webSearchSources = webAttachment.sources;
+        normalizedMessage.isWebSearch = true;
+        normalizedMessage.webSearchPending = false;
+      }
+
+      result.push(normalizedMessage);
     }
     return result;
   };
@@ -223,14 +258,10 @@ export default function ChatPage() {
     });
   }, [storageKey]);
 
-  // Sync from backend when user logs in
+  // 1. Initial workspace sync when user changes
   useEffect(() => {
-    if (!user || !user.id) {
-      // User logged out - clear will happen on next login
-      return;
-    }
-
     const syncFromBackend = async () => {
+      if (!user?.id) return;
       setWorkspaceLoading(true);
       hasHydratedWorkspaceRef.current = false;
       try {
@@ -238,36 +269,27 @@ export default function ChatPage() {
         if (backendWorkspace) {
           setWorkspace((prev) => {
             const backendSet = new Set(backendWorkspace.sessions.map((session) => session.id));
-            // Merge: keep local sessions that already have messages (they're richer than backend shells)
             const localSessionMap = new Map(prev.sessions.map((s) => [s.id, s]));
+            
             const mergedSessions = [
               ...backendWorkspace.sessions.map((backendSession) => {
                 const local = localSessionMap.get(backendSession.id);
-                // Keep richer local sessions, including ones that only differ by stored web-search data.
-                if (local && hasStoredChatContent(local.messages)) {
-                  return local;
-                }
-                return {
-                  ...backendSession,
-                  messages: Array.isArray(backendSession.messages) && backendSession.messages.length > 0 ? backendSession.messages : [WELCOME_MESSAGE],
-                };
+                // Keep local messages if they exist (they might be fresher/full)
+                if (local && (local.messages?.length > 1 || local.folderId)) return local;
+                return backendSession;
               }),
               ...prev.sessions.filter((session) => !backendSet.has(session.id)),
             ];
 
-            const merged = {
+            return {
               ...prev,
               sessions: mergedSessions,
               currentSessionId: prev.currentSessionId || backendWorkspace.currentSessionId || mergedSessions[0]?.id,
             };
-            // Explicitly save merged data so it persists across refreshes
-            saveChatWorkspace(userKey, merged);
-            return merged;
           });
         }
       } catch (error) {
         console.error('Failed to sync from backend:', error);
-        // Fall back to localStorage if backend sync fails
       } finally {
         queueMicrotask(() => {
           hasHydratedWorkspaceRef.current = true;
@@ -279,105 +301,65 @@ export default function ChatPage() {
     syncFromBackend();
   }, [user?.id]);
 
+  // 2. Folder Context Sync: Switch/create session when folder selection changes
   useEffect(() => {
-    if (!selectedFolderId) return;
-    if (!hasHydratedWorkspaceRef.current) {
-      lastFolderIdRef.current = selectedFolderId;
+    if (!selectedFolderId || !hasHydratedWorkspaceRef.current || isWorkspaceLoading) {
       return;
     }
-    if (String(lastFolderIdRef.current || '') === String(selectedFolderId)) {
-      return;
-    }
-    lastFolderIdRef.current = selectedFolderId;
-    // Just update the current session's folder context — do NOT auto-switch sessions
-    // User stays on the same chat until they click "New Chat"
-    setWorkspace((prev) => {
-      const currentSession = prev.sessions.find((session) => session.id === prev.currentSessionId);
-      if (!currentSession) return prev;
-      return {
-        ...prev,
-        sessions: prev.sessions.map((session) =>
-          session.id === prev.currentSessionId
-            ? { ...session, folderId: String(selectedFolderId), folderName: currentFolder?.name || session.folderName }
-            : session
-        ),
-      };
-    });
-  }, [selectedFolderId, currentFolder?.name]);
 
+    const folderIdStr = String(selectedFolderId);
+    if (lastFolderIdRef.current === folderIdStr) return;
+    lastFolderIdRef.current = folderIdStr;
+
+    setWorkspace((prev) => {
+      const nextWorkspace = selectSessionForFolder(prev, folderIdStr, currentFolder?.name || '');
+      // If a new session was created (wasn't original workspace), save it via effect hook
+      return nextWorkspace;
+    });
+  }, [selectedFolderId, isWorkspaceLoading, currentFolder?.name]);
+
+  // 2. LAZY HYDRATION: Fetch history only when a session is active but has no messages
   useEffect(() => {
     if (!hasHydratedWorkspaceRef.current || isWorkspaceLoading || !user?.id || !workspace.currentSessionId) {
       return;
     }
 
-    const currentSession = workspace.sessions.find((session) => session.id === workspace.currentSessionId);
-    if (!currentSession) {
-      return;
-    }
+    const currentSession = workspace.sessions.find((s) => s.id === workspace.currentSessionId);
+    // Only hydrate if we have no messages (except welcome) AND it's not a brand new local session
+    const needsHydration = currentSession && (!currentSession.messages || currentSession.messages.length <= 1);
+    
+    if (!needsHydration) return;
 
-    const hydrationKey = `${user.id}:${workspace.currentSessionId}`;
-    if (backendHydrationRef.current === hydrationKey) {
-      return;
-    }
+    const hydrationKey = `lazy:${user.id}:${workspace.currentSessionId}`;
+    if (backendHydrationRef.current === hydrationKey) return;
     backendHydrationRef.current = hydrationKey;
 
     let cancelled = false;
-
-    const hydrateCurrentSession = async () => {
+    const loadActiveSessionHistory = async () => {
       try {
         const backendMessages = await chatService.getSessionHistory(workspace.currentSessionId, 200);
-        if (cancelled || !Array.isArray(backendMessages) || backendMessages.length === 0) {
-          return;
-        }
+        if (cancelled || !Array.isArray(backendMessages) || backendMessages.length === 0) return;
 
         const normalized = normalizeBackendMessages(backendMessages);
-        if (!hasStoredChatContent(normalized)) {
-          return;
-        }
-
         setWorkspace((prev) => {
-          const session = prev.sessions.find((entry) => entry.id === workspace.currentSessionId);
-          if (!session) {
-            return prev;
-          }
+          const session = prev.sessions.find((s) => s.id === workspace.currentSessionId);
+          if (!session) return prev;
 
-          const backendHasWebSearch = hasStoredWebSearchContent(normalized);
-          const localHasWebSearch = hasStoredWebSearchContent(session.messages);
-          const backendIsRicher =
-            (backendHasWebSearch && !localHasWebSearch) ||
-            normalized.length > (Array.isArray(session.messages) ? session.messages.length : 0);
-
-          if (!backendIsRicher) {
-            return prev;
-          }
-
-          const nextWorkspace = {
+          return {
             ...prev,
-            sessions: prev.sessions.map((entry) =>
-              entry.id === workspace.currentSessionId
-                ? {
-                    ...entry,
-                    messages: normalized,
-                    updatedAt: Math.max(entry.updatedAt || 0, Date.now()),
-                  }
-                : entry
+            sessions: prev.sessions.map((s) =>
+              s.id === workspace.currentSessionId ? { ...s, messages: normalized, updatedAt: Date.now() } : s
             ),
           };
-
-          saveChatWorkspace(userKey, nextWorkspace);
-          return nextWorkspace;
         });
       } catch (error) {
-        console.error('Failed to rehydrate current session from backend:', error);
+        console.error('Lazy hydration failed:', error);
       }
     };
 
-    hydrateCurrentSession();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isWorkspaceLoading, user?.id, userKey, workspace.currentSessionId, workspace.sessions]);
+    loadActiveSessionHistory();
+    return () => { cancelled = true; };
+  }, [isWorkspaceLoading, user?.id, workspace.currentSessionId, workspace.sessions.length]);
 
   useEffect(() => {
     if (!hasHydratedWorkspaceRef.current) return;
@@ -435,9 +417,7 @@ export default function ChatPage() {
       const sessions = prev.sessions.map((session) =>
         session.id === nextSession.id ? nextSession : session
       );
-      const nextWorkspace = { currentSessionId: nextSession.id, sessions };
-      saveChatWorkspace(userKey, nextWorkspace);
-      return nextWorkspace;
+      return { currentSessionId: nextSession.id, sessions };
     });
   };
 
@@ -617,7 +597,7 @@ export default function ChatPage() {
         throw new Error(`Server error: ${response.status}`);
       }
 
-      // 3. Read the NDJSON stream line by line
+      // 3. Read the NDJSON stream line by line with throttling
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No response stream available');
 
@@ -627,6 +607,31 @@ export default function ChatPage() {
       let streamedAlgorithm = null;
       let streamedResults = null;
       let suggestWebSearch = true;
+      let accumulatedContent = '';
+      let lastUpdateTimestamp = Date.now();
+
+      const flushStreamingUpdate = (force = false) => {
+        const now = Date.now();
+        if (!force && now - lastUpdateTimestamp < 80) return; // Throttle to ~12fps for streaming
+        lastUpdateTimestamp = now;
+
+        setWorkspace((prev) => {
+          const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
+          if (!session) return prev;
+          const msgs = [...session.messages];
+          const lastMsg = msgs[msgs.length - 1];
+          if (lastMsg?.role === 'assistant') {
+            msgs[msgs.length - 1] = { ...lastMsg, content: lastMsg.content + accumulatedContent };
+            accumulatedContent = ''; // Clear after flushing
+          }
+          return {
+            ...prev,
+            sessions: prev.sessions.map((s) =>
+              s.id === prev.currentSessionId ? { ...s, messages: msgs, updatedAt: Date.now() } : s
+            ),
+          };
+        });
+      };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -634,7 +639,7 @@ export default function ChatPage() {
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
           const trimmed = line.trim();
@@ -645,22 +650,8 @@ export default function ChatPage() {
 
             switch (chunk.type) {
               case 'content':
-                // 4. Append each content token to the assistant message in real-time
-                setWorkspace((prev) => {
-                  const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
-                  if (!session) return prev;
-                  const msgs = [...session.messages];
-                  const lastMsg = msgs[msgs.length - 1];
-                  if (lastMsg?.role === 'assistant') {
-                    msgs[msgs.length - 1] = { ...lastMsg, content: lastMsg.content + chunk.data };
-                  }
-                  return {
-                    ...prev,
-                    sessions: prev.sessions.map((s) =>
-                      s.id === prev.currentSessionId ? { ...s, messages: msgs, updatedAt: Date.now() } : s
-                    ),
-                  };
-                });
+                accumulatedContent += chunk.data;
+                flushStreamingUpdate();
                 break;
 
               case 'intent':
@@ -675,18 +666,14 @@ export default function ChatPage() {
               case 'web_search_suggestion':
                 suggestWebSearch = chunk.data ?? true;
                 break;
-
-              case 'step':
-                // Could be used for progress indicators in the future
-                break;
             }
-          } catch {
-            // Skip malformed JSON lines (flush padding etc.)
-          }
+          } catch { /* Silent skip */ }
         }
       }
 
       // 5. Finalize the assistant message: remove streaming flag, add metadata
+      flushStreamingUpdate(true); // Final flush
+
       setWorkspace((prev) => {
         const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
         if (!session) return prev;
@@ -816,13 +803,15 @@ export default function ChatPage() {
             entry.id === id
               ? {
                   ...entry,
-                  messages: sessionMessages.length > 0 ? sessionMessages : [WELCOME_MESSAGE],
+                  messages: sessionMessages.length > 0 ? sessionMessages : entry.messages,
                   folderId: session.folderId || entry.folderId,
                   folderName: session.folderName || entry.folderName,
                 }
               : entry
           ),
         };
+        // Reset hydration ref so the lazy loader picks up the new selection
+        backendHydrationRef.current = ''; 
         saveChatWorkspace(userKey, nextWorkspace);
         return nextWorkspace;
       });
@@ -972,6 +961,7 @@ export default function ChatPage() {
                   onRestore={restoreSession}
                   onDelete={deleteSession}
                   onClose={() => setHistoryOpen(false)}
+                  isLoading={isWorkspaceLoading}
                 />
               </Suspense>
             </div>

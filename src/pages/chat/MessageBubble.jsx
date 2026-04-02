@@ -316,7 +316,7 @@ const AnimatedDots = ({ tone = 'neutral' }) => {
   );
 };
 
-export function MessageBubble({ message, onWebSearch, messageIndex }) {
+export const MessageBubble = React.memo(function MessageBubble({ message, onWebSearch, messageIndex }) {
   const isUser = message.role === 'user';
   const isError = message.isError;
   const isWebSearch = message.isWebSearch;
@@ -432,9 +432,9 @@ export function MessageBubble({ message, onWebSearch, messageIndex }) {
       </div>
     </div>
   );
-}
+});
 
-export function TypingIndicator() {
+export const TypingIndicator = React.memo(function TypingIndicator() {
   return (
     <div className="flex gap-3 justify-start">
       <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0 shadow-sm">
@@ -445,4 +445,5 @@ export function TypingIndicator() {
       </div>
     </div>
   );
-}
+});
+

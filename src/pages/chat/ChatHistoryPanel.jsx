@@ -1,8 +1,9 @@
 import React from 'react';
 import { Button } from '../../components/ui/Button';
 import { Trash2, Clock, X, History } from 'lucide-react';
+import { SkeletonText } from '../../components/ui/Skeleton';
 
-export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onClose, activeSessionId }) {
+export const ChatHistoryPanel = React.memo(function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onClose, activeSessionId, isLoading }) {
   const safeHistory = Array.isArray(chatHistory) ? chatHistory : [];
 
   return (
@@ -33,7 +34,15 @@ export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onClose, ac
       </div>
 
       <ul className="flex-1 space-y-2 overflow-y-auto p-4">
-        {safeHistory.length === 0 ? (
+        {isLoading && safeHistory.length === 0 ? (
+          <div className="space-y-4">
+            <SkeletonText lines={2} className="rounded-xl border border-border/20 p-4" />
+            <SkeletonText lines={2} className="rounded-xl border border-border/20 p-4" />
+            <SkeletonText lines={2} className="rounded-xl border border-border/20 p-4" />
+          </div>
+        ) : null}
+
+        {!isLoading && safeHistory.length === 0 ? (
           <li className="rounded-2xl border border-border/30 bg-muted/10 p-4 text-center text-xs text-muted-foreground">
             No saved conversations yet.
           </li>
@@ -113,4 +122,5 @@ export function ChatHistoryPanel({ chatHistory, onRestore, onDelete, onClose, ac
       </ul>
     </div>
   );
-}
+});
+

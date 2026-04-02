@@ -1,9 +1,11 @@
 import React from 'react';
+import { Skeleton as ChakraSkeleton } from '@chakra-ui/react';
 import { cn } from '../../utils/cn';
 
 export function Skeleton({ className, ...props }) {
   return (
-    <div
+    <ChakraSkeleton
+      unstyled
       className={cn(
         'relative overflow-hidden rounded-md bg-muted/50',
         'before:absolute before:inset-0 before:-translate-x-full before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent before:animate-shimmer',

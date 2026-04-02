@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import { GlobalFolderProvider } from './contexts/GlobalFolderContext';
 import { AppLayout } from './components/layout/AppLayout';
+import { ChakraAppProvider } from './providers/ChakraAppProvider';
 
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const GraphPage = lazy(() => import('./pages/GraphPage'));
@@ -91,13 +92,15 @@ function AppRoutes() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
-      </AuthProvider>
-    </ThemeProvider>
+    <ChakraAppProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
+    </ChakraAppProvider>
   );
 }
 

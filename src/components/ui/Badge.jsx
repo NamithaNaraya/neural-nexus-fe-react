@@ -1,4 +1,5 @@
 import React from 'react';
+import { Badge as ChakraBadge } from '@chakra-ui/react';
 import { cn } from '../../utils/cn';
 
 const badgeVariants = {
@@ -13,7 +14,8 @@ const badgeVariants = {
 
 export function Badge({ className, variant = 'default', children, ...props }) {
   return (
-    <div
+    <ChakraBadge
+      unstyled
       className={cn(
         'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors',
         badgeVariants[variant],
@@ -22,7 +24,7 @@ export function Badge({ className, variant = 'default', children, ...props }) {
       {...props}
     >
       {children}
-    </div>
+    </ChakraBadge>
   );
 }
 

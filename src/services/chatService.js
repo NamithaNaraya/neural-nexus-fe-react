@@ -7,12 +7,13 @@ import api from './api';
 
 export const chatService = {
   /**
-   * Load all chat sessions for current user from backend
+   * Load all chat sessions for current user from backend (V2 Optimized)
    * @returns {Promise<Array>} Array of session objects with metadata
    */
   async listSessions() {
     try {
-      const response = await api.get('/query/chat/sessions');
+      // Use the newly created V2-specific metadata API
+      const response = await api.get('/query/chat/v2/sessions');
       return response.data || [];
     } catch (error) {
       console.error('Failed to list chat sessions:', error);
@@ -23,10 +24,10 @@ export const chatService = {
   /**
    * Load chat history for a specific session from backend
    * @param {string} sessionId - Session UUID
-   * @param {number} limit - Max messages to retrieve (default: 10 = 5 Q&A pairs)
-   * @returns {Promise<Array>} Array of message objects with role, content, timestamp
+   * @param {number} limit - Max messages to retrieve (default: 200 for full context)
+   * @returns {Promise<Array>} Array of message objects
    */
-  async getSessionHistory(sessionId, limit = 10) {
+  async getSessionHistory(sessionId, limit = 200) {
     try {
       const response = await api.get(`/query/chat/history/${sessionId}`, {
         params: { limit },
@@ -56,7 +57,7 @@ export const chatService = {
   /**
    * Sync chat workspace with backend
    * Loads all sessions for authenticated user and reconstructs workspace
-   * from backend data (PostgreSQL source of truth)
+   * as metadata-only shells (Lazy Loading).
    *
    * @returns {Promise<Object>} Workspace object with sessions and currentSessionId
    */
@@ -65,22 +66,21 @@ export const chatService = {
       const sessions = await this.listSessions();
 
       if (!sessions || sessions.length === 0) {
-        return null; // No data in backend, use localStorage fallback
+        return null;
       }
 
-      // Only create session shells from metadata — do NOT fetch messages for every session (avoids N+1 API calls).
-      // Messages are lazy-loaded when a session is clicked via restoreSession.
+      // Strictly metadata-only shells. Messages stay empty until the session is selected.
       const reconstructedSessions = sessions
         .filter((s) => s && s.session_id)
         .map((backendSession) => {
           const lastActivity = backendSession.last_activity ? new Date(backendSession.last_activity).getTime() : Date.now();
           return {
             id: backendSession.session_id,
-            messages: [], // Empty — loaded on demand when user clicks the session
+            messages: [], // LAZY LOADED on selection
             folderId: '',
             folderName: '',
-            createdAt: Number.isFinite(lastActivity) ? lastActivity : Date.now(),
-            updatedAt: Number.isFinite(lastActivity) ? lastActivity : Date.now(),
+            createdAt: lastActivity,
+            updatedAt: lastActivity,
             title: backendSession.last_message?.substring(0, 42) || 'New Chat',
           };
         });

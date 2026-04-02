@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button as ChakraButton } from '@chakra-ui/react';
 import { cn } from '../../utils/cn';
 
 const buttonVariants = {
@@ -29,7 +30,8 @@ export function Button({
   ...props
 }) {
   return (
-    <button
+    <ChakraButton
+      unstyled
       type={type}
       className={cn(
         'inline-flex cursor-pointer items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
@@ -41,6 +43,6 @@ export function Button({
       {...props}
     >
       {children}
-    </button>
+    </ChakraButton>
   );
 }
