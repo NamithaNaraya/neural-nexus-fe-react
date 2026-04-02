@@ -19,7 +19,7 @@ export function AppLayout({ children }) {
       <Sidebar />
 
       <div className="relative flex h-full w-full flex-1 flex-col">
-        <header className="z-10 flex h-16 shrink-0 items-center justify-between border-b border-border/30 bg-card/50 px-6 backdrop-blur-xl">
+        <header className="relative z-[120] flex h-16 shrink-0 items-center justify-between overflow-visible border-b border-border/30 bg-card/50 px-6 backdrop-blur-xl">
           <div />
 
           <div className="flex items-center gap-1">

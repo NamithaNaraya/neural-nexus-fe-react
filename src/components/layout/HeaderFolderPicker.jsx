@@ -58,7 +58,7 @@ export function HeaderFolderPicker({
   }, [folders, query]);
 
   return (
-    <div ref={containerRef} className="relative mr-2">
+    <div ref={containerRef} className={cn('relative mr-2', open && 'z-[130]')}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -74,7 +74,7 @@ export function HeaderFolderPicker({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[320px] rounded-2xl border border-border/60 bg-card/95 p-3 shadow-2xl backdrop-blur-xl">
+        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-[140] w-[320px] rounded-2xl border border-border/60 bg-card/95 p-3 shadow-2xl backdrop-blur-xl">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input

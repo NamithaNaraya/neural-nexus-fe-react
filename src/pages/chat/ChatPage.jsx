@@ -41,6 +41,13 @@ const hasStoredChatContent = (messages = []) =>
     );
   });
 
+const hasStoredWebSearchContent = (messages = []) =>
+  Array.isArray(messages) &&
+  messages.some((message) =>
+    Boolean(message?.webSearchAnswer) ||
+    (Array.isArray(message?.webSearchSources) && message.webSearchSources.length > 0)
+  );
+
 const MAX_WEB_SOURCE_COUNT = 6;
 const INTERNAL_SOURCE_HOSTS = new Set([
   'vertexaisearch.cloud.google.com',
@@ -126,6 +133,7 @@ export default function ChatPage() {
   const inputRef = useRef(null);
   const downloadMenuRef = useRef(null);
   const saveTimeoutRef = useRef(null);
+  const backendHydrationRef = useRef('');
   const hasHydratedWorkspaceRef = useRef(false);
   const lastFolderIdRef = useRef(selectedFolderId || '');
 
@@ -296,6 +304,80 @@ export default function ChatPage() {
       };
     });
   }, [selectedFolderId, currentFolder?.name]);
+
+  useEffect(() => {
+    if (!hasHydratedWorkspaceRef.current || isWorkspaceLoading || !user?.id || !workspace.currentSessionId) {
+      return;
+    }
+
+    const currentSession = workspace.sessions.find((session) => session.id === workspace.currentSessionId);
+    if (!currentSession) {
+      return;
+    }
+
+    const hydrationKey = `${user.id}:${workspace.currentSessionId}`;
+    if (backendHydrationRef.current === hydrationKey) {
+      return;
+    }
+    backendHydrationRef.current = hydrationKey;
+
+    let cancelled = false;
+
+    const hydrateCurrentSession = async () => {
+      try {
+        const backendMessages = await chatService.getSessionHistory(workspace.currentSessionId, 200);
+        if (cancelled || !Array.isArray(backendMessages) || backendMessages.length === 0) {
+          return;
+        }
+
+        const normalized = normalizeBackendMessages(backendMessages);
+        if (!hasStoredChatContent(normalized)) {
+          return;
+        }
+
+        setWorkspace((prev) => {
+          const session = prev.sessions.find((entry) => entry.id === workspace.currentSessionId);
+          if (!session) {
+            return prev;
+          }
+
+          const backendHasWebSearch = hasStoredWebSearchContent(normalized);
+          const localHasWebSearch = hasStoredWebSearchContent(session.messages);
+          const backendIsRicher =
+            (backendHasWebSearch && !localHasWebSearch) ||
+            normalized.length > (Array.isArray(session.messages) ? session.messages.length : 0);
+
+          if (!backendIsRicher) {
+            return prev;
+          }
+
+          const nextWorkspace = {
+            ...prev,
+            sessions: prev.sessions.map((entry) =>
+              entry.id === workspace.currentSessionId
+                ? {
+                    ...entry,
+                    messages: normalized,
+                    updatedAt: Math.max(entry.updatedAt || 0, Date.now()),
+                  }
+                : entry
+            ),
+          };
+
+          saveChatWorkspace(userKey, nextWorkspace);
+          return nextWorkspace;
+        });
+      } catch (error) {
+        console.error('Failed to rehydrate current session from backend:', error);
+      }
+    };
+
+    hydrateCurrentSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isWorkspaceLoading, user?.id, userKey, workspace.currentSessionId, workspace.sessions]);
 
   useEffect(() => {
     if (!hasHydratedWorkspaceRef.current) return;
