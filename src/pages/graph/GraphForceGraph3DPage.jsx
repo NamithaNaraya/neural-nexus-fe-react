@@ -60,6 +60,8 @@ export default function GraphForceGraph3DPage({
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [expandDepth, setExpandDepth] = useState(1);
   const [expandRelationshipTypes, setExpandRelationshipTypes] = useState([]);
+  const [hoveredNodeId, setHoveredNodeId] = useState(null);
+  const [draggingNodeId, setDraggingNodeId] = useState(null);
   const forceRefreshRef = useRef(false);
   const graphRef = useRef(null);
 
@@ -296,6 +298,7 @@ export default function GraphForceGraph3DPage({
 
   const handleNodeDragEnd = (node) => {
     if (!node) return;
+    setDraggingNodeId(null);
     if (lockDraggedNodes) {
       node.fx = node.x;
       node.fy = node.y;
@@ -346,6 +349,34 @@ export default function GraphForceGraph3DPage({
     }, 140);
   }, [hasPathHighlights, highlightedNodeIds, highlightedLinkIds]);
 
+  useEffect(() => {
+    const graphInstance = graphRef.current;
+    if (!graphInstance) return;
+
+    const controls = graphInstance.controls?.();
+    if (controls) {
+      controls.minDistance = 18;
+      controls.maxDistance = 6000;
+      controls.zoomSpeed = 1.2;
+      controls.panSpeed = 0.9;
+    }
+
+    if (!renderedGraph.nodes.length) return;
+
+    graphInstance.d3ReheatSimulation?.();
+    const timeout = setTimeout(() => {
+      graphInstance.zoomToFit?.(520, 110);
+    }, 180);
+
+    return () => clearTimeout(timeout);
+  }, [renderedGraph.nodes.length, renderedGraph.links.length, relationshipTypeFilters, nodeTypeFilters, minDegree, showOrphans, nodeSearch]);
+
+  useEffect(() => {
+    const domElement = graphRef.current?.renderer?.()?.domElement;
+    if (!domElement) return;
+    domElement.style.cursor = draggingNodeId ? 'grabbing' : 'grab';
+  }, [draggingNodeId, renderedGraph.nodes.length]);
+
   const createTextSprite = (text, color = '#334155') => {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
@@ -394,6 +425,8 @@ export default function GraphForceGraph3DPage({
                 ref={graphRef}
                 graphData={renderedGraph}
                 backgroundColor="rgba(0,0,0,0)"
+                enableNodeDrag
+                enableNavigationControls={!hoveredNodeId && !draggingNodeId}
                 nodeColor={(node) => {
                   const isHighlighted = highlightedNodeIds.has(String(node.id));
                   if (!hasPathHighlights) return node.color;
@@ -454,6 +487,20 @@ export default function GraphForceGraph3DPage({
                   );
                 }}
                 onNodeClick={handleNodeClick}
+                onNodeHover={(node) => {
+                  setHoveredNodeId(node?.id ?? null);
+                  const domElement = graphRef.current?.renderer?.()?.domElement;
+                  if (!domElement) return;
+                  domElement.style.cursor = node
+                    ? (draggingNodeId && String(draggingNodeId) === String(node.id) ? 'grabbing' : 'grab')
+                    : (draggingNodeId ? 'grabbing' : 'grab');
+                }}
+                onNodeDrag={(node) => {
+                  if (!node) return;
+                  setDraggingNodeId(node.id);
+                  const domElement = graphRef.current?.renderer?.()?.domElement;
+                  if (domElement) domElement.style.cursor = 'grabbing';
+                }}
                 onNodeDragEnd={handleNodeDragEnd}
                 onLinkClick={handleRelationshipClick}
                 width={undefined}

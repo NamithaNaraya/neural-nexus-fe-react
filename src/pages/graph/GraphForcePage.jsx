@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
+import { forceCollide } from 'd3-force';
 import { Loader2 } from 'lucide-react';
 import { graphService } from '../../services/graphService';
 import { getNodeTypeColor, getRelationshipTypeColor, withAlpha } from './colorSystem';
@@ -60,6 +61,7 @@ export default function GraphForcePage({
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [expandDepth, setExpandDepth] = useState(1);
   const [expandRelationshipTypes, setExpandRelationshipTypes] = useState([]);
+  const [draggingNodeId, setDraggingNodeId] = useState(null);
   const forceRefreshRef = useRef(false);
   const graphRef = useRef(null);
 
@@ -296,6 +298,7 @@ export default function GraphForcePage({
 
   const handleNodeDragEnd = (node) => {
     if (!node) return;
+    setDraggingNodeId(null);
     if (lockDraggedNodes) {
       node.fx = node.x;
       node.fy = node.y;
@@ -344,9 +347,30 @@ export default function GraphForcePage({
     }, 120);
   }, [hasPathHighlights, highlightedNodeIds, highlightedLinkIds]);
 
+  const getNodeRadius = (node) => {
+    const baseMetric = Math.max(1, Number(node?.size || node?.degree || 1));
+    return Math.max(8, Math.min(14, 8 + Math.log2(baseMetric + 1) * 1.6));
+  };
+
+  useEffect(() => {
+    const graphInstance = graphRef.current;
+    if (!graphInstance) return;
+
+    graphInstance.d3Force(
+      'collide',
+      forceCollide((node) => getNodeRadius(node) + 16).iterations(3)
+    );
+    graphInstance.d3ReheatSimulation?.();
+  }, [renderedGraph.nodes.length, renderedGraph.links.length]);
+
+  useEffect(() => {
+    const canvas = graphRef.current?.canvas?.();
+    if (!canvas) return;
+    canvas.style.cursor = draggingNodeId ? 'grabbing' : 'grab';
+  }, [draggingNodeId, renderedGraph.nodes.length]);
+
   const drawNodeCanvasObject = (node, ctx, globalScale) => {
-    const baseMetric = Math.max(1, Number(node.size || node.degree || 1));
-    const radius = Math.max(8, Math.min(14, 8 + Math.log2(baseMetric + 1) * 1.6));
+    const radius = getNodeRadius(node);
     const x = node.x || 0;
     const y = node.y || 0;
     const nodeColor = node.color || '#93C5FD';
@@ -444,6 +468,8 @@ export default function GraphForcePage({
                 ref={graphRef}
                 graphData={renderedGraph}
                 backgroundColor="rgba(0,0,0,0)"
+                enableNodeDrag
+                enablePanInteraction={false}
                 nodeColor={(node) => {
                   const isHighlighted = highlightedNodeIds.has(String(node.id));
                   if (!hasPathHighlights) return node.color;
@@ -458,6 +484,15 @@ export default function GraphForcePage({
                 nodeLabel={() => ''}
                 nodeCanvasObject={drawNodeCanvasObject}
                 nodeCanvasObjectMode={() => 'replace'}
+                nodePointerAreaPaint={(node, color, ctx) => {
+                  const x = node.x || 0;
+                  const y = node.y || 0;
+                  const radius = getNodeRadius(node) + 12;
+                  ctx.fillStyle = color;
+                  ctx.beginPath();
+                  ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
+                  ctx.fill();
+                }}
                 linkColor={(link) => {
                   const isPredicted = Boolean(link.properties?.isPredicted);
                   const isHighlighted = highlightedLinkIds.has(String(link.id));
@@ -482,6 +517,19 @@ export default function GraphForcePage({
                 linkCanvasObject={drawLinkCanvasObject}
                 linkCanvasObjectMode={() => (showRelationshipLabels ? 'after' : undefined)}
                 onNodeClick={handleNodeClick}
+                onNodeHover={(node) => {
+                  const canvas = graphRef.current?.canvas?.();
+                  if (!canvas) return;
+                  canvas.style.cursor = node
+                    ? (draggingNodeId && String(draggingNodeId) === String(node.id) ? 'grabbing' : 'grab')
+                    : (draggingNodeId ? 'grabbing' : 'grab');
+                }}
+                onNodeDrag={(node) => {
+                  if (!node) return;
+                  setDraggingNodeId(node.id);
+                  const canvas = graphRef.current?.canvas?.();
+                  if (canvas) canvas.style.cursor = 'grabbing';
+                }}
                 onNodeDragEnd={handleNodeDragEnd}
                 onLinkClick={handleRelationshipClick}
                 width={undefined}

@@ -2,6 +2,24 @@ import React from 'react';
 import { Link2, RotateCcw, Type } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 
+function TogglePill({ active, icon: Icon, label, activeLabel, inactiveLabel, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition',
+        active
+          ? 'border-primary/30 bg-primary/10 text-primary shadow-sm'
+          : 'border-border/50 bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground',
+      ].join(' ')}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      <span>{label}</span>
+    </button>
+  );
+}
+
 export function GraphToolbarControls({
   showNodeLabels,
   onToggleNodeLabels,
@@ -14,37 +32,36 @@ export function GraphToolbarControls({
 }) {
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
-      <Button
-        variant={showNodeLabels ? 'outline' : 'ghost'}
-        size="sm"
-        className="gap-2 rounded-full border border-border/50 bg-card px-3 text-xs"
-        type="button"
+      <TogglePill
+        active={showNodeLabels}
+        icon={Type}
+        label="Names"
+        activeLabel="Shown"
+        inactiveLabel="Hidden"
         onClick={onToggleNodeLabels}
-      >
-        <Type className="h-3.5 w-3.5" />
-        Names
-      </Button>
+      />
 
-      <Button
-        variant={showRelationshipLabels ? 'outline' : 'ghost'}
-        size="sm"
-        className="gap-2 rounded-full border border-border/50 bg-card px-3 text-xs"
-        type="button"
+      <TogglePill
+        active={showRelationshipLabels}
+        icon={Link2}
+        label="Relations"
+        activeLabel="Shown"
+        inactiveLabel="Hidden"
         onClick={onToggleRelationshipLabels}
-      >
-        <Link2 className="h-3.5 w-3.5" />
-        Relations
-      </Button>
+      />
 
-      <Button
-        variant={lockDraggedNodes ? 'outline' : 'ghost'}
-        size="sm"
-        className="rounded-full border border-border/50 bg-card px-3 text-xs"
+      <button
         type="button"
         onClick={onToggleLockDraggedNodes}
+        className={[
+          'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition',
+          lockDraggedNodes
+            ? 'border-primary/30 bg-primary/10 text-primary shadow-sm'
+            : 'border-border/50 bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground',
+        ].join(' ')}
       >
-        {lockDraggedNodes ? 'Pinned drag' : 'Free drag'}
-      </Button>
+        <span>Pinned drag</span>
+      </button>
 
       <Button
         variant="ghost"

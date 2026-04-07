@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { Compass, MoveRight, Radar, SlidersHorizontal, Sparkles, Waypoints } from 'lucide-react';
+import { ChevronRight, Compass, MoveRight, Radar, RotateCcw, SlidersHorizontal, Sparkles, Waypoints } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import GraphForcePage from './graph/GraphForcePage';
@@ -149,6 +149,11 @@ export default function GraphPage() {
       .map((nodeId) => (graphDataWithPredictions.nodes || []).find((node) => String(node.id) === String(nodeId)))
       .filter(Boolean),
     [traversalPath, graphDataWithPredictions.nodes]
+  );
+
+  const traversalPathNames = useMemo(
+    () => traversalPathNodes.map((node) => node.name || node.id),
+    [traversalPathNodes]
   );
 
   const handleClearAllFilters = () => {
@@ -439,6 +444,47 @@ export default function GraphPage() {
         />
       </div>
 
+      {traversalModeActive ? (
+        <div className="pointer-events-none absolute left-1/2 top-[92px] z-20 -translate-x-1/2">
+          <div className="pointer-events-auto flex items-center gap-1.5 rounded-2xl border border-border/60 bg-card/92 px-2 py-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.1)] backdrop-blur-xl">
+            <button
+              type="button"
+              onClick={handleTraversalBack}
+              disabled={traversalPathNodes.length === 0}
+              className="rounded-xl px-2 py-1 text-[11px] font-semibold text-muted-foreground transition hover:bg-muted/60 hover:text-foreground disabled:opacity-30"
+            >
+              Back
+            </button>
+
+            {traversalPathNames.length ? (
+              <div className="flex max-w-[340px] items-center gap-1 overflow-x-auto rounded-xl border border-border/50 bg-background/80 px-2 py-1 no-scrollbar">
+                {traversalPathNames.map((name, index) => (
+                  <React.Fragment key={`${traversalPath[index]}-${name}`}>
+                    <span className={index === traversalPathNames.length - 1 ? 'whitespace-nowrap text-[11px] font-semibold text-primary' : 'whitespace-nowrap text-[11px] text-muted-foreground'}>
+                      {name}
+                    </span>
+                    {index < traversalPathNames.length - 1 ? <ChevronRight className="h-3 w-3 flex-shrink-0 text-border" /> : null}
+                  </React.Fragment>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border/50 bg-background/70 px-3 py-1 text-[11px] text-muted-foreground">
+                Click a node to start traversal
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleTraversalReset}
+              className="inline-flex items-center gap-1 rounded-xl px-2 py-1 text-[11px] font-semibold text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Reset
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="relative mx-4 mb-3 mt-2 min-h-0 flex-1 overflow-hidden rounded-[28px] border border-border/60 bg-card shadow-[0_16px_38px_rgba(15,23,42,0.08)]">
         <Routes>
           <Route path="" element={<Navigate to="2d" replace />} />
@@ -447,7 +493,7 @@ export default function GraphPage() {
             element={
               <GraphForcePage
                 {...sharedGraphProps}
-                displayGraphData={traversalModeActive ? traversalGraphData : null}
+                displayGraphData={traversalModeActive && traversalPath.length > 0 ? traversalGraphData : null}
               />
             }
           />
@@ -456,7 +502,7 @@ export default function GraphPage() {
             element={
               <GraphForceGraph3DPage
                 {...sharedGraphProps}
-                displayGraphData={traversalModeActive ? traversalGraphData : null}
+                displayGraphData={traversalModeActive && traversalPath.length > 0 ? traversalGraphData : null}
               />
             }
           />

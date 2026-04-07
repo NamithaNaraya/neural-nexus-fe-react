@@ -44,22 +44,23 @@ export function GraphColorFilterSection({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           <Icon className="h-3.5 w-3.5" />
-          {title}
+          <span className="whitespace-nowrap">{title}</span>
         </div>
-        <div className="flex items-center gap-2 text-[10px] font-medium">
+        <div className="inline-flex shrink-0 items-center overflow-hidden rounded-full border border-border/30 bg-background/35 text-[10px] font-medium">
           <button
             type="button"
             onClick={selectAll}
-            className="rounded-full border border-border/30 bg-background/30 px-2.5 py-1 text-muted-foreground transition hover:border-primary/30 hover:bg-primary/5 hover:text-foreground"
+            className="px-3 py-1.5 text-muted-foreground transition hover:bg-primary/5 hover:text-foreground"
           >
             Select all
           </button>
+          <span className="h-4 w-px bg-border/50" />
           <button
             type="button"
             onClick={clearAll}
-            className="rounded-full border border-border/30 bg-background/30 px-2.5 py-1 text-muted-foreground transition hover:border-primary/30 hover:bg-primary/5 hover:text-foreground"
+            className="px-3 py-1.5 text-muted-foreground transition hover:bg-primary/5 hover:text-foreground"
           >
             Clear
           </button>

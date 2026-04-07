@@ -33,6 +33,34 @@ function ToolChip({ active, children, onClick }) {
   );
 }
 
+function ToggleRow({ label, description, active, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        'flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition',
+        active
+          ? 'border-primary/30 bg-primary/8 shadow-sm'
+          : 'border-border/40 bg-background/35 hover:bg-muted/50',
+      ].join(' ')}
+    >
+      <div className="min-w-0">
+        <div className="text-sm font-medium text-foreground">{label}</div>
+        <div className="mt-1 text-xs text-muted-foreground">{description}</div>
+      </div>
+      <div
+        className={[
+          'ml-3 inline-flex min-w-[58px] items-center justify-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]',
+          active ? 'bg-primary/12 text-primary' : 'bg-muted text-muted-foreground',
+        ].join(' ')}
+      >
+        {active ? 'On' : 'Off'}
+      </div>
+    </button>
+  );
+}
+
 function OptionList({ items, onPick, emptyLabel }) {
   if (!items.length) {
     return <div className="rounded-xl border border-dashed border-border/40 bg-background/30 px-3 py-3 text-xs text-muted-foreground">{emptyLabel}</div>;
@@ -57,61 +85,20 @@ function OptionList({ items, onPick, emptyLabel }) {
 
 function TraversalPanel({
   traversalModeActive,
-  traversalPathNodes,
   onTraversalToggle,
-  onTraversalBack,
-  onTraversalReset,
 }) {
   return (
     <div className="space-y-3 rounded-2xl border border-border/40 bg-background/40 p-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Waypoints className="h-4 w-4 text-primary" />
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Path traversal</div>
-            <p className="mt-1 text-xs text-muted-foreground">V1-style forward and reverse traversal order.</p>
-          </div>
-        </div>
-        <Button variant={traversalModeActive ? 'outline' : 'ghost'} size="sm" className="rounded-full" onClick={onTraversalToggle}>
-          {traversalModeActive ? 'On' : 'Off'}
-        </Button>
+      <ToggleRow
+        label="Path traversal mode"
+        description="Turn it on, then click nodes in the graph to move forward and backward."
+        active={traversalModeActive}
+        onClick={onTraversalToggle}
+      />
+
+      <div className="rounded-xl border border-dashed border-border/40 bg-background/30 px-3 py-3 text-xs text-muted-foreground">
+        The live path controls appear on the graph view when this mode is on.
       </div>
-
-      <div className="flex flex-wrap gap-2">
-        <Button variant="ghost" size="sm" className="rounded-full" onClick={onTraversalBack} disabled={!traversalModeActive || traversalPathNodes.length === 0}>
-          Back
-        </Button>
-        <Button variant="ghost" size="sm" className="rounded-full" onClick={onTraversalReset} disabled={!traversalModeActive || traversalPathNodes.length === 0}>
-          Reset
-        </Button>
-      </div>
-
-      <p className="text-[11px] text-muted-foreground">
-        Turn it on, click a node to start, click a neighbor to move forward, or click an earlier path node to reverse back.
-      </p>
-
-      {traversalPathNodes.length ? (
-        <div className="space-y-2 rounded-xl border border-border/40 bg-background/40 p-2">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Current order</div>
-          <div className="space-y-2">
-            {traversalPathNodes.map((node, index) => (
-              <div key={node.id} className="flex items-center gap-3 rounded-lg px-2 py-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
-                  {index + 1}
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">{node.name || node.id}</div>
-                  <div className="truncate text-xs text-muted-foreground">{node.type || 'Unknown'}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-dashed border-border/40 bg-background/30 px-3 py-3 text-xs text-muted-foreground">
-          No traversal path yet.
-        </div>
-      )}
     </div>
   );
 }
@@ -124,10 +111,10 @@ function HopFinderPanel({ allNodes, relationshipTypes, onOpenHopFinder }) {
 
   const hopOptions = useMemo(() => {
     const query = hopNodeQuery.trim().toLowerCase();
-    if (!query) return [];
+    if (!query) return allNodes.slice(0, 8);
     return allNodes
       .filter((node) => `${node.name || ''} ${node.type || ''}`.toLowerCase().includes(query))
-      .slice(0, 6);
+      .slice(0, 8);
   }, [allNodes, hopNodeQuery]);
 
   return (
@@ -159,8 +146,11 @@ function HopFinderPanel({ allNodes, relationshipTypes, onOpenHopFinder }) {
             setHopNode(node);
             setHopNodeQuery(node.name || node.id);
           }}
-          emptyLabel="Search for a node to build a hop neighborhood."
+          emptyLabel="No matching node found."
         />
+        {!hopNodeQuery.trim() ? (
+          <p className="text-[11px] text-muted-foreground">Suggested nodes are shown first, or search to narrow the list.</p>
+        ) : null}
       </div>
 
       <div className="space-y-2">
@@ -222,20 +212,20 @@ function DistanceFinderPanel({ allNodes, pathLoading, pathError, pathSummary, on
 
   const pathSourceOptions = useMemo(() => {
     const query = pathSourceQuery.trim().toLowerCase();
-    if (!query) return [];
+    if (!query) return allNodes.filter((node) => String(node.id) !== String(pathTargetNode?.id)).slice(0, 8);
     return allNodes
       .filter((node) => String(node.id) !== String(pathTargetNode?.id))
       .filter((node) => `${node.name || ''} ${node.type || ''}`.toLowerCase().includes(query))
-      .slice(0, 6);
+      .slice(0, 8);
   }, [allNodes, pathSourceQuery, pathTargetNode]);
 
   const pathTargetOptions = useMemo(() => {
     const query = pathTargetQuery.trim().toLowerCase();
-    if (!query) return [];
+    if (!query) return allNodes.filter((node) => String(node.id) !== String(pathSourceNode?.id)).slice(0, 8);
     return allNodes
       .filter((node) => String(node.id) !== String(pathSourceNode?.id))
       .filter((node) => `${node.name || ''} ${node.type || ''}`.toLowerCase().includes(query))
-      .slice(0, 6);
+      .slice(0, 8);
   }, [allNodes, pathTargetQuery, pathSourceNode]);
 
   return (
@@ -267,7 +257,7 @@ function DistanceFinderPanel({ allNodes, pathLoading, pathError, pathSummary, on
             setPathSourceNode(node);
             setPathSourceQuery(node.name || node.id);
           }}
-          emptyLabel="Search to pick a source node."
+          emptyLabel="No matching source node found."
         />
       </div>
 
@@ -290,8 +280,11 @@ function DistanceFinderPanel({ allNodes, pathLoading, pathError, pathSummary, on
             setPathTargetNode(node);
             setPathTargetQuery(node.name || node.id);
           }}
-          emptyLabel="Search to pick a target node."
+          emptyLabel="No matching target node found."
         />
+        {!pathSourceQuery.trim() && !pathTargetQuery.trim() ? (
+          <p className="text-[11px] text-muted-foreground">Start from the suggested nodes below, or type to narrow the choices.</p>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -350,25 +343,36 @@ function FiltersPanel({
     <div className="space-y-3 rounded-2xl border border-border/40 bg-background/40 p-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Node filters</div>
-          <p className="mt-1 text-xs text-muted-foreground">Narrow the graph without reloading the folder.</p>
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">View filters</div>
+          <p className="mt-1 text-xs text-muted-foreground">Use quick toggles to clean up the graph view fast.</p>
         </div>
         <Button variant="ghost" size="sm" className="rounded-full text-xs" onClick={onClearAllFilters}>
           Clear all
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <ToolChip active={minDegree >= 2} onClick={() => setMinDegree((value) => (value >= 2 ? 0 : 2))}>
-          Dense nodes
-        </ToolChip>
-        <ToolChip active={!showOrphans} onClick={() => setShowOrphans((value) => !value)}>
-          Connected only
-        </ToolChip>
+      <div className="grid gap-2">
+        <ToggleRow
+          label="Connected nodes only"
+          description="Hide isolated nodes and keep the graph cleaner."
+          active={!showOrphans}
+          onClick={() => setShowOrphans((value) => !value)}
+        />
+        <ToggleRow
+          label="Dense view"
+          description="Show stronger parts of the graph first."
+          active={minDegree >= 2}
+          onClick={() => setMinDegree((value) => (value >= 2 ? 0 : 2))}
+        />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Min degree</Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Connection strength</Label>
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
+            {minDegree === 0 ? 'All' : `Min ${minDegree}`}
+          </span>
+        </div>
         <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-background/40 px-3 py-2">
           <input
             type="range"
@@ -381,16 +385,6 @@ function FiltersPanel({
           <span className="text-sm font-semibold text-primary">{minDegree}</span>
         </div>
       </div>
-
-      <label className="flex items-center gap-2 text-sm font-medium">
-        <input
-          type="checkbox"
-          checked={showOrphans}
-          onChange={() => setShowOrphans((value) => !value)}
-          className="accent-primary"
-        />
-        Show orphan nodes
-      </label>
 
       <GraphColorFilterSection
         title="Node types"
@@ -468,7 +462,7 @@ export function GraphWorkspaceSidebar({
           <div className="space-y-1">
             <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">{panelTitle}</div>
             <p className="max-w-[220px] text-xs leading-5 text-muted-foreground">
-              {panelDescription || (activeFilterCount > 0 ? `${activeFilterCount} active filters in this view.` : 'Open one tool at a time and keep the canvas clear.')}
+              {panelDescription || (activeFilterCount > 0 ? `${activeFilterCount} active view controls in this tool.` : 'Each tool controls one part of the graph workspace.')}
             </p>
           </div>
           <Button
@@ -507,10 +501,7 @@ export function GraphWorkspaceSidebar({
           {activePanel === 'traversal' ? (
             <TraversalPanel
               traversalModeActive={traversalModeActive}
-              traversalPathNodes={traversalPathNodes}
               onTraversalToggle={onTraversalToggle}
-              onTraversalBack={onTraversalBack}
-              onTraversalReset={onTraversalReset}
             />
           ) : null}
 
