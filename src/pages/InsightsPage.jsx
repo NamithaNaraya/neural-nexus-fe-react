@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   AlertCircle,
   BrainCircuit,
@@ -7,10 +7,8 @@ import {
   GitCompareArrows,
   Link2,
   Loader2,
-  Sparkles,
   Tags,
   Trash2,
-  TrendingUp,
 } from 'lucide-react';
 import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -47,20 +45,8 @@ function MLField({ label, children }) {
   );
 }
 
-function InfoPill({ icon: Icon, label, value }) {
-  return (
-    <div className="rounded-2xl border border-border/50 bg-card/60 px-4 py-3 shadow-sm backdrop-blur-sm">
-      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
-        <Icon className="h-4 w-4 text-primary" />
-        {label}
-      </div>
-      <div className="mt-2 text-lg font-semibold text-foreground">{value}</div>
-    </div>
-  );
-}
-
 export default function MLPredictionPage() {
-  const { currentFolder, selectedFolderId } = useGlobalFolder();
+  const { selectedFolderId } = useGlobalFolder();
   const [activeTask, setActiveTask] = useState('catalog');
   const [isLoading, setIsLoading] = useState(false);
   const [state, setState] = useState(initialState);
@@ -269,23 +255,13 @@ export default function MLPredictionPage() {
     }
   };
 
-  const stats = useMemo(() => {
-    const modelCount = state.models?.length || 0;
-    const predictionCount = (state.linkPredictions?.length || 0) + (state.nodePredictions?.length || 0);
-    return [
-      { icon: BrainCircuit, label: 'Models', value: String(modelCount) },
-      { icon: TrendingUp, label: 'Predictions', value: String(predictionCount) },
-      { icon: Sparkles, label: 'Folder', value: currentFolder?.name || 'Global' },
-    ];
-  }, [currentFolder?.name, state.linkPredictions?.length, state.models?.length, state.nodePredictions?.length]);
-
   const activeTaskMeta = TASKS.find((task) => task.id === activeTask) || TASKS[0];
   const ActiveIcon = activeTaskMeta.icon;
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden animate-fade-up">
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
           <span className="gradient-text">ML Prediction</span>
         </h1>
         <p className="text-muted-foreground text-sm">
@@ -293,36 +269,7 @@ export default function MLPredictionPage() {
         </p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        {stats.map((item) => (
-          <InfoPill key={item.label} icon={item.icon} label={item.label} value={item.value} />
-        ))}
-      </div>
-
-      <Card className="border-primary/10 bg-primary/5">
-        <CardContent className="space-y-3 p-5 pt-5">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Sparkles className="h-4 w-4 text-primary" />
-            What ML does here
-          </div>
-          <div className="grid gap-3 md:grid-cols-3 text-sm text-muted-foreground">
-            <div className="rounded-2xl border border-border/50 bg-background/60 p-4">
-              <p className="font-medium text-foreground">Link Prediction</p>
-              <p className="mt-1">Finds missing connections, like two items that should probably be linked but are not yet.</p>
-            </div>
-            <div className="rounded-2xl border border-border/50 bg-background/60 p-4">
-              <p className="font-medium text-foreground">Node Classification</p>
-              <p className="mt-1">Checks whether a node looks mislabeled and suggests the type it fits best.</p>
-            </div>
-            <div className="rounded-2xl border border-border/50 bg-background/60 p-4">
-              <p className="font-medium text-foreground">Similarity + Embeddings</p>
-              <p className="mt-1">Turns graph structure into numbers so the app can compare things that behave alike.</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="overflow-hidden">
+      <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border-border/50 shadow-lg shadow-slate-900/5">
         <div className="border-b border-border/40 bg-card/40 px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">
             {TASKS.map((task) => {
@@ -351,24 +298,17 @@ export default function MLPredictionPage() {
           </div>
         </div>
 
-        <CardContent className="space-y-6 p-5 pt-5">
+        <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4 pt-4 lg:p-5 lg:pt-5">
           {activeTask === 'catalog' && (
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-border/50 bg-muted/20 p-4">
-                <p className="text-sm text-muted-foreground">
-                  Your trained ML models are listed here. Use <span className="font-medium text-foreground">Predict Links</span> or{' '}
-                  <span className="font-medium text-foreground">Classify Nodes</span> to run them on the current graph.
-                </p>
-              </div>
-
+            <div className="flex min-h-0 flex-1 flex-col space-y-4">
               {state.models.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border/60 py-10 text-center">
+                <div className="flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 py-10 text-center">
                   <BrainCircuit className="mx-auto h-10 w-10 text-muted-foreground/40" />
                   <p className="mt-3 text-sm font-medium text-foreground">No models yet</p>
                   <p className="mt-1 text-xs text-muted-foreground">Train one from the tabs below and it will appear here.</p>
                 </div>
               ) : (
-                <div className="grid gap-3 lg:grid-cols-2">
+                <div className="grid min-h-0 gap-3 overflow-y-auto pr-1 lg:grid-cols-2">
                   {state.models.map((model, index) => {
                     const modelType = String(model?.modelType || model?.type || '');
                     const modelName = model?.modelName || model?.name || `Model ${index + 1}`;
@@ -430,17 +370,17 @@ export default function MLPredictionPage() {
           )}
 
           {activeTask === 'linkPrediction' && (
-            <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-              <div className="space-y-4">
-              <div className="rounded-2xl border border-pink-500/20 bg-pink-500/5 p-4 text-sm text-pink-700 dark:text-pink-300">
+            <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.84fr)]">
+              <div className="space-y-3">
+              <div className="rounded-2xl border border-pink-500/20 bg-pink-500/5 px-4 py-3 text-sm text-pink-700 dark:text-pink-300">
                   Finds likely missing links between nodes. In simple terms: it spots pairs that look connected but are not yet joined.
                 </div>
 
                 <MLField label="Pipeline Name">
-                  <Input value={lpPipeline} onChange={(e) => setLpPipeline(e.target.value)} disabled={isLoading} />
+                  <Input value={lpPipeline} onChange={(e) => setLpPipeline(e.target.value)} disabled={isLoading} className="h-10" />
                 </MLField>
                 <MLField label="Model Name">
-                  <Input value={lpModel} onChange={(e) => setLpModel(e.target.value)} disabled={isLoading} />
+                  <Input value={lpModel} onChange={(e) => setLpModel(e.target.value)} disabled={isLoading} className="h-10" />
                 </MLField>
                 <div className="grid grid-cols-2 gap-3">
                   <MLField label="Threshold">
@@ -452,6 +392,7 @@ export default function MLPredictionPage() {
                       value={lpThreshold}
                       onChange={(e) => setLpThreshold(Number(e.target.value))}
                       disabled={isLoading}
+                      className="h-10"
                     />
                   </MLField>
                   <MLField label="Top N">
@@ -462,29 +403,30 @@ export default function MLPredictionPage() {
                       value={lpTopN}
                       onChange={(e) => setLpTopN(Number(e.target.value))}
                       disabled={isLoading}
+                      className="h-10"
                     />
                   </MLField>
                 </div>
 
-                <Button variant="gradient" className="w-full" onClick={trainLinkPrediction} disabled={isLoading}>
+                <Button variant="gradient" className="h-10 w-full" onClick={trainLinkPrediction} disabled={isLoading}>
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Train Link Prediction
                 </Button>
               </div>
 
-              <div className="space-y-3">
+              <div className="flex min-h-0 flex-col space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <ActiveIcon className="h-4 w-4 text-pink-500" />
                   What it found
                 </div>
                 {state.linkPredictions.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground">
+                  <div className="flex min-h-0 flex-1 items-center rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground">
                     Run a model from the catalog to view predicted links here.
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                     {state.linkPredictions.slice(0, 12).map((item, index) => (
-                      <div key={index} className="rounded-xl border border-border/50 bg-background/40 p-3 text-sm">
+                      <div key={index} className="rounded-xl border border-border/50 bg-background/40 px-3 py-2.5 text-sm">
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0 font-medium">
                             <span className="truncate">{item.source_name || item.source_id || 'Source'}</span>
@@ -504,36 +446,36 @@ export default function MLPredictionPage() {
           )}
 
           {activeTask === 'nodeClassification' && (
-            <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-              <div className="space-y-4">
-              <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-4 text-sm text-purple-700 dark:text-purple-300">
+            <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.84fr)]">
+              <div className="space-y-3">
+              <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 px-4 py-3 text-sm text-purple-700 dark:text-purple-300">
                   Checks whether a node looks like the wrong type. Useful when data was labeled by hand and needs a quick sanity check.
                 </div>
 
                 <MLField label="Pipeline Name">
-                  <Input value={ncPipeline} onChange={(e) => setNcPipeline(e.target.value)} disabled={isLoading} />
+                  <Input value={ncPipeline} onChange={(e) => setNcPipeline(e.target.value)} disabled={isLoading} className="h-10" />
                 </MLField>
                 <MLField label="Model Name">
-                  <Input value={ncModel} onChange={(e) => setNcModel(e.target.value)} disabled={isLoading} />
+                  <Input value={ncModel} onChange={(e) => setNcModel(e.target.value)} disabled={isLoading} className="h-10" />
                 </MLField>
 
-                <Button variant="gradient" className="w-full" onClick={trainNodeClassification} disabled={isLoading}>
+                <Button variant="gradient" className="h-10 w-full" onClick={trainNodeClassification} disabled={isLoading}>
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Train Node Classifier
                 </Button>
               </div>
 
-              <div className="space-y-3">
+              <div className="flex min-h-0 flex-col space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <ActiveIcon className="h-4 w-4 text-purple-500" />
                   What it found
                 </div>
                 {state.nodePredictions.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground">
+                  <div className="flex min-h-0 flex-1 items-center rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground">
                     Run a node classification model from the catalog to view predictions here.
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                     {state.nodePredictions.slice(0, 16).map((item, index) => {
                       const matches = item.current_type === item.predicted_type;
                       return (
@@ -566,9 +508,9 @@ export default function MLPredictionPage() {
           )}
 
           {activeTask === 'embeddings' && (
-            <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-              <div className="space-y-4">
-              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-700 dark:text-amber-300">
+            <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.84fr)]">
+              <div className="space-y-3">
+              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
                   Creates a compact numeric fingerprint for each node so the app can compare them more easily.
                 </div>
 
@@ -579,7 +521,7 @@ export default function MLPredictionPage() {
                       type="button"
                       onClick={() => setEmbMethod(method)}
                       className={[
-                        'rounded-xl border px-3 py-3 text-sm font-medium transition-colors',
+                        'rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors',
                         embMethod === method
                           ? 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300'
                           : 'border-border/50 bg-background/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground',
@@ -602,26 +544,26 @@ export default function MLPredictionPage() {
                   />
                 </MLField>
 
-                <Button variant="gradient" className="w-full" onClick={generateEmbeddings} disabled={isLoading}>
+                <Button variant="gradient" className="h-10 w-full" onClick={generateEmbeddings} disabled={isLoading}>
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Generate Embeddings
                 </Button>
               </div>
 
-              <div className="space-y-3">
+              <div className="flex min-h-0 flex-col space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <Fingerprint className="h-4 w-4 text-amber-500" />
                   Fingerprints
                 </div>
                 {state.embeddingResult ? (
-                  <div className="rounded-2xl border border-border/50 bg-background/40 p-4">
+                  <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border/50 bg-background/40 p-4">
                     <p className="text-sm font-medium">
                       {state.embeddingResult.count || 0} embeddings generated
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Method: {state.embeddingResult.method || embMethod} · Dimension: {state.embeddingResult.dimension || embDim}D
                     </p>
-                    <div className="mt-4 max-h-60 space-y-2 overflow-y-auto">
+                    <div className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                       {(state.embeddingResult.embeddings || []).slice(0, 10).map((row, index) => (
                         <div key={index} className="flex gap-2 rounded-lg border border-border/50 px-3 py-2 text-xs">
                           <span className="min-w-0 flex-1 truncate font-medium">{row.name || 'Node'}</span>
@@ -633,7 +575,7 @@ export default function MLPredictionPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground">
+                  <div className="flex min-h-0 flex-1 items-center rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground">
                     Run embedding generation to inspect vectors here.
                   </div>
                 )}
@@ -642,9 +584,9 @@ export default function MLPredictionPage() {
           )}
 
           {activeTask === 'similarity' && (
-            <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-              <div className="space-y-4">
-              <div className="rounded-2xl border border-teal-500/20 bg-teal-500/5 p-4 text-sm text-teal-700 dark:text-teal-300">
+            <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.84fr)]">
+              <div className="space-y-3">
+              <div className="rounded-2xl border border-teal-500/20 bg-teal-500/5 px-4 py-3 text-sm text-teal-700 dark:text-teal-300">
                   Finds nodes that behave similarly in the graph, even if their names are different.
                 </div>
 
@@ -657,6 +599,7 @@ export default function MLPredictionPage() {
                       value={similarityTopK}
                       onChange={(e) => setSimilarityTopK(Number(e.target.value))}
                       disabled={isLoading}
+                      className="h-10"
                     />
                   </MLField>
                   <MLField label="Cutoff">
@@ -668,27 +611,28 @@ export default function MLPredictionPage() {
                       value={similarityCutoff}
                       onChange={(e) => setSimilarityCutoff(Number(e.target.value))}
                       disabled={isLoading}
+                      className="h-10"
                     />
                   </MLField>
                 </div>
 
-                <Button variant="gradient" className="w-full" onClick={runSimilarity} disabled={isLoading}>
+                <Button variant="gradient" className="h-10 w-full" onClick={runSimilarity} disabled={isLoading}>
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Find Similar Nodes
                 </Button>
               </div>
 
-              <div className="space-y-3">
+              <div className="flex min-h-0 flex-col space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <GitCompareArrows className="h-4 w-4 text-teal-500" />
                   Similar items
                 </div>
                 {state.similarityResult ? (
-                  <div className="rounded-2xl border border-border/50 bg-background/40 p-4">
+                  <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border/50 bg-background/40 p-4">
                     <p className="text-sm font-medium">
                       {state.similarityResult.count || 0} similar pairs found
                     </p>
-                    <div className="mt-4 space-y-2">
+                    <div className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                       {(state.similarityResult.similarities || []).slice(0, 12).map((row, index) => (
                         <div key={index} className="flex items-center gap-3 rounded-lg border border-border/50 px-3 py-2 text-xs">
                           <span className="min-w-0 flex-1 truncate font-medium">{row.source_name || 'Source'}</span>
@@ -701,7 +645,7 @@ export default function MLPredictionPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground">
+                  <div className="flex min-h-0 flex-1 items-center rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground">
                     Run similarity search to inspect structural matches here.
                   </div>
                 )}

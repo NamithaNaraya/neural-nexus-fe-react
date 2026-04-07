@@ -67,21 +67,21 @@ export function FolderPermissionsCard() {
   }
 
   return (
-    <section className="rounded-[30px] border border-border/60 bg-card/82 p-6 shadow-[0_22px_60px_-36px_rgba(15,23,42,0.34)] backdrop-blur-xl">
+    <section className="flex min-h-0 flex-1 flex-col rounded-[24px] border border-border/60 bg-card/82 p-4 shadow-[0_18px_46px_-36px_rgba(15,23,42,0.3)] backdrop-blur-xl">
       <div className="flex items-center gap-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
           <FolderLock className="h-5 w-5" />
         </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600/80 dark:text-blue-400/80">Folder permission</p>
-          <h2 className="text-2xl font-semibold">{currentFolder?.name || 'Select a folder'}</h2>
+          <h2 className="text-lg font-semibold">{currentFolder?.name || 'Select a folder'}</h2>
         </div>
       </div>
 
-      <form onSubmit={handleGrant} className="mt-6 grid gap-4 rounded-[28px] border border-border/50 bg-background/72 p-5 md:grid-cols-[1fr_160px_auto]">
+      <form onSubmit={handleGrant} className="mt-4 grid gap-3 rounded-[22px] border border-border/50 bg-gradient-to-r from-background/90 to-blue-500/[0.04] p-4 md:grid-cols-[1fr_140px_auto]">
         <div className="space-y-2">
           <Label>Share with user email</Label>
-          <Input value={userEmail} onChange={(event) => setUserEmail(event.target.value)} placeholder="user@example.com" />
+          <Input value={userEmail} onChange={(event) => setUserEmail(event.target.value)} placeholder="user@example.com" className="h-10" />
         </div>
 
         <div className="space-y-2">
@@ -97,7 +97,7 @@ export function FolderPermissionsCard() {
         </div>
 
         <div className="flex items-end">
-          <Button type="submit" variant="gradient" className="w-full gap-2" disabled={!selectedFolderId || saving}>
+          <Button type="submit" variant="gradient" className="h-10 w-full gap-2" disabled={!selectedFolderId || saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
             Grant
           </Button>
@@ -110,7 +110,7 @@ export function FolderPermissionsCard() {
         </div>
       )}
 
-      <div className="mt-5 space-y-3">
+      <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -118,7 +118,7 @@ export function FolderPermissionsCard() {
           </div>
         ) : permissions.length > 0 ? (
           permissions.map((entry) => (
-            <div key={`${entry.user_id}-${entry.permission}`} className="flex items-center justify-between rounded-2xl border border-border/50 bg-background/72 px-4 py-3">
+            <div key={`${entry.user_id}-${entry.permission}`} className="flex items-center justify-between rounded-2xl border border-border/50 bg-background/72 px-4 py-2.5">
               <div>
                 <p className="font-medium">{entry.user_email || entry.user_id}</p>
                 <div className="mt-1 inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-[11px] font-medium text-muted-foreground">
