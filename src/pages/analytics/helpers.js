@@ -20,6 +20,40 @@ export function getDisplayType(item) {
   return item?.type || item?.source_type || 'Entity';
 }
 
+export function getCompactTypeLabel(item) {
+  const rawType = getDisplayType(item);
+  if (typeof rawType !== 'string') return 'Entity';
+
+  const compact = rawType
+    .replace(/_f_[a-z0-9_-]+$/i, '')
+    .replace(/_[a-f0-9-]{8,}$/i, '')
+    .trim();
+
+  return compact || rawType;
+}
+
+export function getTypeToneClasses(item) {
+  const label = getCompactTypeLabel(item).toLowerCase();
+
+  if (label.includes('therapeutic')) {
+    return 'border-emerald-300/60 bg-emerald-500/10 text-emerald-700';
+  }
+  if (label.includes('biomarker')) {
+    return 'border-amber-300/60 bg-amber-500/10 text-amber-700';
+  }
+  if (label.includes('phyto')) {
+    return 'border-sky-300/60 bg-sky-500/10 text-sky-700';
+  }
+  if (label.includes('plant')) {
+    return 'border-fuchsia-300/60 bg-fuchsia-500/10 text-fuchsia-700';
+  }
+  if (label.includes('herb')) {
+    return 'border-teal-300/60 bg-teal-500/10 text-teal-700';
+  }
+
+  return 'border-slate-300/60 bg-slate-500/10 text-slate-700';
+}
+
 export function getScoreLabel(item) {
   if (typeof item?.score === 'number') return item.score.toFixed(4);
   if (typeof item?.similarity === 'number') return item.similarity.toFixed(4);

@@ -3,17 +3,23 @@ import { graphService } from '../../services/graphService';
 import { analyticsService } from '../../services/analyticsService';
 import { weightsService } from '../../services/weightsService';
 import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
-import { ALGORITHM_CATALOG } from './algorithmCatalog';
+import { ALGORITHM_CATALOG, getAlgorithmById } from './algorithmCatalog';
+
+function buildInitialParams(algorithm) {
+  return (algorithm?.params || []).reduce((acc, param) => {
+    acc[param.key] = param.defaultValue ?? '';
+    return acc;
+  }, {});
+}
 
 export function useAnalyticsWorkbench() {
   const { selectedFolderId: folderId, currentFolder } = useGlobalFolder();
   const [folderNodes, setFolderNodes] = useState([]);
+  const [folderLinks, setFolderLinks] = useState([]);
   const [graphStats, setGraphStats] = useState({ nodes: 0, links: 0 });
-  const [nodeSearch, setNodeSearch] = useState('');
-  const [scopeMode, setScopeMode] = useState('folder');
   const [selectedNodes, setSelectedNodes] = useState([]);
   const [selectedAlgorithmId, setSelectedAlgorithmId] = useState(ALGORITHM_CATALOG[0].id);
-  const [topK, setTopK] = useState(15);
+  const [algorithmParams, setAlgorithmParams] = useState(buildInitialParams(ALGORITHM_CATALOG[0]));
   const [loadingNodes, setLoadingNodes] = useState(true);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
@@ -28,6 +34,7 @@ export function useAnalyticsWorkbench() {
   const [weightSecondaryProperty, setWeightSecondaryProperty] = useState('');
   const [weightPrimaryCoefficient, setWeightPrimaryCoefficient] = useState(1);
   const [weightSecondaryCoefficient, setWeightSecondaryCoefficient] = useState(0.5);
+  const [runFullFolder, setRunFullFolder] = useState(true);
 
   useEffect(() => {
     let ignore = false;
@@ -35,6 +42,7 @@ export function useAnalyticsWorkbench() {
     async function loadNodes() {
       if (!folderId) {
         setFolderNodes([]);
+        setFolderLinks([]);
         setGraphStats({ nodes: 0, links: 0 });
         setRelationshipProperties([]);
         setSelectedNodes([]);
@@ -45,18 +53,20 @@ export function useAnalyticsWorkbench() {
       setLoadingNodes(true);
       try {
         const [data, discoveredProperties] = await Promise.all([
-          graphService.getFolder(folderId, 500),
+          graphService.getFolder(folderId, 800),
           weightsService.discoverProperties(folderId),
         ]);
         if (ignore) return;
 
         const nodes = Array.isArray(data?.nodes) ? data.nodes : [];
+        const links = Array.isArray(data?.links) ? data.links : [];
         const relProps = Object.keys(discoveredProperties?.relationship_properties || {});
 
         setFolderNodes(nodes);
+        setFolderLinks(links);
         setGraphStats({
           nodes: Number(data?.total_nodes || nodes.length || 0),
-          links: Number(data?.total_links || data?.links?.length || 0),
+          links: Number(data?.total_links || links.length || 0),
         });
         setRelationshipProperties(relProps);
         setWeightProperty(relProps[0] || '');
@@ -69,6 +79,7 @@ export function useAnalyticsWorkbench() {
         console.error('Failed to load folder nodes:', err);
         if (!ignore) {
           setFolderNodes([]);
+          setFolderLinks([]);
           setGraphStats({ nodes: 0, links: 0 });
           setRelationshipProperties([]);
           setSelectedNodes([]);
@@ -84,13 +95,11 @@ export function useAnalyticsWorkbench() {
     };
   }, [folderId]);
 
-  const selectedAlgorithm = useMemo(
-    () => ALGORITHM_CATALOG.find((item) => item.id === selectedAlgorithmId) || ALGORITHM_CATALOG[0],
-    [selectedAlgorithmId]
-  );
+  const selectedAlgorithm = useMemo(() => getAlgorithmById(selectedAlgorithmId), [selectedAlgorithmId]);
 
   useEffect(() => {
-    setTopK(Number(selectedAlgorithm.defaults.top_k || 15));
+    setAlgorithmParams(buildInitialParams(selectedAlgorithm));
+    setError('');
   }, [selectedAlgorithm]);
 
   useEffect(() => {
@@ -99,18 +108,15 @@ export function useAnalyticsWorkbench() {
     }
   }, [selectedAlgorithm]);
 
-  const filteredNodes = useMemo(() => {
-    const term = nodeSearch.trim().toLowerCase();
-    if (!term) return folderNodes.slice(0, 40);
+  const nodeTypes = useMemo(
+    () => [...new Set(folderNodes.map((node) => node.type).filter(Boolean))].sort(),
+    [folderNodes]
+  );
 
-    return folderNodes
-      .filter((node) => JSON.stringify(node).toLowerCase().includes(term))
-      .slice(0, 40);
-  }, [folderNodes, nodeSearch]);
-
-  const effectiveNodeIds = scopeMode === 'selection' && selectedNodes.length > 0
-    ? selectedNodes
-    : undefined;
+  const relationshipTypes = useMemo(
+    () => [...new Set(folderLinks.map((link) => link.type).filter(Boolean))].sort(),
+    [folderLinks]
+  );
 
   const weightFormula = useMemo(() => {
     if (!weightingEnabled || !selectedAlgorithm?.usesWeights) return null;
@@ -157,24 +163,32 @@ export function useAnalyticsWorkbench() {
   async function runAlgorithm() {
     if (!selectedAlgorithm || !folderId) return;
 
+    const nodeIds = runFullFolder ? undefined : selectedNodes;
+    if (!runFullFolder && (!nodeIds || nodeIds.length === 0)) {
+      setError('Choose at least one node in the data popup before running a custom dataset.');
+      setResult(null);
+      return;
+    }
+
+    const params = {
+      folder_id: folderId,
+      node_ids: nodeIds,
+    };
+
+    Object.entries(algorithmParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params[key] = value;
+      }
+    });
+
+    if (weightFormula) {
+      params.weight_formula = JSON.stringify(weightFormula);
+    }
+
     setRunning(true);
     setError('');
 
     try {
-      const params = {
-        folder_id: folderId,
-        node_ids: effectiveNodeIds,
-        ...selectedAlgorithm.defaults,
-      };
-
-      if (selectedAlgorithm.defaults.top_k !== undefined) {
-        params.top_k = topK;
-      }
-
-      if (weightFormula) {
-        params.weight_formula = JSON.stringify(weightFormula);
-      }
-
       const data = await analyticsService.runAlgorithm(selectedAlgorithm.endpoint, params);
       setResult(data);
     } catch (err) {
@@ -194,6 +208,10 @@ export function useAnalyticsWorkbench() {
     ));
   }
 
+  function setAlgorithmParam(key, value) {
+    setAlgorithmParams((current) => ({ ...current, [key]: value }));
+  }
+
   function clearSelection() {
     setSelectedNodes([]);
   }
@@ -202,20 +220,18 @@ export function useAnalyticsWorkbench() {
     folderId,
     currentFolder,
     folderNodes,
+    folderLinks,
+    nodeTypes,
+    relationshipTypes,
     graphStats,
-    filteredNodes,
-    nodeSearch,
-    setNodeSearch,
-    scopeMode,
-    setScopeMode,
     selectedNodes,
     toggleNode,
     clearSelection,
     selectedAlgorithm,
     selectedAlgorithmId,
     setSelectedAlgorithmId,
-    topK,
-    setTopK,
+    algorithmParams,
+    setAlgorithmParam,
     loadingNodes,
     running,
     result,
@@ -241,5 +257,7 @@ export function useAnalyticsWorkbench() {
     weightSecondaryCoefficient,
     setWeightSecondaryCoefficient,
     weightFormula,
+    runFullFolder,
+    setRunFullFolder,
   };
 }
