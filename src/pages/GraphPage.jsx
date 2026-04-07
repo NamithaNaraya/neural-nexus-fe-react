@@ -13,11 +13,14 @@ import { filterGraphForTraversal, resetTraversal, traverseBack, traverseToNode }
 import { semanticSearchNodeIds } from './graph/semanticSearch';
 import { graphService } from '../services/graphService';
 import { useGlobalFolder } from '../contexts/GlobalFolderContext';
+import { usePredictedLinks } from '../contexts/PredictedLinksContext';
 import { GlobalGraphSearch } from './graph/tools/GlobalGraphSearch';
 import { GraphToolbarControls } from './graph/tools/GraphToolbarControls';
+import { mergePredictedLinks } from './graph/mergePredictedLinks';
 
 export default function GraphPage() {
   const { selectedFolderId: folderId } = useGlobalFolder();
+  const { getPredictedLinks, clearPredictedLinks } = usePredictedLinks();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [activePanel, setActivePanel] = useState('filters');
@@ -47,6 +50,7 @@ export default function GraphPage() {
   const [resetPinnedSignal, setResetPinnedSignal] = useState(0);
   const [resetViewSignal, setResetViewSignal] = useState(0);
   const [lockDraggedNodes, setLockDraggedNodes] = useState(true);
+  const predictedLinks = useMemo(() => getPredictedLinks(folderId), [folderId, getPredictedLinks]);
 
   const toolOptions = useMemo(
     () => [
@@ -98,14 +102,19 @@ export default function GraphPage() {
     setHighlightedLinkIds(new Set());
   }, [folderId]);
 
+  const graphDataWithPredictions = useMemo(
+    () => mergePredictedLinks(graphData, predictedLinks),
+    [graphData, predictedLinks]
+  );
+
   const nodeTypes = useMemo(
-    () => [...new Set((graphData.nodes || []).map((node) => node.type || 'Unknown'))].sort(),
-    [graphData.nodes]
+    () => [...new Set((graphDataWithPredictions.nodes || []).map((node) => node.type || 'Unknown'))].sort(),
+    [graphDataWithPredictions.nodes]
   );
 
   const relationshipTypes = useMemo(
-    () => [...new Set((graphData.links || []).map((link) => link.type || 'Unknown'))].sort(),
-    [graphData.links]
+    () => [...new Set((graphDataWithPredictions.links || []).map((link) => link.type || 'Unknown'))].sort(),
+    [graphDataWithPredictions.links]
   );
 
   const searchResultIds = useMemo(
@@ -131,15 +140,15 @@ export default function GraphPage() {
     + (!showOrphans ? 1 : 0);
 
   const traversalGraphData = useMemo(
-    () => filterGraphForTraversal(graphData, traversalVisibleNodeIds, traversalVisibleLinkIds),
-    [graphData, traversalVisibleNodeIds, traversalVisibleLinkIds]
+    () => filterGraphForTraversal(graphDataWithPredictions, traversalVisibleNodeIds, traversalVisibleLinkIds),
+    [graphDataWithPredictions, traversalVisibleNodeIds, traversalVisibleLinkIds]
   );
 
   const traversalPathNodes = useMemo(
     () => traversalPath
-      .map((nodeId) => (graphData.nodes || []).find((node) => String(node.id) === String(nodeId)))
+      .map((nodeId) => (graphDataWithPredictions.nodes || []).find((node) => String(node.id) === String(nodeId)))
       .filter(Boolean),
-    [traversalPath, graphData.nodes]
+    [traversalPath, graphDataWithPredictions.nodes]
   );
 
   const handleClearAllFilters = () => {
@@ -161,6 +170,7 @@ export default function GraphPage() {
 
   const handleResetView = () => {
     const result = resetTraversal();
+    clearPredictedLinks(folderId);
     setNodeSearch('');
     setMinDegree(0);
     setShowOrphans(true);
@@ -237,14 +247,14 @@ export default function GraphPage() {
   };
 
   const handleTraversalNodeClick = (node) => {
-    const result = traverseToNode(traversalPath, node.id, graphData);
+    const result = traverseToNode(traversalPath, node.id, graphDataWithPredictions);
     setTraversalPath(result.path);
     setTraversalVisibleNodeIds(result.visibleNodeIds);
     setTraversalVisibleLinkIds(result.visibleLinkIds);
   };
 
   const handleTraversalBack = () => {
-    const result = traverseBack(traversalPath, graphData);
+    const result = traverseBack(traversalPath, graphDataWithPredictions);
     setTraversalPath(result.path);
     setTraversalVisibleNodeIds(result.visibleNodeIds);
     setTraversalVisibleLinkIds(result.visibleLinkIds);
@@ -270,7 +280,7 @@ export default function GraphPage() {
 
   const sharedGraphProps = {
     folderId,
-    graphData,
+    graphData: graphDataWithPredictions,
     nodeTypeFilters,
     relationshipTypeFilters,
     nodeTypeColors,
@@ -412,7 +422,7 @@ export default function GraphPage() {
           setNodeTypeColors={setNodeTypeColors}
           relationshipTypeColors={relationshipTypeColors}
           setRelationshipTypeColors={setRelationshipTypeColors}
-          allNodes={graphData.nodes || []}
+          allNodes={graphDataWithPredictions.nodes || []}
           onClearAllFilters={handleClearAllFilters}
           onFindPath={handleFindPath}
           onOpenHopFinder={handleOpenHopFinder}

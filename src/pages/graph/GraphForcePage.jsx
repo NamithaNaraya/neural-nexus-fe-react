@@ -459,17 +459,26 @@ export default function GraphForcePage({
                 nodeCanvasObject={drawNodeCanvasObject}
                 nodeCanvasObjectMode={() => 'replace'}
                 linkColor={(link) => {
+                  const isPredicted = Boolean(link.properties?.isPredicted);
                   const isHighlighted = highlightedLinkIds.has(String(link.id));
+                  if (isPredicted) return withAlpha(link.color || '#ec4899', hasPathHighlights ? 'D6' : 'CC');
                   if (!hasPathHighlights) return withAlpha(link.color || '#94A3B8', '55');
                   return isHighlighted ? withAlpha(link.color || '#94A3B8', 'B8') : withAlpha(link.color || '#94A3B8', '20');
                 }}
-                linkDirectionalParticles={(link) => (highlightedLinkIds.has(String(link.id)) ? 3 : 1)}
-                linkDirectionalParticleColor={(link) => link.color}
-                linkDirectionalParticleSpeed={0.005}
+                linkWidth={(link) => {
+                  if (link.properties?.isPredicted) return 2.2;
+                  return highlightedLinkIds.has(String(link.id)) ? 2 : (link.type ? 0.85 : 0.7);
+                }}
+                linkLineDash={(link) => (link.properties?.isPredicted ? [8, 4] : undefined)}
+                linkDirectionalParticles={(link) => {
+                  if (link.properties?.isPredicted) return 5;
+                  return highlightedLinkIds.has(String(link.id)) ? 3 : 1;
+                }}
+                linkDirectionalParticleColor={(link) => link.properties?.isPredicted ? '#ec4899' : link.color}
+                linkDirectionalParticleSpeed={(link) => (link.properties?.isPredicted ? 0.0075 : 0.005)}
                 linkDirectionalArrowLength={4}
                 linkDirectionalArrowRelPos={1}
-                linkDirectionalArrowColor={(link) => link.color || '#64748B'}
-                linkWidth={(link) => (highlightedLinkIds.has(String(link.id)) ? 2 : (link.type ? 0.85 : 0.7))}
+                linkDirectionalArrowColor={(link) => link.properties?.isPredicted ? '#ec4899' : (link.color || '#64748B')}
                 linkCanvasObject={drawLinkCanvasObject}
                 linkCanvasObjectMode={() => (showRelationshipLabels ? 'after' : undefined)}
                 onNodeClick={handleNodeClick}

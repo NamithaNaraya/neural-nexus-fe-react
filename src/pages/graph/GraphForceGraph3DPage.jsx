@@ -418,19 +418,27 @@ export default function GraphForceGraph3DPage({
                 }}
                 nodeThreeObjectExtend={showNodeLabels}
                 linkColor={(link) => {
+                  const isPredicted = Boolean(link.properties?.isPredicted);
                   const isHighlighted = highlightedLinkIds.has(String(link.id));
+                  if (isPredicted) return link.color || '#ec4899';
                   if (!hasPathHighlights) return withAlpha(link.color || '#94A3B8', '72');
                   return isHighlighted ? (link.color || '#94A3B8') : '#475569';
                 }}
                 linkOpacity={0.28}
-                linkWidth={(link) => (highlightedLinkIds.has(String(link.id)) ? 2.1 : (link.type ? 0.9 : 0.65))}
-                linkDirectionalParticles={(link) => (highlightedLinkIds.has(String(link.id)) ? 3 : 1)}
-                linkDirectionalParticleColor={(link) => link.color}
-                linkDirectionalParticleWidth={2}
-                linkDirectionalParticleSpeed={0.0045}
+                linkWidth={(link) => {
+                  if (link.properties?.isPredicted) return 2.4;
+                  return highlightedLinkIds.has(String(link.id)) ? 2.1 : (link.type ? 0.9 : 0.65);
+                }}
+                linkDirectionalParticles={(link) => {
+                  if (link.properties?.isPredicted) return 8;
+                  return highlightedLinkIds.has(String(link.id)) ? 3 : 1;
+                }}
+                linkDirectionalParticleColor={(link) => link.properties?.isPredicted ? '#ec4899' : link.color}
+                linkDirectionalParticleWidth={(link) => (link.properties?.isPredicted ? 3 : 2)}
+                linkDirectionalParticleSpeed={(link) => (link.properties?.isPredicted ? 0.0065 : 0.0045)}
                 linkDirectionalArrowLength={5}
                 linkDirectionalArrowRelPos={1}
-                linkDirectionalArrowColor={(link) => link.color || '#64748B'}
+                linkDirectionalArrowColor={(link) => link.properties?.isPredicted ? '#ec4899' : (link.color || '#64748B')}
                 linkThreeObject={(link) => {
                   if (!showRelationshipLabels) return undefined;
                   const sprite = createTextSprite(link.type || '', '#475569');

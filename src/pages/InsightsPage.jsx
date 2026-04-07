@@ -5,16 +5,19 @@ import {
   CheckCircle2,
   Fingerprint,
   GitCompareArrows,
+  Link,
   Link2,
   Loader2,
   Tags,
   Trash2,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input, Label } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
 import { useGlobalFolder } from '../contexts/GlobalFolderContext';
+import { usePredictedLinks } from '../contexts/PredictedLinksContext';
 import mlService from '../services/mlService';
 
 const TASKS = [
@@ -47,6 +50,8 @@ function MLField({ label, children }) {
 
 export default function MLPredictionPage() {
   const { selectedFolderId } = useGlobalFolder();
+  const navigate = useNavigate();
+  const { setPredictedLinks } = usePredictedLinks();
   const [activeTask, setActiveTask] = useState('catalog');
   const [isLoading, setIsLoading] = useState(false);
   const [state, setState] = useState(initialState);
@@ -166,10 +171,25 @@ export default function MLPredictionPage() {
     updateState({ errorMsg: '', statusMsg: 'Running link prediction on the current folder...' });
     try {
       const result = await mlService.predictLinks(selectedFolderId, modelName, lpThreshold, lpTopN);
+      const predictions = Array.isArray(result?.predictions) ? result.predictions : [];
       updateState({
-        linkPredictions: Array.isArray(result?.predictions) ? result.predictions : [],
+        linkPredictions: predictions,
         statusMsg: '',
       });
+      setPredictedLinks(selectedFolderId, predictions.map((item, index) => ({
+        id: `predicted:${selectedFolderId}:${item.source_id}:${item.target_id}:${index}`,
+        source_id: item.source_id,
+        target_id: item.target_id,
+        probability: item.probability,
+        type: 'PREDICTED_LINK',
+        color: '#ec4899',
+        model_name: modelName,
+        properties: {
+          isPredicted: true,
+          probability: item.probability,
+          predictedLabel: `${item.source_name || item.source_id} -> ${item.target_name || item.target_id}`,
+        },
+      })));
       setActiveTask('linkPrediction');
     } catch (error) {
       updateState({
@@ -257,6 +277,7 @@ export default function MLPredictionPage() {
 
   const activeTaskMeta = TASKS.find((task) => task.id === activeTask) || TASKS[0];
   const ActiveIcon = activeTaskMeta.icon;
+  const canOpenPredictedLinks = activeTask === 'linkPrediction' && state.linkPredictions.length > 0;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden animate-fade-up">
@@ -415,9 +436,21 @@ export default function MLPredictionPage() {
               </div>
 
               <div className="flex min-h-0 flex-col space-y-3">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <ActiveIcon className="h-4 w-4 text-pink-500" />
-                  What it found
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <ActiveIcon className="h-4 w-4 text-pink-500" />
+                    What it found
+                  </div>
+                  {canOpenPredictedLinks ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate('/graph/2d')}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-pink-500/20 bg-pink-500/5 px-3 py-1.5 text-xs font-medium text-pink-700 transition hover:bg-pink-500/10"
+                    >
+                      <Link className="h-3.5 w-3.5" />
+                      Open in KG
+                    </button>
+                  ) : null}
                 </div>
                 {state.linkPredictions.length === 0 ? (
                   <div className="flex min-h-0 flex-1 items-center rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground">

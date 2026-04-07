@@ -8,6 +8,7 @@ import { capGraphData } from './graphDisplayData';
 export default function GraphRelationshipMatrixPage(props) {
   const {
     folderId,
+    graphData: graphDataProp = null,
     nodeTypeFilters,
     relationshipTypeFilters,
     minDegree,
@@ -25,6 +26,10 @@ export default function GraphRelationshipMatrixPage(props) {
           setGraphData({ nodes: [], links: [] });
           return;
         }
+        if (graphDataProp) {
+          setGraphData(graphDataProp);
+          return;
+        }
         const data = await graphService.getFolder(folderId, 10000);
         setGraphData(data);
       } catch (err) {
@@ -35,7 +40,7 @@ export default function GraphRelationshipMatrixPage(props) {
     };
 
     load();
-  }, [folderId]);
+  }, [folderId, graphDataProp]);
 
   const filteredGraph = useMemo(
     () => filterGraphData(graphData, { nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch }),

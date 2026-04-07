@@ -91,6 +91,9 @@ export function getNodeTypeColor(type, overrides = {}) {
 }
 
 export function getRelationshipTypeColor(type, overrides = {}) {
+  if (type === 'PREDICTED_LINK') {
+    return overrides[type] || '#ec4899';
+  }
   return overrides[type] || assignUniqueColor(type, RELATIONSHIP_COLOR_PALETTE, assignedRelationshipColors, usedRelationshipColorIndices, '#64748B');
 }
 

@@ -4,6 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import { GlobalFolderProvider } from './contexts/GlobalFolderContext';
+import { PredictedLinksProvider } from './contexts/PredictedLinksContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { ChakraAppProvider } from './providers/ChakraAppProvider';
 
@@ -62,25 +63,27 @@ function AppRoutes() {
           <ProtectedRoute>
             <SidebarProvider>
               <GlobalFolderProvider>
-                <Suspense fallback={<RouteLoader />}>
-                  <AppLayout>
-                    <Routes>
-                      <Route path="/" element={<Navigate to="/folders" replace />} />
-                      <Route path="/graph/*" element={<GraphPage />} />
-                      <Route path="/visualize/*" element={<VisualizeDataPage />} />
-                      <Route path="/chat" element={<ChatPage />} />
-                      <Route path="/upload" element={<UploadPage />} />
-                      <Route path="/folders" element={<FoldersPage />} />
-                      <Route path="/browse" element={<BrowsePage />} />
-                      <Route path="/ml-prediction" element={<MLPredictionPage />} />
-                      <Route path="/analytics" element={<AnalyticsPage />} />
-                      <Route path="/insights" element={<Navigate to="/ml-prediction" replace />} />
-                      <Route path="/settings" element={<SettingsPage />} />
-                      <Route path="/help" element={<HelpPage />} />
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                  </AppLayout>
-                </Suspense>
+                <PredictedLinksProvider>
+                  <Suspense fallback={<RouteLoader />}>
+                    <AppLayout>
+                      <Routes>
+                        <Route path="/" element={<Navigate to="/folders" replace />} />
+                        <Route path="/graph/*" element={<GraphPage />} />
+                        <Route path="/visualize/*" element={<VisualizeDataPage />} />
+                        <Route path="/chat" element={<ChatPage />} />
+                        <Route path="/upload" element={<UploadPage />} />
+                        <Route path="/folders" element={<FoldersPage />} />
+                        <Route path="/browse" element={<BrowsePage />} />
+                        <Route path="/ml-prediction" element={<MLPredictionPage />} />
+                        <Route path="/analytics" element={<AnalyticsPage />} />
+                        <Route path="/insights" element={<Navigate to="/ml-prediction" replace />} />
+                        <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/help" element={<HelpPage />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                      </Routes>
+                    </AppLayout>
+                  </Suspense>
+                </PredictedLinksProvider>
               </GlobalFolderProvider>
             </SidebarProvider>
           </ProtectedRoute>

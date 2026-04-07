@@ -63,6 +63,7 @@ function buildSunburstHierarchy(nodes) {
 export default function GraphSunburstPage(props) {
   const {
     folderId,
+    graphData: graphDataProp = null,
     nodeTypeFilters,
     relationshipTypeFilters,
     minDegree,
@@ -83,6 +84,10 @@ export default function GraphSunburstPage(props) {
           setGraphData({ nodes: [], links: [] });
           return;
         }
+        if (graphDataProp) {
+          setGraphData(graphDataProp);
+          return;
+        }
         const response = await graphService.getFolder(folderId, 10000);
         setGraphData(response || { nodes: [], links: [] });
       } catch (err) {
@@ -94,7 +99,7 @@ export default function GraphSunburstPage(props) {
     };
 
     load();
-  }, [folderId]);
+  }, [folderId, graphDataProp]);
 
   const filteredGraph = useMemo(
     () => filterGraphData(graphData, { nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch }),

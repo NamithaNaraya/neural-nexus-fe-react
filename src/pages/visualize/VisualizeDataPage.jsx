@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Card, CardContent } from '../../components/ui/Card';
 import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
+import { usePredictedLinks } from '../../contexts/PredictedLinksContext';
 import { graphService } from '../../services/graphService';
 import { GraphViewsNavigation } from '../graph/GraphViewsNavigation';
 import { visualizeDataSections } from '../graph/graphViewSections';
@@ -10,9 +11,11 @@ import GraphTreemapPage from '../graph/GraphTreemapPage';
 import GraphSchemaExplorerPage from '../graph/GraphSchemaExplorerPage';
 import GraphDegreeDistributionPage from '../graph/GraphDegreeDistributionPage';
 import GraphRelationshipMatrixPage from '../graph/GraphRelationshipMatrixPage';
+import { mergePredictedLinks } from '../graph/mergePredictedLinks';
 
 export default function VisualizeDataPage() {
   const { selectedFolderId: folderId, currentFolder } = useGlobalFolder();
+  const { getPredictedLinks } = usePredictedLinks();
   const [nodeSearch, setNodeSearch] = useState('');
   const [minDegree, setMinDegree] = useState(0);
   const [showOrphans, setShowOrphans] = useState(true);
@@ -22,6 +25,7 @@ export default function VisualizeDataPage() {
   const [relationshipTypeColors, setRelationshipTypeColors] = useState({});
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [refreshToken, setRefreshToken] = useState(0);
+  const predictedLinks = useMemo(() => getPredictedLinks(folderId), [folderId, getPredictedLinks]);
 
   useEffect(() => {
     let ignore = false;
@@ -60,8 +64,14 @@ export default function VisualizeDataPage() {
     [graphData.links]
   );
 
+  const graphDataWithPredictions = useMemo(
+    () => mergePredictedLinks(graphData, predictedLinks),
+    [graphData, predictedLinks]
+  );
+
   const sharedGraphProps = {
     folderId,
+    graphData: graphDataWithPredictions,
     nodeTypeFilters,
     relationshipTypeFilters,
     nodeTypeColors,
