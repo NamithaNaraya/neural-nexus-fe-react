@@ -18,7 +18,7 @@ import { capGraphData } from './graphDisplayData';
 import { getNodeTypeColor, getRelationshipTypeColor, withAlpha } from './colorSystem';
 import { GraphFocusDrawer } from './GraphFocusDrawer';
 import { buildNodeFocusGraph, buildRelationshipFocusGraph } from './graphFocusUtils';
-import { annotateParallelLinks, getLinkLabelPlacement } from './rendering/linkLabelLayout';
+import { getLinkLabelPlacement } from './rendering/linkLabelLayout';
 
 function getNodeRadius(node) {
   const base = Math.max(1, Number(node?.size || node?.degree || 1));
@@ -163,6 +163,9 @@ export default function GraphForcePage({
     });
   }, [fullGraphData]);
 
+  const visibleNodeIds = useMemo(() => new Set(processedGraph.nodes.map(n => String(n.id))), [processedGraph.nodes]);
+  const visibleLinkIds = useMemo(() => new Set(processedGraph.links.map(l => String(l.id))), [processedGraph.links]);
+
   const allSimulationLinks = useMemo(() => {
     const rawLinks = (fullGraphData.links || []).map(l => ({
       ...l,
@@ -170,7 +173,42 @@ export default function GraphForcePage({
       source: String(typeof l.source === 'object' ? l.source.id : l.source),
       target: String(typeof l.target === 'object' ? l.target.id : l.target),
     }));
-    return annotateParallelLinks(rawLinks).map(l => {
+
+    // BIDI DETECTION: Set opposing curvatures for bidirectional pairs
+    const pairMap = new Map();
+    rawLinks.forEach(link => {
+        const id1 = String(link.source);
+        const id2 = String(link.target);
+        const pairId = id1 < id2 ? `${id1}-${id2}` : `${id2}-${id1}`;
+        if (!pairMap.has(pairId)) pairMap.set(pairId, []);
+        pairMap.get(pairId).push(link);
+    });
+
+    const isHighDensity = (visibleNodeIds?.size || 0) > 100;
+
+    pairMap.forEach((links) => {
+        if (links.length === 2 && links[0].source === links[1].target && links[0].target === links[1].source) {
+            // BIDIRECTIONAL PAIR: Straight line, flanking labels (as requested)
+            links[0].curvature = 0;
+            links[1].curvature = 0;
+            links[0].labelOffset = 9;
+            links[1].labelOffset = -9;
+        } else if (links.length > 1) {
+            // MULTIPLE LINKS (Same direction or 3+): curved to separate
+            links.forEach((link, i) => {
+                const dir = i % 2 === 0 ? 1 : -1;
+                const magnitude = 0.2 + (Math.floor(i / 2) * 0.15);
+                link.curvature = dir * magnitude;
+                link.labelOffset = 0;
+            });
+        } else {
+            // SOLITARY: Organic curve if low density, else straight
+            links[0].curvature = isHighDensity ? 0 : 0.15;
+            links[0].labelOffset = 0;
+        }
+    });
+
+    return rawLinks.map(l => {
       if (masterLinksRef.current.has(l.id)) {
         const existing = masterLinksRef.current.get(l.id);
         Object.assign(existing, l);
@@ -179,10 +217,7 @@ export default function GraphForcePage({
       masterLinksRef.current.set(l.id, l);
       return l;
     });
-  }, [fullGraphData]);
-
-  const visibleNodeIds = useMemo(() => new Set(processedGraph.nodes.map(n => String(n.id))), [processedGraph.nodes]);
-  const visibleLinkIds = useMemo(() => new Set(processedGraph.links.map(l => String(l.id))), [processedGraph.links]);
+  }, [fullGraphData, visibleNodeIds]);
 
   const nodeLookup = useMemo(() => new Map(allSimulationNodes.map(n => [n.id, n])), [allSimulationNodes]);
 
@@ -265,10 +300,12 @@ export default function GraphForcePage({
 
     if (!simulationRef.current) {
       simulationRef.current = forceSimulation()
-        .force('link', forceLink().id(d => d.id).distance(110).strength(0.18))
+        .force('link', forceLink().id(d => d.id).distance(110).strength(1.0))
         .force('charge', forceManyBody().strength(-200))
         .force('center', forceCenter(width / 2, height / 2))
-        .force('collide', forceCollide((node) => getNodeRadius(node) + 16).iterations(2));
+        .force('collide', forceCollide((node) => getNodeRadius(node) + 16).iterations(2))
+        .velocityDecay(0.24) // Slightly more friction to stabilize 3x speed
+        .alphaDecay(0.022);
     }
 
     const simulation = simulationRef.current;
@@ -339,8 +376,8 @@ export default function GraphForcePage({
         if (!lockDraggedNodes) {
           event.subject.fx = null;
           event.subject.fy = null;
-          // Re-heat once to ensure they spring back
-          simulation.alpha(0.4).restart();
+          // Full power restart for instant snap-back
+          simulation.alpha(1.0).restart();
         } else {
            // Ensure it stays fixed at exactly where it was dropped
            const transform = zoomTransformRef.current;
@@ -427,6 +464,9 @@ export default function GraphForcePage({
             }
         }
 
+        const showDetails = t.k > 0.8;
+        const showLabels = showDetails && showRelationshipLabels;
+
         // 1. Draw Links
         allSimulationLinks.forEach(link => {
           if (!visibleLinkIds.has(link.id)) return;
@@ -480,31 +520,30 @@ export default function GraphForcePage({
           ctx.stroke();
           ctx.setLineDash([]);
 
-          // 1.1 Draw Arrowhead
-          if (t.k > 0.4) {
-            ctx.fillStyle = withAlpha(baseColor, isHighlighted ? 'CC' : '44');
-            ctx.beginPath();
-            ctx.moveTo(arrowX, arrowY);
-            ctx.lineTo(
-              arrowX - 8 * Math.cos(angleAtTarget - Math.PI / 10),
-              arrowY - 8 * Math.sin(angleAtTarget - Math.PI / 10)
-            );
-            ctx.lineTo(
-              arrowX - 8 * Math.cos(angleAtTarget + Math.PI / 10),
-              arrowY - 8 * Math.sin(angleAtTarget + Math.PI / 10)
-            );
-            ctx.closePath();
-            ctx.fill();
-          }
+    if (t.k > 1.3 || isHighlighted) {
+      ctx.fillStyle = withAlpha(baseColor, isHighlighted ? 'CC' : '33');
+      ctx.beginPath();
+      ctx.moveTo(arrowX, arrowY);
+      ctx.lineTo(
+        arrowX - 6.5 * Math.cos(angleAtTarget - Math.PI / 10),
+        arrowY - 6.5 * Math.sin(angleAtTarget - Math.PI / 10)
+      );
+      ctx.lineTo(
+        arrowX - 6.5 * Math.cos(angleAtTarget + Math.PI / 10),
+        arrowY - 6.5 * Math.sin(angleAtTarget + Math.PI / 10)
+      );
+      ctx.closePath();
+      ctx.fill();
+    }
           
           // Label Placement (Corrected for parallel links)
-          if (showRelationshipLabels) {
-            const placement = getLinkLabelPlacement(link, { x: sx, y: sy }, { x: tx, y: ty }, 1);
+          if (showLabels) {
+            const placement = getLinkLabelPlacement(link, { x: sx, y: sy }, { x: tx, y: ty }, t.k);
             if (placement && (link.type || '').length > 0) {
               ctx.save();
               ctx.translate(placement.x, placement.y);
               ctx.rotate(placement.angle);
-              ctx.font = '7.5px Inter, sans-serif';
+              ctx.font = '6.5px Inter, sans-serif';
               ctx.fillStyle = '#475569';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
@@ -514,7 +553,7 @@ export default function GraphForcePage({
               const tw = ctx.measureText(label).width;
               ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
               ctx.beginPath();
-              ctx.roundRect(-tw/2 - 4, -6, tw + 8, 12, 6);
+              ctx.roundRect(-tw/2 - 3, -5, tw + 6, 10, 4);
               ctx.fill();
               
               ctx.fillStyle = '#1e293b';
@@ -598,7 +637,7 @@ export default function GraphForcePage({
           ctx.stroke();
 
           // Labels
-          if (showNodeLabels || isSelected || isHighlighted) {
+          if ((showNodeLabels && t.k > 0.6) || isSelected || isHighlighted) {
             ctx.font = `600 ${Math.max(10, 11/t.k)}px Inter, sans-serif`;
             ctx.fillStyle = '#1e293b';
             ctx.textAlign = 'center';
@@ -616,7 +655,13 @@ export default function GraphForcePage({
     // Initial render and recurring loop for particles
     let animationId;
     const loop = () => {
-      if (simulation.alpha() < 0.01) requestRender();
+      // Overdrive: Advance the simulation multiple steps per visual frame
+      if (simulation.alpha() > 0) {
+        simulation.tick(3); // 3x speed-up
+        requestRender();
+      } else {
+        requestRender(); // Static render for particles
+      }
       animationId = window.requestAnimationFrame(loop);
     };
     animationId = window.requestAnimationFrame(loop);
