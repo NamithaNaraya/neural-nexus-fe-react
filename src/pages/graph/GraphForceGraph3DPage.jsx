@@ -374,7 +374,7 @@ export default function GraphForceGraph3DPage({
   useEffect(() => {
     const domElement = graphRef.current?.renderer?.()?.domElement;
     if (!domElement) return;
-    domElement.style.cursor = draggingNodeId ? 'grabbing' : 'grab';
+    domElement.style.cursor = 'pointer';
   }, [draggingNodeId, renderedGraph.nodes.length]);
 
   const createTextSprite = (text, color = '#334155') => {
@@ -491,15 +491,13 @@ export default function GraphForceGraph3DPage({
                   setHoveredNodeId(node?.id ?? null);
                   const domElement = graphRef.current?.renderer?.()?.domElement;
                   if (!domElement) return;
-                  domElement.style.cursor = node
-                    ? (draggingNodeId && String(draggingNodeId) === String(node.id) ? 'grabbing' : 'grab')
-                    : (draggingNodeId ? 'grabbing' : 'grab');
+                  domElement.style.cursor = 'pointer';
                 }}
                 onNodeDrag={(node) => {
                   if (!node) return;
                   setDraggingNodeId(node.id);
                   const domElement = graphRef.current?.renderer?.()?.domElement;
-                  if (domElement) domElement.style.cursor = 'grabbing';
+                  if (domElement) domElement.style.cursor = 'pointer';
                 }}
                 onNodeDragEnd={handleNodeDragEnd}
                 onLinkClick={handleRelationshipClick}

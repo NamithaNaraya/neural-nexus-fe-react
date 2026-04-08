@@ -4,6 +4,9 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    include: ['@neo4j-nvl/react', 'echarts/core', 'echarts/charts', 'echarts/components', 'echarts/renderers'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

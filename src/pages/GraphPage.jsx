@@ -1,10 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { ChevronRight, Compass, MoveRight, Radar, RotateCcw, SlidersHorizontal, Sparkles, Waypoints } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import GraphForcePage from './graph/GraphForcePage';
-import GraphForceGraph3DPage from './graph/GraphForceGraph3DPage';
 import GraphPropertyTablePage from './graph/GraphPropertyTablePage';
 import { GraphViewsNavigation } from './graph/GraphViewsNavigation';
 import { GraphWorkspaceSidebar } from './graph/GraphWorkspaceSidebar';
@@ -17,6 +16,24 @@ import { usePredictedLinks } from '../contexts/PredictedLinksContext';
 import { GlobalGraphSearch } from './graph/tools/GlobalGraphSearch';
 import { GraphToolbarControls } from './graph/tools/GraphToolbarControls';
 import { mergePredictedLinks } from './graph/mergePredictedLinks';
+
+// const GraphECharts2DPage = lazy(() => import('./graph/GraphECharts2DPage'));
+// const GraphD3ForcePage = lazy(() => import('./graph/GraphD3ForcePage'));
+// const GraphHybridForcePage = lazy(() => import('./graph/GraphHybridForcePage'));
+// const GraphNVLPage = lazy(() => import('./graph/GraphNVLPage'));
+const GraphForceGraph3DPage = lazy(() => import('./graph/GraphForceGraph3DPage'));
+
+function GraphViewLoader() {
+  return (
+    <div className="flex h-full items-center justify-center px-6">
+      <div className="w-full max-w-sm rounded-3xl border border-border/50 bg-card/80 p-6 text-center shadow-xl backdrop-blur-sm">
+        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <h3 className="mt-4 text-base font-semibold">Loading graph view</h3>
+        <p className="mt-1 text-sm text-muted-foreground">Preparing the selected visualization.</p>
+      </div>
+    </div>
+  );
+}
 
 export default function GraphPage() {
   const { selectedFolderId: folderId } = useGlobalFolder();
@@ -487,7 +504,7 @@ export default function GraphPage() {
 
       <div className="relative mx-4 mb-3 mt-2 min-h-0 flex-1 overflow-hidden rounded-[28px] border border-border/60 bg-card shadow-[0_16px_38px_rgba(15,23,42,0.08)]">
         <Routes>
-          <Route path="" element={<Navigate to="2d" replace />} />
+          <Route index element={<Navigate to="2d" replace />} />
           <Route
             path="2d"
             element={
@@ -497,17 +514,65 @@ export default function GraphPage() {
               />
             }
           />
+          {/*
+          <Route
+            path="2d-hybrid"
+            element={
+              <Suspense fallback={<GraphViewLoader />}>
+                <GraphHybridForcePage
+                  {...sharedGraphProps}
+                  displayGraphData={traversalModeActive && traversalPath.length > 0 ? traversalGraphData : null}
+                />
+              </Suspense>
+            }
+          />
+          <Route
+            path="d3-force"
+            element={
+              <Suspense fallback={<GraphViewLoader />}>
+                <GraphD3ForcePage
+                  {...sharedGraphProps}
+                  displayGraphData={traversalModeActive && traversalPath.length > 0 ? traversalGraphData : null}
+                />
+              </Suspense>
+            }
+          />
+          <Route
+            path="2d-echarts"
+            element={
+              <Suspense fallback={<GraphViewLoader />}>
+                <GraphECharts2DPage
+                  {...sharedGraphProps}
+                  displayGraphData={traversalModeActive && traversalPath.length > 0 ? traversalGraphData : null}
+                />
+              </Suspense>
+            }
+          />
+          <Route
+            path="nvl"
+            element={
+              <Suspense fallback={<GraphViewLoader />}>
+                <GraphNVLPage
+                  {...sharedGraphProps}
+                  displayGraphData={traversalModeActive && traversalPath.length > 0 ? traversalGraphData : null}
+                />
+              </Suspense>
+            }
+          />
+          */}
           <Route
             path="3d"
             element={
-              <GraphForceGraph3DPage
-                {...sharedGraphProps}
-                displayGraphData={traversalModeActive && traversalPath.length > 0 ? traversalGraphData : null}
-              />
+              <Suspense fallback={<GraphViewLoader />}>
+                <GraphForceGraph3DPage
+                  {...sharedGraphProps}
+                  displayGraphData={traversalModeActive && traversalPath.length > 0 ? traversalGraphData : null}
+                />
+              </Suspense>
             }
           />
           <Route path="table" element={<GraphPropertyTablePage {...sharedGraphProps} />} />
-          <Route path="*" element={<Navigate to="2d" replace />} />
+          <Route path="*" element={<Navigate to="/graph/2d" replace />} />
         </Routes>
       </div>
     </div>
