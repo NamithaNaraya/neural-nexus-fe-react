@@ -81,6 +81,7 @@ export function GraphFocusDrawer({
   setExpandRelationshipTypes,
   onExpandNode,
   expandLoading = false,
+  onSuccess,
 }) {
   const [nodeForm, setNodeForm] = useState({
     name: '',
@@ -161,7 +162,8 @@ export function GraphFocusDrawer({
   }, [activeNode, links]);
 
   const handleSaveNode = async () => {
-    if (!activeNode?.id) return;
+    const isNew = activeNode?.isPhantom;
+    if (!isNew && !activeNode?.id) return;
     setSaving(true);
     setError('');
     try {
@@ -173,15 +175,26 @@ export function GraphFocusDrawer({
         delete properties.notes;
         delete properties.user_notes;
       }
-      await graphService.updateNode(activeNode.id, {
+
+      const payload = {
         name: nodeForm.name.trim(),
-        type: nodeForm.type.trim(),
+        type: nodeForm.type.trim() || 'Node',
         description: nodeForm.description.trim(),
         color: nodeForm.color.trim() || undefined,
         size: nodeForm.size === '' ? undefined : Number(nodeForm.size),
         properties,
         folder_id: folderId || undefined,
-      });
+      };
+
+      if (isNew) {
+        // Add coordinates if phantom
+        if (activeNode.x !== undefined) payload.x = activeNode.x;
+        if (activeNode.y !== undefined) payload.y = activeNode.y;
+        await graphService.createNode(payload);
+      } else {
+        await graphService.updateNode(activeNode.id, payload);
+      }
+      onSuccess?.();
     } catch (err) {
       setError(err?.response?.data?.detail || err?.message || 'Could not save node.');
     } finally {
@@ -190,16 +203,26 @@ export function GraphFocusDrawer({
   };
 
   const handleSaveRelationship = async () => {
-    if (!activeRelationship?.id) return;
+    const isNew = activeRelationship?.isPhantom;
+    if (!isNew && !activeRelationship?.id) return;
     setSaving(true);
     setError('');
     try {
-      await graphService.updateRelationship(activeRelationship.id, {
-        type: relationshipForm.type.trim(),
+      const payload = {
+        type: relationshipForm.type.trim() || 'RELATIONSHIP',
         strength: relationshipForm.strength === '' ? undefined : Number(relationshipForm.strength),
         properties: parseProperties(relationshipForm.propertiesText),
         folder_id: folderId || undefined,
-      });
+      };
+
+      if (isNew) {
+        payload.source_node_id = activeRelationship.source;
+        payload.target_node_id = activeRelationship.target;
+        await graphService.createRelationship(payload);
+      } else {
+        await graphService.updateRelationship(activeRelationship.id, payload);
+      }
+      onSuccess?.();
     } catch (err) {
       setError(err?.response?.data?.detail || err?.message || 'Could not save relationship.');
     } finally {
@@ -267,9 +290,11 @@ export function GraphFocusDrawer({
                   <div>
                     <div className="flex items-center gap-2">
                       <Target className="h-4 w-4 text-primary" />
-                      <h3 className="text-sm font-semibold">Node details</h3>
+                      <h3 className="text-sm font-semibold">{activeNode.isPhantom ? 'Create new node' : 'Node details'}</h3>
                     </div>
-                    <p className="text-xs text-muted-foreground">This node is driving the current focused graph view.</p>
+                    <p className="text-xs text-muted-foreground">
+                      {activeNode.isPhantom ? 'Configure your new graph node before saving.' : 'This node is driving the current focused graph view.'}
+                    </p>
                   </div>
                   {onEdit ? (
                     <Button variant="outline" size="sm" className="gap-2" type="button" onClick={onEdit}>
@@ -334,7 +359,7 @@ export function GraphFocusDrawer({
                 <div className="flex items-center justify-end gap-3">
                   <Button variant="gradient" size="sm" className="gap-2" onClick={handleSaveNode} disabled={saving} type="button">
                     <Save className="h-4 w-4" />
-                    Save Node
+                    {activeNode.isPhantom ? 'Create Node' : 'Save Node'}
                   </Button>
                 </div>
 
@@ -459,9 +484,11 @@ export function GraphFocusDrawer({
                 <div>
                   <div className="flex items-center gap-2">
                     <Link2 className="h-4 w-4 text-primary" />
-                    <h3 className="text-sm font-semibold">Relationship details</h3>
+                    <h3 className="text-sm font-semibold">{activeRelationship.isPhantom ? 'Create relationship' : 'Relationship details'}</h3>
                   </div>
-                  <p className="text-xs text-muted-foreground">This link is isolated with its source-to-target direction preserved.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {activeRelationship.isPhantom ? 'Define relationship type and attributes.' : 'This link is isolated with its source-to-target direction preserved.'}
+                  </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -512,7 +539,7 @@ export function GraphFocusDrawer({
                 <div className="flex items-center justify-end gap-3">
                   <Button variant="gradient" size="sm" className="gap-2" onClick={handleSaveRelationship} disabled={saving} type="button">
                     <Save className="h-4 w-4" />
-                    Save Link
+                    {activeRelationship.isPhantom ? 'Create Link' : 'Save Link'}
                   </Button>
                 </div>
 

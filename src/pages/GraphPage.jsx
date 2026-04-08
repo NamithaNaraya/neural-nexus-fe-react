@@ -63,6 +63,15 @@ export default function GraphPage() {
   const [resetPinnedSignal, setResetPinnedSignal] = useState(0);
   const [resetViewSignal, setResetViewSignal] = useState(0);
   const [lockDraggedNodes, setLockDraggedNodes] = useState(true);
+  
+  // Integrated Editing State
+  const [editMode, setEditMode] = useState('view'); // 'view', 'add-node', 'add-link'
+  const [phantomNode, setPhantomNode] = useState(null);
+  const [phantomLink, setPhantomLink] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeNode, setActiveNode] = useState(null);
+  const [activeRelationship, setActiveRelationship] = useState(null);
+
   const predictedLinks = useMemo(() => getPredictedLinks(folderId), [folderId, getPredictedLinks]);
 
   const toolOptions = useMemo(
@@ -327,6 +336,18 @@ export default function GraphPage() {
     resetPinnedSignal,
     resetViewSignal,
     lockDraggedNodes,
+    editMode,
+    setEditMode,
+    phantomNode,
+    setPhantomNode,
+    phantomLink,
+    setPhantomLink,
+    activeNode,
+    setActiveNode,
+    activeRelationship,
+    setActiveRelationship,
+    drawerOpen,
+    setDrawerOpen,
   };
 
   return (
@@ -364,10 +385,27 @@ export default function GraphPage() {
               />
               <button
                 type="button"
-                onClick={() => setAddNodeSignal((value) => value + 1)}
-                className="rounded-full bg-gradient-to-r from-emerald-600 to-amber-700 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-emerald-500/20 transition hover:from-emerald-700 hover:to-amber-800"
+                onClick={() => setEditMode(editMode === 'add-node' ? 'view' : 'add-node')}
+                className={[
+                  "rounded-full px-4 py-2 text-sm font-medium shadow-lg transition",
+                  editMode === 'add-node' 
+                    ? "bg-amber-100 text-amber-800 border border-amber-300 ring-4 ring-amber-500/20" 
+                    : "bg-gradient-to-r from-emerald-600 to-amber-700 text-white shadow-emerald-500/20 hover:from-emerald-700 hover:to-amber-800"
+                ].join(' ')}
               >
-                Add Node
+                {editMode === 'add-node' ? 'Place Node...' : 'Add Node'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditMode(editMode === 'add-link' ? 'view' : 'add-link')}
+                className={[
+                  "rounded-full px-4 py-2 text-sm font-medium shadow-lg transition",
+                  editMode === 'add-link' 
+                    ? "bg-primary/20 text-primary border border-primary/30 ring-4 ring-primary/20" 
+                    : "bg-slate-900 text-white hover:bg-slate-800"
+                ].join(' ')}
+              >
+                {editMode === 'add-link' ? 'Select Nodes...' : 'Add Relation'}
               </button>
               <div className="hidden items-center gap-2 rounded-full border border-border/40 bg-background/60 px-3 py-1.5 text-xs text-muted-foreground md:flex">
                 <span>{Number(graphStats.nodes || 0).toLocaleString()} nodes</span>

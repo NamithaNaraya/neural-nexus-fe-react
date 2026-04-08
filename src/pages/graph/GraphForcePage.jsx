@@ -55,12 +55,38 @@ export default function GraphForcePage({
   resetPinnedSignal = 0,
   resetViewSignal = 0,
   lockDraggedNodes = true,
+  editMode = 'view',
+  setEditMode,
+  phantomNode,
+  setPhantomNode,
+  phantomLink,
+  setPhantomLink,
+  activeNode: activeNodeProp,
+  setActiveNode: setActiveNodeProp,
+  activeRelationship: activeRelationshipProp,
+  setActiveRelationship: setActiveRelationshipProp,
+  drawerOpen,
+  setDrawerOpen,
   _traversalMode = false, // Compatibility for legacy usage
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const simulationRef = useRef(null);
   const zoomTransformRef = useRef({ x: 0, y: 0, k: 1 });
+  const masterNodesRef = useRef(new Map()); // Stores persistent node objects with x,y,vx,vy
+  const masterLinksRef = useRef(new Map()); // Stores persistent link objects
+  const lastMousePos = useRef([0, 0]);
+
+  // Sync cursor position for rubber-band link
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const track = (e) => {
+      lastMousePos.current = [e.offsetX, e.offsetY];
+    };
+    canvas.addEventListener('mousemove', track);
+    return () => canvas.removeEventListener('mousemove', track);
+  }, []);
   
   // State for Inspector & Data
   const [fullGraphData, setFullGraphData] = useState({ nodes: [], links: [] });
@@ -123,19 +149,46 @@ export default function GraphForcePage({
     return capGraphData(filtered, 5000);
   }, [traversalModeActive, displayGraphData, graphDataProp, fullGraphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch, searchResultIds]);
 
-  const graphNodes = useMemo(() => processedGraph.nodes.map(n => ({ ...n, id: String(n.id) })), [processedGraph.nodes]);
-  const graphLinks = useMemo(() => annotateParallelLinks(processedGraph.links.map(l => ({
-    ...l,
-    id: String(l.id),
-    source: String(typeof l.source === 'object' ? l.source.id : l.source),
-    target: String(typeof l.target === 'object' ? l.target.id : l.target),
-  }))), [processedGraph.links]);
+  const allSimulationNodes = useMemo(() => {
+    return (fullGraphData.nodes || []).map(n => {
+      const id = String(n.id);
+      if (masterNodesRef.current.has(id)) {
+        const existing = masterNodesRef.current.get(id);
+        Object.assign(existing, n);
+        return existing;
+      }
+      const newNode = { ...n, id };
+      masterNodesRef.current.set(id, newNode);
+      return newNode;
+    });
+  }, [fullGraphData]);
 
-  const nodeLookup = useMemo(() => new Map(graphNodes.map(n => [n.id, n])), [graphNodes]);
+  const allSimulationLinks = useMemo(() => {
+    const rawLinks = (fullGraphData.links || []).map(l => ({
+      ...l,
+      id: String(l.id),
+      source: String(typeof l.source === 'object' ? l.source.id : l.source),
+      target: String(typeof l.target === 'object' ? l.target.id : l.target),
+    }));
+    return annotateParallelLinks(rawLinks).map(l => {
+      if (masterLinksRef.current.has(l.id)) {
+        const existing = masterLinksRef.current.get(l.id);
+        Object.assign(existing, l);
+        return existing;
+      }
+      masterLinksRef.current.set(l.id, l);
+      return l;
+    });
+  }, [fullGraphData]);
+
+  const visibleNodeIds = useMemo(() => new Set(processedGraph.nodes.map(n => String(n.id))), [processedGraph.nodes]);
+  const visibleLinkIds = useMemo(() => new Set(processedGraph.links.map(l => String(l.id))), [processedGraph.links]);
+
+  const nodeLookup = useMemo(() => new Map(allSimulationNodes.map(n => [n.id, n])), [allSimulationNodes]);
 
   useEffect(() => {
-    onStatsChange?.({ nodes: graphNodes.length, links: graphLinks.length });
-  }, [graphNodes.length, graphLinks.length, onStatsChange]);
+    onStatsChange?.({ nodes: visibleNodeIds.size, links: visibleLinkIds.size });
+  }, [visibleNodeIds.size, visibleLinkIds.size, onStatsChange]);
 
   // Neighborhood Expansion (Lazy Loading)
   const refreshNodeFocus = async (node) => {
@@ -183,7 +236,8 @@ export default function GraphForcePage({
     const y = (mouseY - transform.y) / transform.k;
     let closest = null;
     let minDistance = 22; 
-    for (const node of graphNodes) {
+    for (const node of allSimulationNodes) {
+      if (!visibleNodeIds.has(node.id)) continue;
       const dx = node.x - x;
       const dy = node.y - y;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -197,7 +251,7 @@ export default function GraphForcePage({
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !graphNodes.length) return;
+    if (!canvas || !allSimulationNodes.length) return;
 
     const ctx = canvas.getContext('2d');
     const width = containerRef.current.clientWidth;
@@ -209,14 +263,27 @@ export default function GraphForcePage({
     canvas.height = height * dpr;
     ctx.scale(dpr, dpr);
 
-    // Forces
-    const simulation = forceSimulation(graphNodes)
-      .force('link', forceLink(graphLinks).id(d => d.id).distance(110).strength(0.18))
-      .force('charge', forceManyBody().strength(-200))
-      .force('center', forceCenter(width / 2, height / 2))
-      .force('collide', forceCollide((node) => getNodeRadius(node) + 16).iterations(2));
+    if (!simulationRef.current) {
+      simulationRef.current = forceSimulation()
+        .force('link', forceLink().id(d => d.id).distance(110).strength(0.18))
+        .force('charge', forceManyBody().strength(-200))
+        .force('center', forceCenter(width / 2, height / 2))
+        .force('collide', forceCollide((node) => getNodeRadius(node) + 16).iterations(2));
+    }
 
-    simulationRef.current = simulation;
+    const simulation = simulationRef.current;
+    
+    // Only update data, don't restart simulation with high alpha if just filtering
+    const isNewData = simulation.nodes().length === 0;
+    simulation.nodes(allSimulationNodes);
+    simulation.force('link').links(allSimulationLinks);
+    
+    if (isNewData) {
+      simulation.alpha(0.6).restart();
+    } else {
+      // Very tiny nudge just to settle new connections if any, but NO jumping
+      simulation.alpha(0.01).restart();
+    }
 
     // Zoom
     const zoomBehavior = d3Zoom()
@@ -312,8 +379,57 @@ export default function GraphForcePage({
         ctx.translate(t.x, t.y);
         ctx.scale(t.k, t.k);
 
+        // 0. Draw Phantom Items (Preview)
+        if (phantomNode) {
+          ctx.save();
+          ctx.globalAlpha = 0.5;
+          ctx.beginPath();
+          ctx.arc(phantomNode.x, phantomNode.y, getNodeRadius({ size: 1 }), 0, 2 * Math.PI);
+          ctx.fillStyle = '#10b981';
+          ctx.fill();
+          ctx.strokeStyle = '#059669';
+          ctx.setLineDash([5, 5]);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        if (editMode === 'add-link' && phantomLink && !phantomLink.isPhantom) {
+           // Drawing the "rubber band" link from source to cursor
+           const sourceNode = phantomLink.sourceNode;
+           if (sourceNode) {
+              const [mx, my] = d3.pointer(lastMousePos.current, canvas);
+              const tx = (mx - t.x) / t.k;
+              const ty = (my - t.y) / t.k;
+              ctx.save();
+              ctx.beginPath();
+              ctx.setLineDash([5, 5]);
+              ctx.strokeStyle = '#6366f1';
+              ctx.moveTo(sourceNode.x, sourceNode.y);
+              ctx.lineTo(tx, ty);
+              ctx.stroke();
+              ctx.restore();
+           }
+        }
+
+        if (phantomLink && phantomLink.isPhantom && phantomLink.source && phantomLink.target) {
+            // Draw the pending link
+            const s = allSimulationNodes.find(n => n.id === phantomLink.source);
+            const tNode = allSimulationNodes.find(n => n.id === phantomLink.target);
+            if (s && tNode) {
+              ctx.save();
+              ctx.beginPath();
+              ctx.strokeStyle = '#6366f1';
+              ctx.setLineDash([5, 5]);
+              ctx.moveTo(s.x, s.y);
+              ctx.lineTo(tNode.x, tNode.y);
+              ctx.stroke();
+              ctx.restore();
+            }
+        }
+
         // 1. Draw Links
-        graphLinks.forEach(link => {
+        allSimulationLinks.forEach(link => {
+          if (!visibleLinkIds.has(link.id)) return;
           const isHighlighted = highlightedLinkIds.has(String(link.id));
           const isPredicted = Boolean(link.properties?.isPredicted);
           const baseColor = isPredicted ? '#ec4899' : getRelationshipTypeColor(link.type, relationshipTypeColors);
@@ -410,7 +526,9 @@ export default function GraphForcePage({
 
         // 2. Draw Particles ("Moving Balls")
         const time = Date.now() * 0.001;
-        graphLinks.forEach((link, idx) => {
+        allSimulationLinks.forEach((link, idx) => {
+          if (!visibleLinkIds.has(link.id)) return;
+          
           const isPredicted = Boolean(link.properties?.isPredicted);
           const isHighlighted = highlightedLinkIds.has(String(link.id));
           if (isPredicted || isHighlighted) {
@@ -454,7 +572,9 @@ export default function GraphForcePage({
         });
 
         // 3. Draw Nodes
-        graphNodes.forEach(node => {
+        allSimulationNodes.forEach(node => {
+          if (!visibleNodeIds.has(node.id)) return;
+          
           const radius = getNodeRadius(node);
           const baseColor = getNodeTypeColor(node.type, nodeTypeColors);
           const isSelected = activeNode?.id === node.id;
@@ -506,7 +626,7 @@ export default function GraphForcePage({
       window.cancelAnimationFrame(animationId);
       canvas.removeEventListener('mousemove', handleMouseOver);
     };
-  }, [graphNodes, graphLinks, highlightedNodeIds, highlightedLinkIds, showNodeLabels, showRelationshipLabels, activeNode, traversalModeActive, draggingNode, lockDraggedNodes]);
+  }, [allSimulationNodes, allSimulationLinks, visibleNodeIds, visibleLinkIds, highlightedNodeIds, highlightedLinkIds, showNodeLabels, showRelationshipLabels, activeNode, traversalModeActive, draggingNode, lockDraggedNodes]);
 
   // Handle Signal/Reset logic
   useEffect(() => {
@@ -539,6 +659,27 @@ export default function GraphForcePage({
     setInspectorOpen(false);
   }, [addNodeSignal]);
 
+  // Handle graph responsiveness (window resizing)
+  useEffect(() => {
+    const handleResize = () => {
+      const container = containerRef.current;
+      const canvas = canvasRef.current;
+      if (!container || !canvas) return;
+      const { width, height } = container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      
+      const simulation = simulationRef.current;
+      if (simulation) {
+        simulation.force('center', forceCenter(width / 2, height / 2));
+        simulation.alpha(0.05).restart();
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <div className="relative h-full w-full flex-col overflow-hidden bg-background" ref={containerRef}>
       {loading ? (
@@ -554,7 +695,7 @@ export default function GraphForcePage({
         />
       )}
 
-      {!loading && graphNodes.length === 0 && (
+      {!loading && visibleNodeIds.size === 0 && (
          <div className="flex h-full items-center justify-center px-6">
             <div className="flex items-center gap-3 rounded-2xl border border-border/50 bg-card/90 px-4 py-3 text-sm text-muted-foreground shadow-sm">
                <AlertCircle className="h-4 w-4 text-emerald-600" />
@@ -573,7 +714,7 @@ export default function GraphForcePage({
           focusLoading={focusLoading}
           activeNode={activeNode}
           activeRelationship={activeRelationship}
-          links={focusType === 'node' ? (focusedGraphData?.links || graphLinks) : []}
+          links={focusType === 'node' ? (focusedGraphData?.links || allSimulationLinks) : []}
           onClose={() => setInspectorOpen(false)}
           onClear={() => {
             setInspectorOpen(false);
