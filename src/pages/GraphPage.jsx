@@ -17,10 +17,6 @@ import { GlobalGraphSearch } from './graph/tools/GlobalGraphSearch';
 import { GraphToolbarControls } from './graph/tools/GraphToolbarControls';
 import { mergePredictedLinks } from './graph/mergePredictedLinks';
 
-// const GraphECharts2DPage = lazy(() => import('./graph/GraphECharts2DPage'));
-// const GraphD3ForcePage = lazy(() => import('./graph/GraphD3ForcePage'));
-// const GraphHybridForcePage = lazy(() => import('./graph/GraphHybridForcePage'));
-// const GraphNVLPage = lazy(() => import('./graph/GraphNVLPage'));
 const GraphForceGraph3DPage = lazy(() => import('./graph/GraphForceGraph3DPage'));
 
 function GraphViewLoader() {
@@ -514,52 +510,7 @@ export default function GraphPage() {
               />
             }
           />
-          {/*
-          <Route
-            path="2d-hybrid"
-            element={
-              <Suspense fallback={<GraphViewLoader />}>
-                <GraphHybridForcePage
-                  {...sharedGraphProps}
-                  displayGraphData={traversalModeActive && traversalPath.length > 0 ? traversalGraphData : null}
-                />
-              </Suspense>
-            }
-          />
-          <Route
-            path="d3-force"
-            element={
-              <Suspense fallback={<GraphViewLoader />}>
-                <GraphD3ForcePage
-                  {...sharedGraphProps}
-                  displayGraphData={traversalModeActive && traversalPath.length > 0 ? traversalGraphData : null}
-                />
-              </Suspense>
-            }
-          />
-          <Route
-            path="2d-echarts"
-            element={
-              <Suspense fallback={<GraphViewLoader />}>
-                <GraphECharts2DPage
-                  {...sharedGraphProps}
-                  displayGraphData={traversalModeActive && traversalPath.length > 0 ? traversalGraphData : null}
-                />
-              </Suspense>
-            }
-          />
-          <Route
-            path="nvl"
-            element={
-              <Suspense fallback={<GraphViewLoader />}>
-                <GraphNVLPage
-                  {...sharedGraphProps}
-                  displayGraphData={traversalModeActive && traversalPath.length > 0 ? traversalGraphData : null}
-                />
-              </Suspense>
-            }
-          />
-          */}
+
           <Route
             path="3d"
             element={
