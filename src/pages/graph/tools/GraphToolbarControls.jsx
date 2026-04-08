@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link2, RotateCcw, Type } from 'lucide-react';
+import { Link2, RotateCcw, Spline, Type } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 
 function TogglePill({ active, icon: Icon, label, activeLabel, inactiveLabel, onClick }) {
@@ -27,6 +27,8 @@ export function GraphToolbarControls({
   onToggleRelationshipLabels,
   lockDraggedNodes,
   onToggleLockDraggedNodes,
+  linkStyle,
+  onToggleLinkStyle,
   onResetPins,
   onResetView,
 }) {
@@ -48,6 +50,13 @@ export function GraphToolbarControls({
         activeLabel="Shown"
         inactiveLabel="Hidden"
         onClick={onToggleRelationshipLabels}
+      />
+
+      <TogglePill
+        active={linkStyle === 'curved'}
+        icon={Spline}
+        label={linkStyle === 'curved' ? "Curved" : "Straight"}
+        onClick={onToggleLinkStyle}
       />
 
       <button

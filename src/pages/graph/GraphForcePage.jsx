@@ -67,6 +67,7 @@ export default function GraphForcePage({
   setActiveRelationship: setActiveRelationshipProp,
   drawerOpen,
   setDrawerOpen,
+  linkStyle = 'curved',
   _traversalMode = false, // Compatibility for legacy usage
 }) {
   const canvasRef = useRef(null);
@@ -184,26 +185,35 @@ export default function GraphForcePage({
         pairMap.get(pairId).push(link);
     });
 
-    const isHighDensity = (visibleNodeIds?.size || 0) > 100;
+    const isCurvedMode = linkStyle === 'curved';
 
     pairMap.forEach((links) => {
         if (links.length === 2 && links[0].source === links[1].target && links[0].target === links[1].source) {
-            // BIDIRECTIONAL PAIR: Straight line, flanking labels (as requested)
-            links[0].curvature = 0;
-            links[1].curvature = 0;
-            links[0].labelOffset = 9;
-            links[1].labelOffset = -9;
+            // BIDIRECTIONAL PAIR
+            if (isCurvedMode) {
+                // Organic curves bowing apart
+                links[0].curvature = 0.18;
+                links[1].curvature = -0.18;
+                links[0].labelOffset = 0;
+                links[1].labelOffset = 0;
+            } else {
+                // Single straight line with flanking labels (the custom bidi look)
+                links[0].curvature = 0;
+                links[1].curvature = 0;
+                links[0].labelOffset = 9;
+                links[1].labelOffset = -9;
+            }
         } else if (links.length > 1) {
-            // MULTIPLE LINKS (Same direction or 3+): curved to separate
+            // MULTIPLE LINKS: curved to separate
             links.forEach((link, i) => {
                 const dir = i % 2 === 0 ? 1 : -1;
-                const magnitude = 0.2 + (Math.floor(i / 2) * 0.15);
+                const magnitude = isCurvedMode ? (0.15 + (Math.floor(i / 2) * 0.12)) : (0.2 + (Math.floor(i / 2) * 0.15));
                 link.curvature = dir * magnitude;
                 link.labelOffset = 0;
             });
         } else {
-            // SOLITARY: Organic curve if low density, else straight
-            links[0].curvature = isHighDensity ? 0 : 0.15;
+            // SOLITARY: 'Neat small curve' as requested
+            links[0].curvature = isCurvedMode ? 0.12 : 0;
             links[0].labelOffset = 0;
         }
     });
@@ -217,7 +227,7 @@ export default function GraphForcePage({
       masterLinksRef.current.set(l.id, l);
       return l;
     });
-  }, [fullGraphData, visibleNodeIds]);
+  }, [fullGraphData, visibleNodeIds, linkStyle]);
 
   const nodeLookup = useMemo(() => new Map(allSimulationNodes.map(n => [n.id, n])), [allSimulationNodes]);
 

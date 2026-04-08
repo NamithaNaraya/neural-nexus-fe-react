@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { ChevronRight, Compass, MoveRight, Radar, RotateCcw, SlidersHorizontal, Sparkles, Waypoints } from 'lucide-react';
+import { ChevronRight, Compass, MoveRight, Radar, RotateCcw, SlidersHorizontal, Sparkles, Spline, Waypoints } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import GraphForcePage from './graph/GraphForcePage';
@@ -63,6 +63,7 @@ export default function GraphPage() {
   const [resetPinnedSignal, setResetPinnedSignal] = useState(0);
   const [resetViewSignal, setResetViewSignal] = useState(0);
   const [lockDraggedNodes, setLockDraggedNodes] = useState(true);
+  const [linkStyle, setLinkStyle] = useState('curved'); // 'straight' or 'curved'
   
   // Integrated Editing State
   const [editMode, setEditMode] = useState('view'); // 'view', 'add-node', 'add-link'
@@ -336,6 +337,8 @@ export default function GraphPage() {
     resetPinnedSignal,
     resetViewSignal,
     lockDraggedNodes,
+    linkStyle,
+    onToggleLinkStyle: () => setLinkStyle((v) => (v === 'curved' ? 'straight' : 'curved')),
     editMode,
     setEditMode,
     phantomNode,
@@ -452,6 +455,8 @@ export default function GraphPage() {
                 onToggleRelationshipLabels={() => setShowRelationshipLabels((value) => !value)}
                 lockDraggedNodes={lockDraggedNodes}
                 onToggleLockDraggedNodes={() => setLockDraggedNodes((value) => !value)}
+                linkStyle={linkStyle}
+                onToggleLinkStyle={() => setLinkStyle((v) => (v === 'curved' ? 'straight' : 'curved'))}
                 onResetPins={handleResetPins}
                 onResetView={handleResetView}
               />
