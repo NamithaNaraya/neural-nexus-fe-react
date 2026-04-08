@@ -32,17 +32,6 @@ function PublicRoute({ children }) {
   return children;
 }
 
-function RouteLoader() {
-  return (
-    <div className="flex min-h-[calc(100vh-theme(spacing.16))] items-center justify-center px-6">
-      <div className="w-full max-w-md rounded-3xl border border-border/50 bg-card/70 p-6 text-center shadow-xl backdrop-blur-sm">
-        <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <h2 className="mt-4 text-lg font-semibold">Loading page</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Bringing the next section into view.</p>
-      </div>
-    </div>
-  );
-}
 
 function AppRoutes() {
   return (
@@ -51,7 +40,7 @@ function AppRoutes() {
         path="/login"
         element={
           <PublicRoute>
-            <Suspense fallback={<RouteLoader />}>
+            <Suspense fallback={null}>
               <LoginPage />
             </Suspense>
           </PublicRoute>
@@ -64,7 +53,7 @@ function AppRoutes() {
             <SidebarProvider>
               <GlobalFolderProvider>
                 <PredictedLinksProvider>
-                  <Suspense fallback={<RouteLoader />}>
+                  <Suspense fallback={null}>
                     <AppLayout>
                       <Routes>
                         <Route path="/" element={<Navigate to="/folders" replace />} />

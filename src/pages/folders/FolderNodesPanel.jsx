@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { Input } from '../../components/ui/Input';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { cn } from '../../utils/cn';
+import { getNodeTypeColor, withAlpha } from '../graph/colorSystem';
 
 export function FolderNodesPanel({
   active,
@@ -43,25 +44,30 @@ export function FolderNodesPanel({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {nodeTypes.length > 0 ? nodeTypes.map((nodeType) => (
-            <button
-              key={nodeType.type}
-              type="button"
-              onClick={() => {
-                setSelectedNodeType(nodeType.type);
-                fetchFolderNodes(selectedFolder.id, nodeType.type, 1, nodeSearch);
-              }}
-              className={cn(
-                'rounded-full border px-3 py-1.5 text-xs transition',
-                selectedNodeType === nodeType.type
-                  ? 'border-primary bg-primary text-white'
-                  : 'border-border/50 bg-muted/10 text-muted-foreground hover:bg-muted/20'
-              )}
-            >
-              {nodeType.type} ({nodeType.count})
-            </button>
-          )) : (
-            <span className="text-xs text-muted-foreground">No node types found in folder.</span>
+          {nodeTypes.length > 0 ? nodeTypes.map((nodeType) => {
+            const typeColor = getNodeTypeColor(nodeType.type);
+            const isSelected = selectedNodeType === nodeType.type;
+            return (
+              <button
+                key={nodeType.type}
+                type="button"
+                onClick={() => {
+                  setSelectedNodeType(nodeType.type);
+                  fetchFolderNodes(selectedFolder.id, nodeType.type, 1, nodeSearch);
+                }}
+                className={cn(
+                  'rounded-xl border px-3 py-1 text-[10px] font-bold transition-all duration-200',
+                  isSelected
+                    ? 'text-white shadow-md'
+                    : 'border-border/40 bg-muted/20 text-muted-foreground hover:bg-muted/40'
+                )}
+                style={isSelected ? { backgroundColor: typeColor, borderColor: typeColor } : {}}
+              >
+                {nodeType.type} ({nodeType.count})
+              </button>
+            );
+          }) : (
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No types found.</span>
           )}
         </div>
 
@@ -83,9 +89,15 @@ export function FolderNodesPanel({
             </div>
           ) : filteredFolderNodes.length > 0 ? (
             filteredFolderNodes.map((node) => (
-              <div key={node.id} className="rounded-xl border border-border/20 bg-muted/10 px-3 py-2 transition-colors hover:bg-muted/20">
-                <div className="truncate text-sm font-medium">{node.name}</div>
-                <div className="truncate text-[11px] text-muted-foreground">{node.type}</div>
+              <div key={node.id} className="rounded-xl border border-border/10 bg-muted/5 px-2.5 py-1.5 transition-all hover:bg-muted/10 group">
+                <div className="truncate text-[12px] font-bold text-foreground/80 group-hover:text-primary transition-colors">{node.name}</div>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                   <div 
+                     className="w-1.5 h-1.5 rounded-full" 
+                     style={{ backgroundColor: getNodeTypeColor(node.type) }}
+                   />
+                   <div className="truncate text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">{node.type}</div>
+                </div>
               </div>
             ))
           ) : (

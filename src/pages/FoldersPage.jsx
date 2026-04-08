@@ -1,4 +1,5 @@
 import React, { Suspense, lazy, useMemo, useRef, useState, useEffect, useCallback } from 'react';
+import { IconButton, Flex } from '@chakra-ui/react';
 import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input, Label } from '../components/ui/Input';
@@ -26,8 +27,49 @@ import { folderService } from '../services/folderService';
 import { browseService } from '../services/browseService';
 import { useGlobalFolder } from '../contexts/GlobalFolderContext';
 import { FolderCrudModal } from '../components/crud';
+
 const FolderNodesPanel = lazy(() => import('./folders/FolderNodesPanel').then((m) => ({ default: m.FolderNodesPanel })));
 const FolderFilesPanel = lazy(() => import('./folders/FolderFilesPanel').then((m) => ({ default: m.FolderFilesPanel })));
+
+const FolderCardSkeleton = () => (
+  <Card className="backdrop-blur-none bg-card/50 overflow-hidden border-border/10">
+    <CardContent className="p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-9 h-9 rounded-lg shrink-0" />
+        <div className="flex-1 space-y-2 py-1">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+      </div>
+      <div className="flex gap-4 mt-4">
+        <Skeleton className="h-3 w-12" />
+        <Skeleton className="h-3 w-12" />
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const DetailPanelSkeleton = () => (
+  <Card className="flex h-full min-h-0 flex-col overflow-hidden backdrop-blur-none bg-card border-border/10">
+    <div className="border-b border-border/20 px-5 py-4 space-y-3">
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="h-6 w-1/2" />
+    </div>
+    <CardContent className="p-5 flex-1 space-y-6">
+      <div className="grid grid-cols-3 gap-3">
+        <Skeleton className="h-20 rounded-2xl" />
+        <Skeleton className="h-20 rounded-2xl" />
+        <Skeleton className="h-20 rounded-2xl" />
+      </div>
+      <Skeleton className="h-12 rounded-2xl w-full" />
+      <div className="space-y-3">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    </CardContent>
+  </Card>
+);
 
 export default function FoldersPage() {
   const { refreshFolders, selectedFolderId, setSelectedFolderId } = useGlobalFolder();
@@ -104,16 +146,12 @@ export default function FoldersPage() {
     } catch (err) {
       console.error('Failed to fetch folders:', err);
     } finally {
-      setLoading(false);
+      // Small artificial delay for skeleton feel parity
+      setTimeout(() => setLoading(false), 300);
     }
   }, []);
 
   useEffect(() => { fetchFolders(); }, [fetchFolders]);
-
-  useEffect(() => {
-    void import('./folders/FolderNodesPanel');
-    void import('./folders/FolderFilesPanel');
-  }, []);
 
   const createFolder = async (e) => {
     e.preventDefault();
@@ -150,30 +188,6 @@ export default function FoldersPage() {
       setDeleting(null);
     }
   };
-
-  const fetchFolderNodeTypes = useCallback(async (folderId) => {
-    try {
-      const data = await browseService.getNodeTypes(folderId);
-      const types = Array.isArray(data.types) ? data.types : [];
-      setNodeTypes(types);
-      const firstType = types.length > 0 ? types[0].type : '';
-      setSelectedNodeType(firstType);
-      if (firstType) {
-        await fetchFolderNodes(folderId, firstType, 1, '');
-      } else {
-        setFolderNodes([]);
-        setNodesTotalPages(0);
-        setNodesLoading(false);
-      }
-    } catch (err) {
-      console.error('Failed to fetch node types:', err);
-      setNodeTypes([]);
-      setFolderNodes([]);
-      setSelectedNodeType('');
-      setNodesTotalPages(0);
-      setNodesLoading(false);
-    }
-  }, []);
 
   const fetchFolderNodes = useCallback(async (folderId, type, page = 1, q = '') => {
     const cacheKey = `${folderId}:${type}:${page}:${q}`;
@@ -312,149 +326,100 @@ export default function FoldersPage() {
     <div className="flex h-full min-h-0 flex-col gap-6 overflow-hidden">
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/80">
-            Workspace Library
-          </div>
+        <div className="space-y-1.5">
+          <Badge variant="secondary" className="px-3 py-1 text-[10px] bg-emerald-500/10 text-emerald-500 border-none uppercase tracking-widest font-black">
+            Personal Workspace
+          </Badge>
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Folders</h1>
-            <p className="max-w-2xl text-sm text-muted-foreground">
-              Organize your knowledge graph data into collections and find the right folder quickly.
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Folders</h1>
+            <p className="max-w-2xl text-[13px] text-muted-foreground font-medium">
+              Orchestrate your knowledge graph data into collections and discover insights.
             </p>
           </div>
         </div>
         <div className="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[420px] lg:flex-row lg:items-center lg:justify-end">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
             <Input
               value={folderSearch}
               onChange={(e) => setFolderSearch(e.target.value)}
-              placeholder="Search folders by name, description, or id..."
-              className="h-11 pl-10"
+              placeholder="Quick search library..."
+              className="h-11 pl-11 rounded-2xl border-border/40 focus:ring-primary/20"
             />
           </div>
           <Button
             variant="gradient"
-            className="gap-2 shrink-0"
+            className="h-11 gap-2 shrink-0 rounded-2xl px-6 font-bold shadow-lg shadow-emerald-500/20 bg-gradient-to-br from-emerald-500 to-emerald-700"
             onClick={() => setShowCreate(!showCreate)}
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-5 h-5" />
             New Folder
           </Button>
         </div>
       </div>
 
-      {/* Create Folder Form */}
-      {showCreate && (
-        <Card className="animate-slide-down backdrop-blur-none bg-card">
-          <CardContent className="p-5">
-            <form onSubmit={createFolder} className="space-y-4">
-              <div className="flex gap-4">
-                <div className="flex-1 space-y-2">
-                  <Label htmlFor="folder-name">Folder Name</Label>
-                  <Input
-                    id="folder-name"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    placeholder="e.g. Herbal Medicine Research"
-                    autoFocus
-                    required
-                  />
-                </div>
-                <div className="flex-1 space-y-2">
-                  <Label htmlFor="folder-desc">Description (optional)</Label>
-                  <Input
-                    id="folder-desc"
-                    value={newFolderDesc}
-                    onChange={(e) => setNewFolderDesc(e.target.value)}
-                    placeholder="What's this folder about?"
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" variant="gradient" disabled={creating} className="gap-2">
-                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                  Create Folder
-                </Button>
-                <Button type="button" variant="ghost" onClick={() => setShowCreate(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Content */}
-      <div className="grid flex-1 min-h-0 items-start grid-cols-1 gap-6 overflow-hidden lg:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)]">
-        {/* Folder List */}
-        <div className="self-start space-y-3">
+      {/* Main Grid — Dynamic Response */}
+      <div className="grid flex-1 min-h-0 items-start grid-cols-1 gap-8 overflow-hidden lg:grid-cols-[minmax(18rem,1fr)_minmax(0,2.2fr)]">
+        
+        {/* Folder List — Small & Neat */}
+        <div className="self-start space-y-3 overflow-y-auto max-h-full pr-1 custom-scrollbar">
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
-              {[1, 2, 3].map(i => (
-                <Skeleton key={i} className="h-28 rounded-xl" />
-              ))}
+              {[1, 2, 3, 4].map(i => <FolderCardSkeleton key={i} />)}
             </div>
           ) : filteredFolders.length > 0 ? (
             <div className={cn(
-              'grid gap-3',
+              'grid gap-3.5',
               selectedFolder ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'
             )}>
               {filteredFolders.map((folder) => (
                 <Card
                   key={folder.id}
                   className={cn(
-                    'cursor-pointer group backdrop-blur-none bg-card hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300',
-                    (selectedFolder?.id === folder.id || String(selectedFolderId) === String(folder.id)) && 'border-primary/30 bg-primary/5'
+                    'cursor-pointer group backdrop-blur-none bg-card/60 hover:bg-card hover:border-emerald-500/40 hover:shadow-xl transition-all duration-300 rounded-3xl border-border/30',
+                    (selectedFolder?.id === folder.id || String(selectedFolderId) === String(folder.id)) && 'border-emerald-500/50 bg-emerald-500/10 ring-1 ring-emerald-500/20'
                   )}
                   onClick={() => activateFolder(folder)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                          <FolderOpen className="w-5 h-5 text-primary" />
+                      <div className="flex items-start gap-3.5 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                          <FolderOpen className="w-5 h-5 text-emerald-500" />
                         </div>
                         <div className="min-w-0">
-                          <h3 className="font-semibold text-sm truncate">{folder.name}</h3>
+                          <h3 className="font-bold text-[14px] truncate text-foreground/90">{folder.name}</h3>
                           {folder.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                            <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1 font-medium italic">
                               {folder.description}
                             </p>
                           )}
-                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <FileText className="w-3 h-3" />
-                              {folder.file_count} files
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Network className="w-3 h-3" />
-                              {folder.node_count} nodes
-                            </span>
+                          <div className="flex items-center gap-3 mt-2.5">
+                            <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[9px] font-black border-border/40 text-muted-foreground uppercase tracking-wider">
+                              <FileText className="w-2.5 h-2.5" />
+                              {folder.file_count}
+                            </Badge>
+                            <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[9px] font-black border-border/40 text-muted-foreground uppercase tracking-wider">
+                              <Network className="w-2.5 h-2.5" />
+                              {folder.node_count}
+                            </Badge>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-0.5 shrink-0">
                         <button
                           onClick={(e) => { e.stopPropagation(); setEditingFolder(folder); setShowEdit(true); }}
-                          className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all duration-200"
-                          title="Edit folder"
+                          className="p-1.5 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-whiteAlpha.200 text-muted-foreground hover:text-emerald-500 transition-all duration-200"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); setDeletePromptFolder(folder); }}
-                          className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/10 text-muted-foreground hover:text-red-500 transition-all duration-200"
-                          title="Delete folder"
+                          className="p-1.5 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all duration-200"
                         >
-                          {deleting === folder.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-3.5 h-3.5" />
-                          )}
+                          {deleting === folder.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                         </button>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
                       </div>
                     </div>
                   </CardContent>
@@ -462,257 +427,126 @@ export default function FoldersPage() {
               ))}
             </div>
           ) : (
-            <Card className="min-h-[300px] flex items-center justify-center">
+            <Card className="min-h-[300px] flex items-center justify-center rounded-3xl border-dashed border-2">
               <CardContent className="text-center space-y-4 py-12">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-                  <FolderOpen className="w-8 h-8 text-primary" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold">
-                    {folderSearch.trim() ? 'No matching folders' : 'No folders yet'}
-                  </h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {folderSearch.trim()
-                      ? 'Try a different search term or clear the search box.'
-                      : 'Create a folder to start organizing your datasets.'}
-                  </p>
-                </div>
-                {!folderSearch.trim() && (
-                  <Button variant="outline" className="gap-2" onClick={() => setShowCreate(true)}>
-                    <Plus className="w-4 h-4" />
-                    Create your first folder
-                  </Button>
-                )}
+                <FolderOpen className="w-12 h-12 text-muted-foreground/30 mx-auto" />
+                <h2 className="text-lg font-bold">No workspaces found</h2>
+                <Button variant="outline" className="gap-2 rounded-2xl" onClick={() => setShowCreate(true)}>
+                  Create your first folder
+                </Button>
               </CardContent>
             </Card>
           )}
         </div>
 
-        {/* Folder Detail — Selected workspace */}
-        {selectedFolder && (
-          <div className="h-full min-h-0 overflow-hidden">
-            <Card className="flex h-full min-h-0 flex-col overflow-hidden backdrop-blur-none bg-card">
-              <div className="border-b border-border/30 px-5 py-4">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="gap-1.5 px-2"
+        {/* Folder Detail Area */}
+        <div className="h-full min-h-0 overflow-hidden">
+          {selectedFolder ? (
+            <Card className="flex h-full min-h-0 flex-col overflow-hidden backdrop-blur-none bg-card/60 rounded-4xl border-border/20 shadow-2xl">
+              <div className="border-b border-border/20 px-6 py-5 bg-whiteAlpha.50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-10 w-10 p-0 rounded-2xl bg-whiteAlpha.100 hover:bg-emerald-500/20 hover:text-emerald-500 transition-colors"
                       onClick={() => {
                         setSelectedFolder(null);
-                        setFolderFiles([]);
-                        setNodeTypes([]);
-                        setSelectedNodeType('');
-                        setFolderNodes([]);
-                        setNodeSearch('');
-                        setFolderContentSearch('');
-                        setNodesPage(1);
-                        setNodesTotalPages(0);
+                        setSelectedFolderId('');
                       }}
-                      >
-                        <ArrowLeft className="w-4 h-4" />
-                        Back
-                      </Button>
-                      <h2 className="font-semibold text-lg flex items-center gap-2 min-w-0">
-                        <FolderOpen className="w-5 h-5 text-primary shrink-0" />
-                        <span className="truncate">{selectedFolder.name}</span>
-                      </h2>
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                    </Button>
+                    <div className="min-w-0">
+                      <h2 className="text-xl font-black tracking-tight truncate">{selectedFolder.name}</h2>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <Badge variant="outline" className="h-4 text-[9px] font-bold border-emerald-500/20 text-emerald-500/80 uppercase">Active Collection</Badge>
+                        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{selectedFolder.description || "Botanical Database"}</span>
+                      </div>
                     </div>
-                    {selectedFolder.description && String(selectedFolder.description).trim() !== String(selectedFolder.name || '').trim() && (
-                      <p className="text-xs text-muted-foreground mt-1 max-w-3xl">{selectedFolder.description}</p>
-                    )}
                   </div>
-                  <button
-                    onClick={() => {
-                      setSelectedFolder(null);
-                      setFolderFiles([]);
-                      setNodeTypes([]);
-                      setSelectedNodeType('');
-                      setFolderNodes([]);
-                      setNodeSearch('');
-                      setFolderContentSearch('');
-                      setNodesPage(1);
-                      setNodesTotalPages(0);
-                    }}
-                    className="hidden rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground lg:inline-flex"
-                    aria-label="Close folder details"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <IconButton icon={<X size={18} />} variant="ghost" className="rounded-2xl" onClick={() => setSelectedFolderId('')} />
                 </div>
               </div>
 
-              <CardContent className="flex flex-1 min-h-0 flex-col gap-5 p-5">
-                <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-                  <div className="rounded-2xl border border-border/30 bg-muted/20 p-3 text-center">
-                    <p className="text-xl font-bold"><AnimatedNumber value={selectedFolder.file_count} /></p>
-                    <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">Files</p>
-                  </div>
-                  <div className="rounded-2xl border border-border/30 bg-muted/20 p-3 text-center">
-                    <p className="text-xl font-bold"><AnimatedNumber value={selectedFolder.node_count} /></p>
-                    <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">Nodes</p>
-                  </div>
-                  <div className="rounded-2xl border border-border/30 bg-muted/20 p-3 text-center">
-                    <p className="text-lg font-bold">{formatDate(selectedFolder.updated_at)}</p>
-                    <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">Updated</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 rounded-2xl border border-border/30 bg-background/50 p-2">
+              <CardContent className="flex flex-1 min-h-0 flex-col gap-6 p-6 overflow-y-auto custom-scrollbar">
+                {/* Stats Section */}
+                <div className="grid grid-cols-3 gap-4">
                   {[
-                    { id: 'nodes', label: 'Nodes' },
-                    { id: 'files', label: 'Files' },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setSelectedFolderTab(tab.id)}
-                      className={cn(
-                        'rounded-xl px-4 py-2 text-sm font-medium transition',
-                        selectedFolderTab === tab.id
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-                      )}
-                    >
-                      {tab.label}
-                    </button>
+                    { label: 'Files', value: selectedFolder.file_count, icon: FileText, color: 'text-primary' },
+                    { label: 'Total Nodes', value: selectedFolder.node_count, icon: Network, color: 'text-primary' },
+                    { label: 'Last Sync', value: formatDate(selectedFolder.updated_at), icon: Calendar, color: 'text-muted-foreground', isDate: true }
+                  ].map((stat, i) => (
+                    <div key={i} className="bg-whiteAlpha.100 rounded-3xl p-4 border border-border/10 hover:border-primary/20 transition-all group">
+                      <stat.icon className={cn("w-5 h-5 mb-3 transition-transform group-hover:scale-110", stat.color)} />
+                      <p className="text-xl font-black leading-none">
+                        {stat.isDate ? stat.value : <AnimatedNumber value={stat.value} />}
+                      </p>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mt-2">{stat.label}</p>
+                    </div>
                   ))}
                 </div>
 
-                <div className="relative flex-1 min-h-0 overflow-hidden">
-                  <Suspense
-                    fallback={(
-                      <div className="rounded-2xl border border-border/30 bg-background/70 p-4">
-                        <div className="space-y-3">
-                          <Skeleton className="h-5 w-40" />
-                          <Skeleton className="h-10 w-full" />
-                          <Skeleton className="h-10 w-2/3" />
-                          <Skeleton className="h-14 w-full" />
-                          <Skeleton className="h-14 w-full" />
-                        </div>
-                      </div>
-                    )}
-                  >
-                    <FolderNodesPanel
-                      active={selectedFolderTab === 'nodes'}
-                      folderContentSearch={folderContentSearch}
-                      setFolderContentSearch={setFolderContentSearch}
-                      nodeTypes={nodeTypes}
-                      selectedNodeType={selectedNodeType}
-                      setSelectedNodeType={setSelectedNodeType}
-                      selectedFolder={selectedFolder}
-                      nodeSearch={nodeSearch}
-                      setNodeSearch={setNodeSearch}
-                      fetchFolderNodes={fetchFolderNodes}
-                      nodesLoading={nodesLoading}
-                      filteredFolderNodes={filteredFolderNodes}
-                    />
-                  </Suspense>
+                {/* Tabs & Content Area */}
+                <div className="space-y-5">
+                  <div className="flex bg-blackAlpha.200 p-1.5 rounded-2xl w-max border border-border/10">
+                    {[
+                      { id: 'nodes', label: 'Knowledge Nodes' },
+                      { id: 'files', label: 'Source Files' },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setSelectedFolderTab(tab.id)}
+                        className={cn(
+                          'rounded-xl px-5 py-2 text-[12px] font-bold transition-all duration-300',
+                          selectedFolderTab === tab.id
+                            ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-whiteAlpha.100'
+                        )}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
 
-                  <Suspense
-                    fallback={(
-                      <div className="rounded-2xl border border-border/30 bg-background/70 p-4">
-                        <div className="space-y-3">
-                          <Skeleton className="h-5 w-32" />
-                          <Skeleton className="h-10 w-full" />
-                          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
-                        </div>
-                      </div>
-                    )}
-                  >
-                    <FolderFilesPanel
-                      active={selectedFolderTab === 'files'}
-                      folderContentSearch={folderContentSearch}
-                      setFolderContentSearch={setFolderContentSearch}
-                      filesLoading={filesLoading}
-                      filteredFolderFiles={filteredFolderFiles}
-                    />
-                  </Suspense>
+                  <div className="relative min-h-[400px]">
+                     <Suspense fallback={<Flex align="center" justify="center" h="200px"><Loader2 className="animate-spin text-emerald-500" /></Flex>}>
+                        {selectedFolderTab === 'nodes' ? (
+                          <FolderNodesPanel
+                            active={true}
+                            folderContentSearch={folderContentSearch}
+                            setFolderContentSearch={setFolderContentSearch}
+                            nodeTypes={nodeTypes}
+                            selectedNodeType={selectedNodeType}
+                            setSelectedNodeType={setSelectedNodeType}
+                            selectedFolder={selectedFolder}
+                            nodeSearch={nodeSearch}
+                            setNodeSearch={setNodeSearch}
+                            fetchFolderNodes={fetchFolderNodes}
+                            nodesLoading={nodesLoading}
+                            filteredFolderNodes={filteredFolderNodes}
+                          />
+                        ) : (
+                          <FolderFilesPanel
+                            active={true}
+                            folderContentSearch={folderContentSearch}
+                            setFolderContentSearch={setFolderContentSearch}
+                            filesLoading={filesLoading}
+                            filteredFolderFiles={filteredFolderFiles}
+                          />
+                        )}
+                     </Suspense>
+                  </div>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        )}
+          ) : (
+            <DetailPanelSkeleton />
+          )}
+        </div>
       </div>
 
-      <FolderCrudModal
-        open={showEdit}
-        mode="edit"
-        initialFolder={editingFolder}
-        onClose={() => setShowEdit(false)}
-        onSuccess={async () => {
-          await fetchFolders();
-          await refreshFolders();
-        }}
-      />
-
-      {deletePromptFolder && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-lg overflow-hidden border-border/60 bg-card shadow-2xl">
-            <div className="flex items-center justify-between border-b border-border/40 px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10 text-red-600">
-                  <AlertTriangle className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold">Delete folder</h2>
-                  <p className="text-xs text-muted-foreground">This action cannot be undone.</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDeletePromptFolder(null)}
-                className="rounded-lg p-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                aria-label="Close delete dialog"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-4 px-5 py-5">
-              <p className="text-sm text-muted-foreground">
-                Are you sure you want to delete <span className="font-semibold text-foreground">{deletePromptFolder.name}</span>?
-                All linked data, files, and nodes in this folder will be removed.
-              </p>
-              <div className="rounded-xl border border-border/40 bg-muted/20 p-3 text-sm text-muted-foreground">
-                Tip: if you only want to remove a few items, edit the folder instead of deleting the whole collection.
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 border-t border-border/40 px-5 py-4">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setDeletePromptFolder(null)}
-                disabled={deleting === deletePromptFolder.id}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                className="gap-2"
-                disabled={deleting === deletePromptFolder.id}
-                onClick={async () => {
-                  const folderId = deletePromptFolder.id;
-                  setDeletePromptFolder(null);
-                  await deleteFolder(folderId);
-                }}
-              >
-                {deleting === deletePromptFolder.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
-                Delete Folder
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      <FolderCrudModal open={showEdit} mode="edit" initialFolder={editingFolder} onClose={() => setShowEdit(false)} onSuccess={() => fetchFolders()} />
     </div>
   );
 }
