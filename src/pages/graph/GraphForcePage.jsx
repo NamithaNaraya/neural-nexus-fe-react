@@ -318,20 +318,73 @@ export default function GraphForcePage({
           const isPredicted = Boolean(link.properties?.isPredicted);
           const baseColor = isPredicted ? '#ec4899' : getRelationshipTypeColor(link.type, relationshipTypeColors);
           
+          const sx = link.source.x;
+          const sy = link.source.y;
+          const tx = link.target.x;
+          const ty = link.target.y;
+          const targetRadius = getNodeRadius(link.target);
+
+          // Quadratic Curve Math
+          const curvature = link.curvature || 0;
+          const isCurved = curvature !== 0;
+          const dx = tx - sx;
+          const dy = ty - sy;
+          const length = Math.hypot(dx, dy);
+          const normalX = -dy / length;
+          const normalY = dx / length;
+          
+          let cp = null;
+          if (isCurved) {
+            cp = {
+              x: sx + dx / 2 + normalX * (curvature * length),
+              y: sy + dy / 2 + normalY * (curvature * length)
+            };
+          }
+
+          // Calculate arrow position (at node edge)
+          // For curved lines, the angle is from the control point (or source) to the target center
+          const angleAtTarget = isCurved 
+            ? Math.atan2(ty - cp.y, tx - cp.x)
+            : Math.atan2(dy, dx);
+            
+          const arrowX = tx - targetRadius * Math.cos(angleAtTarget);
+          const arrowY = ty - targetRadius * Math.sin(angleAtTarget);
+
           ctx.beginPath();
           ctx.strokeStyle = withAlpha(baseColor, isHighlighted ? 'CC' : '44');
           ctx.lineWidth = isHighlighted ? 2.8 : 1.25;
           if (isPredicted) ctx.setLineDash([8, 4]);
           
-          ctx.moveTo(link.source.x, link.source.y);
-          ctx.lineTo(link.target.x, link.target.y);
+          ctx.moveTo(sx, sy);
+          if (isCurved) {
+            ctx.quadraticCurveTo(cp.x, cp.y, arrowX, arrowY);
+          } else {
+            ctx.lineTo(arrowX, arrowY);
+          }
           ctx.stroke();
           ctx.setLineDash([]);
+
+          // 1.1 Draw Arrowhead
+          if (t.k > 0.4) {
+            ctx.fillStyle = withAlpha(baseColor, isHighlighted ? 'CC' : '44');
+            ctx.beginPath();
+            ctx.moveTo(arrowX, arrowY);
+            ctx.lineTo(
+              arrowX - 8 * Math.cos(angleAtTarget - Math.PI / 10),
+              arrowY - 8 * Math.sin(angleAtTarget - Math.PI / 10)
+            );
+            ctx.lineTo(
+              arrowX - 8 * Math.cos(angleAtTarget + Math.PI / 10),
+              arrowY - 8 * Math.sin(angleAtTarget + Math.PI / 10)
+            );
+            ctx.closePath();
+            ctx.fill();
+          }
           
           // Label Placement (Corrected for parallel links)
-          if (showRelationshipLabels && t.k > 0.85) {
-            const placement = getLinkLabelPlacement(link, { x: link.source.x, y: link.source.y }, { x: link.target.x, y: link.target.y }, 1);
-            if (placement && placement.length > 30) {
+          if (showRelationshipLabels) {
+            const placement = getLinkLabelPlacement(link, { x: sx, y: sy }, { x: tx, y: ty }, 1);
+            if (placement && (link.type || '').length > 0) {
               ctx.save();
               ctx.translate(placement.x, placement.y);
               ctx.rotate(placement.angle);
@@ -343,12 +396,12 @@ export default function GraphForcePage({
               // Draw background pill
               const label = link.type || '';
               const tw = ctx.measureText(label).width;
-              ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
               ctx.beginPath();
               ctx.roundRect(-tw/2 - 4, -6, tw + 8, 12, 6);
               ctx.fill();
               
-              ctx.fillStyle = '#334155';
+              ctx.fillStyle = '#1e293b';
               ctx.fillText(label, 0, 0);
               ctx.restore();
             }
@@ -365,10 +418,34 @@ export default function GraphForcePage({
             const speed = isPredicted ? 0.35 : 0.2;
             ctx.fillStyle = isPredicted ? '#ec4899' : '#64748b';
             
+            const curvature = link.curvature || 0;
+            const sx = link.source.x;
+            const sy = link.source.y;
+            const tx = link.target.x;
+            const ty = link.target.y;
+            
             for (let i = 0; i < count; i++) {
               const progress = (time * speed + (idx * 0.15) + (i / count)) % 1;
-              const px = link.source.x + (link.target.x - link.source.x) * progress;
-              const py = link.source.y + (link.target.y - link.source.y) * progress;
+              
+              let px, py;
+              if (curvature !== 0) {
+                 const dx = tx - sx;
+                 const dy = ty - sy;
+                 const length = Math.hypot(dx, dy);
+                 const normalX = -dy / length;
+                 const normalY = dx / length;
+                 const cp = {
+                   x: sx + dx / 2 + normalX * (curvature * length),
+                   y: sy + dy / 2 + normalY * (curvature * length)
+                 };
+                 // Quadratic Bezier Formula
+                 px = (1 - progress) * (1 - progress) * sx + 2 * (1 - progress) * progress * cp.x + progress * progress * tx;
+                 py = (1 - progress) * (1 - progress) * sy + 2 * (1 - progress) * progress * cp.y + progress * progress * ty;
+              } else {
+                 px = sx + (tx - sx) * progress;
+                 py = sy + (ty - sy) * progress;
+              }
+              
               ctx.beginPath();
               ctx.arc(px, py, isPredicted ? 2.4 : 1.8, 0, 2 * Math.PI);
               ctx.fill();
@@ -401,7 +478,7 @@ export default function GraphForcePage({
           ctx.stroke();
 
           // Labels
-          if (showNodeLabels || isSelected || isHighlighted || t.k > 1.25) {
+          if (showNodeLabels || isSelected || isHighlighted) {
             ctx.font = `600 ${Math.max(10, 11/t.k)}px Inter, sans-serif`;
             ctx.fillStyle = '#1e293b';
             ctx.textAlign = 'center';
@@ -429,7 +506,7 @@ export default function GraphForcePage({
       window.cancelAnimationFrame(animationId);
       canvas.removeEventListener('mousemove', handleMouseOver);
     };
-  }, [graphNodes, graphLinks, highlightedNodeIds, highlightedLinkIds, showNodeLabels, showRelationshipLabels, activeNode, traversalModeActive, draggingNode]);
+  }, [graphNodes, graphLinks, highlightedNodeIds, highlightedLinkIds, showNodeLabels, showRelationshipLabels, activeNode, traversalModeActive, draggingNode, lockDraggedNodes]);
 
   // Handle Signal/Reset logic
   useEffect(() => {
