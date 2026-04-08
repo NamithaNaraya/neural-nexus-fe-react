@@ -5,6 +5,7 @@ import { graphService } from '../../services/graphService';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { filterGraphData } from './filterGraphData';
 import { capGraphData } from './graphDisplayData';
+import { VISUAL_PALETTE, BRAND_COLORS } from '../../utils/visualPalette';
 
 function SummaryCard({ label, value, accentClass = 'text-foreground' }) {
   return (
@@ -146,7 +147,7 @@ export default function GraphSunburstPage(props) {
     const colorScale = d3
       .scaleOrdinal()
       .domain(typeNames)
-      .range(['#3B82F6', '#14B8A6', '#8B5CF6', '#F59E0B', '#10B981', '#F97316', '#EC4899', '#64748B']);
+      .range(VISUAL_PALETTE);
 
     const arc = d3
       .arc()
@@ -173,7 +174,7 @@ export default function GraphSunburstPage(props) {
         const baseColor = colorScale(baseType);
         return d.depth === 1 ? baseColor : d3.color(baseColor)?.brighter(0.75)?.formatHex() || baseColor;
       })
-      .attr('stroke', 'rgba(255,255,255,0.92)')
+      .attr('stroke', 'rgba(0,0,0,0.05)')
       .attr('stroke-width', (d) => (d.depth === 1 ? 2 : 1))
       .append('title')
       .text((d) => `${d.data.name}: ${d.value}`);
@@ -198,7 +199,7 @@ export default function GraphSunburstPage(props) {
     const center = g.append('g').attr('text-anchor', 'middle');
     center.append('circle').attr('r', 52).attr('fill', 'rgba(255,255,255,0.92)').attr('stroke', 'rgba(148,163,184,0.25)');
     center.append('text').attr('y', -4).attr('font-size', 14).attr('font-weight', 600).attr('fill', '#0F172A').text('Nodes');
-    center.append('text').attr('y', 18).attr('font-size', 22).attr('font-weight', 700).attr('fill', '#0F766E').text(renderedGraph.nodes.length);
+    center.append('text').attr('y', 18).attr('font-size', 22).attr('font-weight', 700).attr('fill', BRAND_COLORS.emerald).text(renderedGraph.nodes.length);
   }, [containerWidth, loading, renderedGraph.nodes.length, sunburstData]);
 
   if (loading) {

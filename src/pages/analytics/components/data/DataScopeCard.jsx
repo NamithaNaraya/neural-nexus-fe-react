@@ -24,7 +24,7 @@ export function DataScopeCard({
 
   return (
     <>
-      <Card className="border-border/60 bg-card/70 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
+      <Card variant="branded" className="border-border/60 bg-card/70 shadow-lg backdrop-blur-xl">
         <CardContent className="space-y-2.5 p-3">
           <div className="space-y-0.5">
             <div className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Step 2</div>

@@ -58,22 +58,24 @@ export default function GraphTreemapPage(props) {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Sunburst View</h1>
-      <p className="text-sm text-muted-foreground">Hierarchical node distribution (folder scoped) with drill-down-style presentation.</p>
+      <h1 className="text-2xl font-bold">Treemap View</h1>
+      <p className="text-sm text-muted-foreground">Structural node distribution grouped by entity type.</p>
       {loading ? (
         <p className="text-sm">Loading... please wait.</p>
       ) : (
-        <Card>
+        <Card variant="branded">
           <CardContent className="h-[550px]">
             <ResponsiveContainer width="100%" height="100%">
               <Treemap
                 data={treeData.children}
                 dataKey="value"
                 ratio={4 / 3}
-                stroke="#fff"
-                fill="#8884d8"
+                stroke="rgba(0,0,0,0.05)"
+                fill="#10B981"
               >
-                <Tooltip />
+                <Tooltip 
+                   contentStyle={{ backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.2)' }}
+                />
               </Treemap>
             </ResponsiveContainer>
           </CardContent>

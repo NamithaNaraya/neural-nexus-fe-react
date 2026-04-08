@@ -2,20 +2,21 @@ import React from 'react';
 import { Moon, Palette, Sun } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { cn } from '../../../utils/cn';
+import { Card, CardContent } from '../../../components/ui/Card';
 
 const themes = [
   {
     value: 'light',
-    label: 'Light',
+    label: 'Clean Laboratory',
     icon: Sun,
-    description: 'Clean bright workspace with soft green and cream surfaces.',
+    description: 'Optimized for high-visibility analysis.',
     preview: 'from-stone-100 via-emerald-50 to-amber-50',
   },
   {
     value: 'dark',
-    label: 'Dark',
+    label: 'Deep Analysis',
     icon: Moon,
-    description: 'Calm dark canvas for longer analysis sessions.',
+    description: 'Reduced eye strain for long sessions.',
     preview: 'from-slate-950 via-slate-900 to-slate-800',
   },
 ];
@@ -24,47 +25,55 @@ export function AppearanceCard() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <section className="rounded-[24px] border border-border/60 bg-card/82 p-4 shadow-[0_18px_46px_-36px_rgba(15,23,42,0.3)] backdrop-blur-xl">
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <Palette className="h-5 w-5" />
+    <Card variant="branded" className="border-border/60 bg-card/82 shadow-lg backdrop-blur-xl h-full">
+      <CardContent className="p-4 flex flex-col h-full">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600">
+            <Palette className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-emerald-600/80">Visual Identity</p>
+            <h2 className="text-lg font-bold">Atmosphere</h2>
+          </div>
         </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/80">Appearance</p>
-          <h2 className="text-lg font-semibold">Appearance</h2>
+
+        <div className="mt-5 grid flex-1 gap-3 sm:grid-cols-2">
+          {themes.map(({ value, label, icon: Icon, description, preview }) => {
+            const active = theme === value;
+
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setTheme(value)}
+                className={cn(
+                  'group relative overflow-hidden rounded-[26px] border p-4 text-left transition-all duration-300',
+                  active
+                    ? 'border-emerald-500/40 bg-emerald-500/5 shadow-xl shadow-emerald-500/10 ring-1 ring-emerald-500/20'
+                    : 'border-border/40 bg-background/50 hover:border-emerald-500/20 hover:bg-background/80'
+                )}
+              >
+                <div className={`h-24 rounded-2xl bg-gradient-to-br transition-transform duration-500 group-hover:scale-[1.02] ${preview}`} />
+                <div className="mt-4 flex items-center gap-3">
+                  <div className={cn(
+                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors',
+                    active ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-muted text-muted-foreground'
+                  )}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold truncate">{label}</p>
+                    <p className="text-[11px] text-muted-foreground line-clamp-1">{description}</p>
+                  </div>
+                </div>
+                {active && (
+                  <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50 animate-pulse" />
+                )}
+              </button>
+            );
+          })}
         </div>
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        {themes.map(({ value, label, icon: Icon, description, preview }) => {
-          const active = theme === value;
-
-          return (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setTheme(value)}
-              className={cn(
-                'rounded-[22px] border p-3.5 text-left transition',
-                active
-                  ? 'border-primary/40 bg-primary/[0.08] shadow-[0_16px_40px_-28px_rgba(22,101,52,0.34)]'
-                  : 'border-border/60 bg-background/70 hover:border-primary/20 hover:bg-background'
-              )}
-            >
-              <div className={`h-20 rounded-[18px] bg-gradient-to-br ${preview}`} />
-              <div className="mt-3 flex items-center gap-3">
-                <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', active ? 'bg-primary/12 text-primary' : 'bg-muted text-muted-foreground')}>
-                  <Icon className="h-4.5 w-4.5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{label}</p>
-                  <p className="text-xs text-muted-foreground">{description}</p>
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }

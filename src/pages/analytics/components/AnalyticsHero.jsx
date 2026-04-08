@@ -3,39 +3,40 @@ import { Cpu, PlayCircle, Sparkles } from 'lucide-react';
 
 export function AnalyticsHero() {
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(244,114,182,0.18),_transparent_32%),linear-gradient(140deg,rgba(15,23,42,0.05),rgba(59,130,246,0.08),rgba(16,185,129,0.06))] p-6 sm:p-7">
+    <div className="relative overflow-hidden rounded-[32px] border border-border/60 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.14),_transparent_45%),radial-gradient(circle_at_bottom_right,_rgba(245,158,11,0.12),_transparent_45%),linear-gradient(140deg,rgba(15,23,42,0.02),rgba(16,185,129,0.04))] p-6 sm:p-8">
       <div className="absolute inset-0 opacity-70">
-        <div className="absolute -left-10 top-10 h-40 w-40 rounded-full bg-sky-500/10 blur-3xl" />
-        <div className="absolute right-0 top-0 h-44 w-44 rounded-full bg-pink-500/10 blur-3xl" />
+        <div className="absolute -left-10 top-10 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl animate-pulse" />
+        <div className="absolute right-0 top-0 h-56 w-56 rounded-full bg-amber-500/10 blur-3xl" />
       </div>
-      <div className="relative grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
-        <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-600 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-            <Cpu className="h-3.5 w-3.5" />
-            Algorithm Lab
+
+      <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-emerald-700 shadow-sm backdrop-blur dark:text-emerald-400">
+            <Cpu className="h-4 w-4" />
+            Algorithm Analysis Lab
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            Simple algorithm runner for folder data or a selected subset.
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl">
+            Execute topological algorithms on deep graph data.
           </h1>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-            Left side: choose folder, scope, algorithm, and quantitative weighting. Right side: results appear neatly after each run.
+          <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-lg">
+            Standardize your folder scope or select a custom subset of nodes to reveal hidden structures via PageRank, Louvain, or Link Prediction.
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-          <div className="rounded-2xl border border-border/50 bg-background/60 px-4 py-3 backdrop-blur-xl">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <PlayCircle className="h-4 w-4 text-primary" />
-              Selected-data runs
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+          <div className="rounded-2xl border border-border/50 bg-background/70 px-4 py-4 backdrop-blur-xl shadow-lg shadow-slate-900/5">
+            <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <PlayCircle className="h-4.5 w-4.5 text-emerald-500" />
+              Selective Scope
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">Choose specific nodes and run algorithms only on that subset.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground font-medium">Execute algorithms on isolated node subsets for precision insights.</p>
           </div>
-          <div className="rounded-2xl border border-border/50 bg-background/60 px-4 py-3 backdrop-blur-xl">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Fast result view
+          <div className="rounded-2xl border border-border/50 bg-background/70 px-4 py-4 backdrop-blur-xl shadow-lg shadow-slate-900/5">
+            <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <Sparkles className="h-4.5 w-4.5 text-amber-500" />
+              Structural Insight
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">See backend insight text, ranked outputs, and scope summary in one place.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground font-medium">Ranked outputs and topological summaries instantly materialized.</p>
           </div>
         </div>
       </div>

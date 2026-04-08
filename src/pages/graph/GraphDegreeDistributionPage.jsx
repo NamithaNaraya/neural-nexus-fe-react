@@ -5,10 +5,11 @@ import { graphService } from '../../services/graphService';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { filterGraphData } from './filterGraphData';
 import { capGraphData } from './graphDisplayData';
+import { BRAND_COLORS } from '../../utils/visualPalette';
 
 function StatCard({ label, value, accentClass = 'text-foreground' }) {
   return (
-    <Card className="border-border/60 bg-card/80 shadow-sm">
+    <Card variant="branded" className="border-border/60 bg-card/80 shadow-sm">
       <CardContent className="p-5">
         <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">{label}</p>
         <p className={`mt-2 text-3xl font-semibold ${accentClass}`}>{value}</p>
@@ -89,7 +90,7 @@ export default function GraphDegreeDistributionPage(props) {
         </>
       ) : (
         <>
-          <Card className="border-border/60 bg-card/85 shadow-sm">
+          <Card variant="branded" className="border-border/60 bg-card/85 shadow-sm">
             <CardContent className="space-y-4 p-5">
               <div className="flex flex-col gap-1">
                 <div className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Degree distribution</div>
@@ -101,37 +102,36 @@ export default function GraphDegreeDistributionPage(props) {
               <div className="h-[430px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={degreeData} margin={{ top: 12, right: 20, left: 6, bottom: 34 }}>
-                    <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="rgba(148,163,184,0.24)" />
+                    <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="rgba(148,163,184,0.12)" />
                     <XAxis
                       dataKey="degree"
-                      tick={{ fontSize: 12, fill: '#64748B' }}
+                      tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
                       tickLine={false}
-                      axisLine={{ stroke: 'rgba(148,163,184,0.35)' }}
-                      tickMargin={10}
-                      label={{ value: 'Node degree', position: 'bottom', offset: 12, fill: '#64748B' }}
+                      axisLine={{ stroke: 'rgba(148,163,184,0.2)' }}
+                      tickMargin={12}
                     />
                     <YAxis
-                      tick={{ fontSize: 12, fill: '#64748B' }}
+                      tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
                       tickLine={false}
-                      axisLine={{ stroke: 'rgba(148,163,184,0.35)' }}
-                      label={{ value: 'Count', angle: -90, position: 'insideLeft', fill: '#64748B' }}
+                      axisLine={{ stroke: 'rgba(148,163,184,0.2)' }}
                     />
                     <Tooltip
-                      cursor={{ fill: 'rgba(16,185,129,0.08)' }}
+                      cursor={{ fill: 'rgba(16,185,129,0.04)' }}
                       contentStyle={{
-                        backgroundColor: 'rgba(255,255,255,0.96)',
-                        border: '1px solid rgba(16,185,129,0.18)',
-                        borderRadius: '14px',
-                        boxShadow: '0 10px 30px rgba(15,23,42,0.08)',
+                        backgroundColor: 'rgba(255,255,255,0.92)',
+                        border: '1px solid rgba(16,185,129,0.12)',
+                        borderRadius: '16px',
+                        boxShadow: '0 20px 50px rgba(15,23,42,0.06)',
+                        backdropFilter: 'blur(8px)'
                       }}
                       formatter={(value) => [`${value} nodes`, 'Count']}
                       labelFormatter={(label) => `Degree ${label}`}
                     />
                     <Bar
                       dataKey="count"
-                      fill="#14B8A6"
-                      radius={[10, 10, 0, 0]}
-                      barSize={48}
+                      fill={BRAND_COLORS.emerald}
+                      radius={[8, 8, 0, 0]}
+                      barSize={42}
                       name="Count"
                     />
                   </BarChart>
@@ -142,9 +142,9 @@ export default function GraphDegreeDistributionPage(props) {
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Max Degree" value={maxDegree} />
-            <StatCard label="Avg Degree" value={avgDegree} accentClass="text-emerald-700 dark:text-emerald-300" />
-            <StatCard label="Orphans" value={orphanCount} />
-            <StatCard label="Hubs > 5" value={hubCount} />
+            <StatCard label="Avg Degree" value={avgDegree} accentClass="text-emerald-600 dark:text-emerald-400" />
+            <StatCard label="Orphans" value={orphanCount} accentClass="text-amber-600" />
+            <StatCard label="Hubs > 5" value={hubCount} accentClass="text-emerald-600" />
           </div>
         </>
       )}

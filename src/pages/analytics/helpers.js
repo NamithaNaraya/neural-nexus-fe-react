@@ -42,10 +42,10 @@ export function getTypeToneClasses(item) {
     return 'border-amber-300/60 bg-amber-500/10 text-amber-700';
   }
   if (label.includes('phyto')) {
-    return 'border-sky-300/60 bg-sky-500/10 text-sky-700';
+    return 'border-cyan-300/60 bg-cyan-500/10 text-cyan-700';
   }
   if (label.includes('plant')) {
-    return 'border-fuchsia-300/60 bg-fuchsia-500/10 text-fuchsia-700';
+    return 'border-emerald-300/60 bg-emerald-500/10 text-emerald-800';
   }
   if (label.includes('herb')) {
     return 'border-teal-300/60 bg-teal-500/10 text-teal-700';

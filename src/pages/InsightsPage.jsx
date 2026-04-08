@@ -19,12 +19,13 @@ import { Badge } from '../components/ui/Badge';
 import { useGlobalFolder } from '../contexts/GlobalFolderContext';
 import { usePredictedLinks } from '../contexts/PredictedLinksContext';
 import mlService from '../services/mlService';
+import { BRAND_COLORS } from '../utils/visualPalette';
 
 const TASKS = [
-  { id: 'catalog', label: 'Catalog', icon: BrainCircuit, tone: 'slate' },
-  { id: 'linkPrediction', label: 'Link Prediction', icon: Link2, tone: 'pink' },
-  { id: 'nodeClassification', label: 'Node Classification', icon: Tags, tone: 'purple' },
-  { id: 'embeddings', label: 'Embeddings', icon: Fingerprint, tone: 'amber' },
+  { id: 'catalog', label: 'Catalog', icon: BrainCircuit, tone: 'emerald' },
+  { id: 'linkPrediction', label: 'Link Prediction', icon: Link2, tone: 'sage' },
+  { id: 'nodeClassification', label: 'Node Classification', icon: Tags, tone: 'amber' },
+  { id: 'embeddings', label: 'Embeddings', icon: Fingerprint, tone: 'violet' },
   { id: 'similarity', label: 'Similarity', icon: GitCompareArrows, tone: 'teal' },
 ];
 
@@ -182,7 +183,7 @@ export default function MLPredictionPage() {
         target_id: item.target_id,
         probability: item.probability,
         type: 'PREDICTED_LINK',
-        color: '#ec4899',
+        color: BRAND_COLORS.emerald,
         model_name: modelName,
         properties: {
           isPredicted: true,
@@ -280,17 +281,17 @@ export default function MLPredictionPage() {
   const canOpenPredictedLinks = activeTask === 'linkPrediction' && state.linkPredictions.length > 0;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden animate-fade-up">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden animate-fade-in">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
-          <span className="gradient-text">ML Prediction</span>
+          <span className="text-emerald-700 dark:text-emerald-400">ML Prediction</span>
         </h1>
         <p className="text-muted-foreground text-sm">
-          Simple ML tools that help the graph find hidden links, mislabeled nodes, and similar patterns.
+          Deep learning tools for finding structural patterns, hidden links, and node classifications.
         </p>
       </div>
 
-      <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border-border/50 shadow-lg shadow-slate-900/5">
+      <Card variant="branded" className="flex min-h-0 flex-1 flex-col overflow-hidden border-border/50 shadow-2xl">
         <div className="border-b border-border/40 bg-card/40 px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">
             {TASKS.map((task) => {
@@ -305,9 +306,9 @@ export default function MLPredictionPage() {
                     updateState({ errorMsg: '', statusMsg: '' });
                   }}
                   className={[
-                    'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-colors',
+                    'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-300',
                     active
-                      ? 'border-primary/30 bg-primary/10 text-primary'
+                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 shadow-sm'
                       : 'border-border/50 bg-background/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground',
                   ].join(' ')}
                 >
@@ -325,8 +326,8 @@ export default function MLPredictionPage() {
               {state.models.length === 0 ? (
                 <div className="flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 py-10 text-center">
                   <BrainCircuit className="mx-auto h-10 w-10 text-muted-foreground/40" />
-                  <p className="mt-3 text-sm font-medium text-foreground">No models yet</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Train one from the tabs below and it will appear here.</p>
+                  <p className="mt-3 text-sm font-medium text-foreground">Laboratory empty</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Train a diagnostic model to begin analysis.</p>
                 </div>
               ) : (
                 <div className="grid min-h-0 gap-3 overflow-y-auto pr-1 lg:grid-cols-2">
@@ -337,14 +338,14 @@ export default function MLPredictionPage() {
                     const isClassModel = modelType.toLowerCase().includes('classification');
 
                     return (
-                      <div key={`${modelName}-${index}`} className="rounded-2xl border border-border/50 bg-background/40 p-4 shadow-sm">
+                      <div key={`${modelName}-${index}`} className="rounded-2xl border border-border/50 bg-background/40 p-4 shadow-sm hover:border-emerald-500/20 transition-colors group">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h3 className="truncate text-base font-semibold">{modelName}</h3>
+                            <h3 className="truncate text-base font-semibold group-hover:text-emerald-700 transition-colors">{modelName}</h3>
                             <p className="mt-1 text-xs text-muted-foreground">
-                              Type:{' '}
-                              <span className={isLinkModel ? 'text-pink-500' : isClassModel ? 'text-purple-500' : 'text-foreground'}>
-                                {modelType || 'Unknown'}
+                              Scope:{' '}
+                              <span className={isLinkModel ? 'text-emerald-600' : isClassModel ? 'text-amber-600' : 'text-foreground'}>
+                                {modelType || 'General'}
                               </span>
                             </p>
                           </div>
@@ -359,28 +360,15 @@ export default function MLPredictionPage() {
                           </button>
                         </div>
                         <div className="mt-4 flex gap-2">
-                          {isLinkModel && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="flex-1 border-pink-500/30 text-pink-500 hover:bg-pink-500/10"
-                              onClick={() => predictLinks(modelName)}
-                              disabled={isLoading}
-                            >
-                              Predict Links
-                            </Button>
-                          )}
-                          {isClassModel && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="flex-1 border-purple-500/30 text-purple-500 hover:bg-purple-500/10"
-                              onClick={() => predictNodeClasses(modelName)}
-                              disabled={isLoading}
-                            >
-                              Classify Nodes
-                            </Button>
-                          )}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1 border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/10"
+                            onClick={() => isLinkModel ? predictLinks(modelName) : isClassModel ? predictNodeClasses(modelName) : null}
+                            disabled={isLoading}
+                          >
+                            Execute Model
+                          </Button>
                         </div>
                       </div>
                     );
@@ -392,44 +380,47 @@ export default function MLPredictionPage() {
 
           {activeTask === 'linkPrediction' && (
             <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.84fr)]">
-              <div className="space-y-3">
-              <div className="rounded-2xl border border-pink-500/20 bg-pink-500/5 px-4 py-3 text-sm text-pink-700 dark:text-pink-300">
-                  Finds likely missing links between nodes. In simple terms: it spots pairs that look connected but are not yet joined.
+              <div className="space-y-4">
+              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-4 text-sm text-emerald-700 dark:text-emerald-300">
+                  <p className="font-bold flex items-center gap-2 mb-1"><Link2 className="h-4 w-4" /> Structural Inference</p>
+                  Finds likely missing links between nodes by analyzing the topological neighborhood.
                 </div>
 
-                <MLField label="Pipeline Name">
-                  <Input value={lpPipeline} onChange={(e) => setLpPipeline(e.target.value)} disabled={isLoading} className="h-10" />
-                </MLField>
-                <MLField label="Model Name">
-                  <Input value={lpModel} onChange={(e) => setLpModel(e.target.value)} disabled={isLoading} className="h-10" />
-                </MLField>
-                <div className="grid grid-cols-2 gap-3">
-                  <MLField label="Threshold">
-                    <Input
-                      type="number"
-                      step="0.05"
-                      min="0"
-                      max="1"
-                      value={lpThreshold}
-                      onChange={(e) => setLpThreshold(Number(e.target.value))}
-                      disabled={isLoading}
-                      className="h-10"
-                    />
+                <div className="space-y-3">
+                  <MLField label="Pipeline Name">
+                    <Input value={lpPipeline} onChange={(e) => setLpPipeline(e.target.value)} disabled={isLoading} className="h-10 rounded-xl" />
                   </MLField>
-                  <MLField label="Top N">
-                    <Input
-                      type="number"
-                      min="1"
-                      max="200"
-                      value={lpTopN}
-                      onChange={(e) => setLpTopN(Number(e.target.value))}
-                      disabled={isLoading}
-                      className="h-10"
-                    />
+                  <MLField label="Model Name">
+                    <Input value={lpModel} onChange={(e) => setLpModel(e.target.value)} disabled={isLoading} className="h-10 rounded-xl" />
                   </MLField>
+                  <div className="grid grid-cols-2 gap-3">
+                    <MLField label="Threshold">
+                      <Input
+                        type="number"
+                        step="0.05"
+                        min="0"
+                        max="1"
+                        value={lpThreshold}
+                        onChange={(e) => setLpThreshold(Number(e.target.value))}
+                        disabled={isLoading}
+                        className="h-10 rounded-xl"
+                      />
+                    </MLField>
+                    <MLField label="Top N">
+                      <Input
+                        type="number"
+                        min="1"
+                        max="200"
+                        value={lpTopN}
+                        onChange={(e) => setLpTopN(Number(e.target.value))}
+                        disabled={isLoading}
+                        className="h-10 rounded-xl"
+                      />
+                    </MLField>
+                  </div>
                 </div>
 
-                <Button variant="gradient" className="h-10 w-full" onClick={trainLinkPrediction} disabled={isLoading}>
+                <Button variant="gradient" className="h-11 w-full rounded-xl shadow-lg shadow-emerald-500/20" onClick={trainLinkPrediction} disabled={isLoading}>
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Train Link Prediction
                 </Button>
@@ -438,36 +429,36 @@ export default function MLPredictionPage() {
               <div className="flex min-h-0 flex-col space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 text-sm font-semibold">
-                    <ActiveIcon className="h-4 w-4 text-pink-500" />
-                    What it found
+                    <ActiveIcon className="h-4 w-4 text-emerald-600" />
+                    Structural Insights
                   </div>
                   {canOpenPredictedLinks ? (
                     <button
                       type="button"
                       onClick={() => navigate('/graph/2d')}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-pink-500/20 bg-pink-500/5 px-3 py-1.5 text-xs font-medium text-pink-700 transition hover:bg-pink-500/10"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-500/10"
                     >
                       <Link className="h-3.5 w-3.5" />
-                      Open in KG
+                      Open in Graph
                     </button>
                   ) : null}
                 </div>
                 {state.linkPredictions.length === 0 ? (
-                  <div className="flex min-h-0 flex-1 items-center rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground">
-                    Run a model from the catalog to view predicted links here.
+                  <div className="flex min-h-0 flex-1 items-center rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground text-center">
+                    Run prediction to see structural patterns found in the dataset.
                   </div>
                 ) : (
                   <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                     {state.linkPredictions.slice(0, 12).map((item, index) => (
-                      <div key={index} className="rounded-xl border border-border/50 bg-background/40 px-3 py-2.5 text-sm">
+                      <div key={index} className="rounded-xl border border-border/50 bg-background/40 px-3 py-2.5 text-sm hover:border-emerald-500/20 transition-colors">
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0 font-medium">
                             <span className="truncate">{item.source_name || item.source_id || 'Source'}</span>
-                            <span className="mx-2 text-muted-foreground">→</span>
-                            <span className="truncate">{item.target_name || item.target_id || 'Target'}</span>
+                            <span className="mx-2 text-muted-foreground font-light">→</span>
+                            <span className="truncate text-emerald-700">{item.target_name || item.target_id || 'Target'}</span>
                           </div>
-                          <Badge variant="info">
-                            {typeof item.probability === 'number' ? `${(item.probability * 100).toFixed(1)}%` : 'Predicted'}
+                          <Badge variant="default" className="bg-emerald-500/10 text-emerald-600 text-[10px]">
+                            {typeof item.probability === 'number' ? `${(item.probability * 100).toFixed(1)}%` : 'Link'}
                           </Badge>
                         </div>
                       </div>
@@ -480,19 +471,22 @@ export default function MLPredictionPage() {
 
           {activeTask === 'nodeClassification' && (
             <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.84fr)]">
-              <div className="space-y-3">
-              <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 px-4 py-3 text-sm text-purple-700 dark:text-purple-300">
-                  Checks whether a node looks like the wrong type. Useful when data was labeled by hand and needs a quick sanity check.
+              <div className="space-y-4">
+              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-4 py-4 text-sm text-amber-700 dark:text-amber-300">
+                  <p className="font-bold flex items-center gap-2 mb-1"><Tags className="h-4 w-4" /> Entity Classification</p>
+                  Identifies potential mislabeling by comparing a node's topological features with its assigned type.
                 </div>
 
-                <MLField label="Pipeline Name">
-                  <Input value={ncPipeline} onChange={(e) => setNcPipeline(e.target.value)} disabled={isLoading} className="h-10" />
-                </MLField>
-                <MLField label="Model Name">
-                  <Input value={ncModel} onChange={(e) => setNcModel(e.target.value)} disabled={isLoading} className="h-10" />
-                </MLField>
+                <div className="space-y-3">
+                  <MLField label="Pipeline Name">
+                    <Input value={ncPipeline} onChange={(e) => setNcPipeline(e.target.value)} disabled={isLoading} className="h-10 rounded-xl" />
+                  </MLField>
+                  <MLField label="Model Name">
+                    <Input value={ncModel} onChange={(e) => setNcModel(e.target.value)} disabled={isLoading} className="h-10 rounded-xl" />
+                  </MLField>
+                </div>
 
-                <Button variant="gradient" className="h-10 w-full" onClick={trainNodeClassification} disabled={isLoading}>
+                <Button variant="gradient" className="h-11 w-full rounded-xl shadow-lg shadow-emerald-500/20" onClick={trainNodeClassification} disabled={isLoading}>
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Train Node Classifier
                 </Button>
@@ -500,12 +494,12 @@ export default function MLPredictionPage() {
 
               <div className="flex min-h-0 flex-col space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold">
-                  <ActiveIcon className="h-4 w-4 text-purple-500" />
-                  What it found
+                  <ActiveIcon className="h-4 w-4 text-amber-600" />
+                  Classification Audit
                 </div>
                 {state.nodePredictions.length === 0 ? (
                   <div className="flex min-h-0 flex-1 items-center rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground">
-                    Run a node classification model from the catalog to view predictions here.
+                    Classify your nodes to audit labeling integrity.
                   </div>
                 ) : (
                   <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
@@ -515,18 +509,18 @@ export default function MLPredictionPage() {
                         <div
                           key={index}
                           className={[
-                            'rounded-xl border p-3 text-sm',
+                            'rounded-xl border p-3 text-sm transition-colors',
                             matches
                               ? 'border-border/50 bg-background/40'
-                              : 'border-amber-500/20 bg-amber-500/5',
+                              : 'border-amber-500/30 bg-amber-500/10 shadow-sm',
                           ].join(' ')}
                         >
                           <div className="flex items-center justify-between gap-3">
-                            <span className="min-w-0 truncate font-medium">{item.name || 'Unnamed node'}</span>
-                            <div className="flex items-center gap-2 text-xs">
+                            <span className="min-w-0 truncate font-semibold">{item.name || 'Entity'}</span>
+                            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
                               <span className="text-muted-foreground">{item.current_type || 'Unknown'}</span>
-                              <span>→</span>
-                              <span className={matches ? 'text-emerald-500' : 'text-amber-500'}>
+                              <span className="text-muted-foreground/50">/</span>
+                              <span className={matches ? 'text-emerald-600' : 'text-amber-600 underline decoration-amber-500/50 underline-offset-4'}>
                                 {item.predicted_type || 'Unknown'}
                               </span>
                             </div>
@@ -542,9 +536,10 @@ export default function MLPredictionPage() {
 
           {activeTask === 'embeddings' && (
             <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.84fr)]">
-              <div className="space-y-3">
-              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-                  Creates a compact numeric fingerprint for each node so the app can compare them more easily.
+              <div className="space-y-4">
+              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-4 text-sm text-emerald-700 dark:text-emerald-300">
+                  <p className="font-bold flex items-center gap-2 mb-1"><Fingerprint className="h-4 w-4" /> Vector Embedding</p>
+                  Generates dense numeric vectors for nodes to enable deep semantic and structural similarity analysis.
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -554,9 +549,9 @@ export default function MLPredictionPage() {
                       type="button"
                       onClick={() => setEmbMethod(method)}
                       className={[
-                        'rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors',
+                        'rounded-xl border px-3 py-2.5 text-sm font-medium transition-all',
                         embMethod === method
-                          ? 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300'
+                          ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600'
                           : 'border-border/50 bg-background/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground',
                       ].join(' ')}
                     >
@@ -565,19 +560,24 @@ export default function MLPredictionPage() {
                   ))}
                 </div>
 
-                <MLField label={`Dimensions: ${embDim}`}>
+                <MLField label={`Vector dimensions: ${embDim}`}>
                   <input
                     type="range"
-                    min="16"
+                    min="64"
                     max="512"
-                    step="16"
+                    step="32"
                     value={embDim}
                     onChange={(e) => setEmbDim(Number(e.target.value))}
-                    className="w-full accent-amber-500"
+                    className="w-full accent-emerald-500 h-2 bg-background/50 rounded-lg cursor-pointer"
                   />
+                  <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                    <span>64D</span>
+                    <span>256D</span>
+                    <span>512D</span>
+                  </div>
                 </MLField>
 
-                <Button variant="gradient" className="h-10 w-full" onClick={generateEmbeddings} disabled={isLoading}>
+                <Button variant="gradient" className="h-11 w-full rounded-xl shadow-lg shadow-emerald-500/20" onClick={generateEmbeddings} disabled={isLoading}>
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Generate Embeddings
                 </Button>
@@ -585,31 +585,31 @@ export default function MLPredictionPage() {
 
               <div className="flex min-h-0 flex-col space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold">
-                  <Fingerprint className="h-4 w-4 text-amber-500" />
-                  Fingerprints
+                  <Fingerprint className="h-4 w-4 text-emerald-600" />
+                  Vector Output
                 </div>
                 {state.embeddingResult ? (
                   <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border/50 bg-background/40 p-4">
-                    <p className="text-sm font-medium">
-                      {state.embeddingResult.count || 0} embeddings generated
+                    <p className="text-sm font-bold text-emerald-700">
+                      {state.embeddingResult.count || 0} entities processed
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Method: {state.embeddingResult.method || embMethod} · Dimension: {state.embeddingResult.dimension || embDim}D
+                      Method: {state.embeddingResult.method || embMethod} · Dimensions: {state.embeddingResult.dimension || embDim}
                     </p>
                     <div className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                       {(state.embeddingResult.embeddings || []).slice(0, 10).map((row, index) => (
-                        <div key={index} className="flex gap-2 rounded-lg border border-border/50 px-3 py-2 text-xs">
-                          <span className="min-w-0 flex-1 truncate font-medium">{row.name || 'Node'}</span>
-                          <span className="font-mono text-muted-foreground">
-                            [{Array.isArray(row.embedding) ? row.embedding.slice(0, 4).map((value) => Number(value).toFixed(3)).join(', ') : '...'}]
+                        <div key={index} className="flex gap-2 rounded-lg border border-border/40 bg-white/5 px-3 py-2 text-xs font-mono">
+                          <span className="min-w-0 flex-1 truncate font-sans font-medium text-foreground">{row.name || 'Entity'}</span>
+                          <span className="text-emerald-600/60">
+                            [{Array.isArray(row.embedding) ? row.embedding.slice(0, 3).map((value) => Number(value).toFixed(2)).join(',') : '...'},...]
                           </span>
                         </div>
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <div className="flex min-h-0 flex-1 items-center rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground">
-                    Run embedding generation to inspect vectors here.
+                  <div className="flex min-h-0 flex-1 items-center rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground text-center">
+                    Generate vectors to analyze topographic fingerprints.
                   </div>
                 )}
               </div>
@@ -618,13 +618,14 @@ export default function MLPredictionPage() {
 
           {activeTask === 'similarity' && (
             <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.84fr)]">
-              <div className="space-y-3">
-              <div className="rounded-2xl border border-teal-500/20 bg-teal-500/5 px-4 py-3 text-sm text-teal-700 dark:text-teal-300">
-                  Finds nodes that behave similarly in the graph, even if their names are different.
+              <div className="space-y-4">
+              <div className="rounded-2xl border border-teal-500/20 bg-teal-500/5 px-4 py-4 text-sm text-teal-700 dark:text-teal-300">
+                  <p className="font-bold flex items-center gap-2 mb-1"><GitCompareArrows className="h-4 w-4" /> Topological Similarity</p>
+                  Surfaces entities that occupy similar roles in the graph, facilitating discovery of parallel structures.
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <MLField label="Top K">
+                  <MLField label="Limit (Top K)">
                     <Input
                       type="number"
                       min="1"
@@ -632,10 +633,10 @@ export default function MLPredictionPage() {
                       value={similarityTopK}
                       onChange={(e) => setSimilarityTopK(Number(e.target.value))}
                       disabled={isLoading}
-                      className="h-10"
+                      className="h-10 rounded-xl"
                     />
                   </MLField>
-                  <MLField label="Cutoff">
+                  <MLField label="Similarity Cutoff">
                     <Input
                       type="number"
                       step="0.05"
@@ -644,42 +645,43 @@ export default function MLPredictionPage() {
                       value={similarityCutoff}
                       onChange={(e) => setSimilarityCutoff(Number(e.target.value))}
                       disabled={isLoading}
-                      className="h-10"
+                      className="h-10 rounded-xl"
                     />
                   </MLField>
                 </div>
 
-                <Button variant="gradient" className="h-10 w-full" onClick={runSimilarity} disabled={isLoading}>
+                <Button variant="gradient" className="h-11 w-full rounded-xl shadow-lg shadow-emerald-500/20" onClick={runSimilarity} disabled={isLoading}>
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Find Similar Nodes
+                  Discover Patterns
                 </Button>
               </div>
 
               <div className="flex min-h-0 flex-col space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold">
-                  <GitCompareArrows className="h-4 w-4 text-teal-500" />
-                  Similar items
+                  <GitCompareArrows className="h-4 w-4 text-teal-600" />
+                  Discovered Pairs
                 </div>
                 {state.similarityResult ? (
                   <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border/50 bg-background/40 p-4">
-                    <p className="text-sm font-medium">
-                      {state.similarityResult.count || 0} similar pairs found
+                    <p className="text-sm font-medium text-teal-700">
+                      {state.similarityResult.count || 0} structural matches found
                     </p>
                     <div className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                       {(state.similarityResult.similarities || []).slice(0, 12).map((row, index) => (
-                        <div key={index} className="flex items-center gap-3 rounded-lg border border-border/50 px-3 py-2 text-xs">
-                          <span className="min-w-0 flex-1 truncate font-medium">{row.source_name || 'Source'}</span>
-                          <Badge variant="info">
-                            {typeof row.similarity === 'number' ? `${(row.similarity * 100).toFixed(0)}%` : 'Match'}
-                          </Badge>
-                          <span className="min-w-0 flex-1 truncate text-right font-medium">{row.target_name || 'Target'}</span>
+                        <div key={index} className="flex items-center gap-3 rounded-lg border border-border/50 bg-white/5 px-3 py-2 text-xs">
+                          <span className="min-w-0 flex-1 truncate font-medium">{row.source_name || 'Item A'}</span>
+                          <div className="flex flex-col items-center gap-0.5 min-w-[50px]">
+                            <span className="h-px w-full bg-teal-500/30" />
+                            <span className="text-[9px] font-bold text-teal-600">{(row.similarity * 100).toFixed(0)}%</span>
+                          </div>
+                          <span className="min-w-0 flex-1 truncate text-right font-medium">{row.target_name || 'Item B'}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <div className="flex min-h-0 flex-1 items-center rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground">
-                    Run similarity search to inspect structural matches here.
+                  <div className="flex min-h-0 flex-1 items-center rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground text-center">
+                    Compute similarity to surface ontological parallels.
                   </div>
                 )}
               </div>
@@ -687,26 +689,26 @@ export default function MLPredictionPage() {
           )}
 
           {state.statusMsg && (
-            <div className="flex items-center gap-3 rounded-2xl border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
+            <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-4 text-sm text-emerald-700 dark:text-emerald-300 shadow-sm animate-pulse">
               <Loader2 className="h-4 w-4 animate-spin" />
               {state.statusMsg}
             </div>
           )}
 
           {state.errorMsg && (
-            <div className="flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+            <div className="flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-4 text-sm text-red-700 dark:text-red-300 shadow-sm">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               {state.errorMsg}
             </div>
           )}
 
           {state.trainResult && (
-            <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+            <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-4 text-sm text-emerald-700 dark:text-emerald-300 shadow-sm animate-fade-in">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
               <div>
-                <p className="font-medium">Training complete</p>
+                <p className="font-bold">Training sequence finalized</p>
                 <p className="mt-1 text-xs opacity-80">
-                  Model <span className="font-semibold">"{state.trainResult.model_name || state.trainResult.modelName || 'saved model'}"</span> is ready in the catalog.
+                  Model <span className="font-bold text-emerald-800">"{state.trainResult.model_name || state.trainResult.modelName || 'active_model'}"</span> is archived in the catalog.
                 </p>
               </div>
             </div>

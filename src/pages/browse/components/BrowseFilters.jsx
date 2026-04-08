@@ -27,7 +27,7 @@ function Select({ value, onChange, className = '', children }) {
       value={value}
       onChange={onChange}
       className={cn(
-        'h-11 w-full rounded-xl border border-border/60 bg-background/70 px-3 text-sm outline-none backdrop-blur-sm transition focus:border-primary/40 focus:ring-2 focus:ring-primary/20',
+        'h-11 w-full rounded-xl border border-border/60 bg-background/70 px-3 text-sm outline-none backdrop-blur-sm transition focus:border-emerald-500/40 focus:ring-2 focus:ring-emerald-500/20',
         className
       )}
     >
@@ -48,12 +48,12 @@ export function BrowseFilters({
   setViewMode,
 }) {
   return (
-    <Card className="overflow-hidden border-border/60 bg-card/70 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
-      <div className="border-b border-border/40 bg-gradient-to-r from-emerald-500/10 via-sky-500/10 to-fuchsia-500/10 px-6 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <Card variant="branded" className="overflow-hidden border-border/60 bg-card/70 shadow-2xl backdrop-blur-xl">
+      <div className="border-b border-border/40 bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-transparent px-6 py-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold">Unified filters</p>
-            <p className="text-xs text-muted-foreground">Every view reads from the same folder, type, search, and sort state.</p>
+            <p className="text-sm font-bold text-foreground">Global Filters</p>
+            <p className="text-xs text-muted-foreground font-medium">Coordinate exploration across all visualization modes.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {VIEW_OPTIONS.map((view) => {
@@ -66,13 +66,13 @@ export function BrowseFilters({
                   type="button"
                   onClick={() => setViewMode(view.id)}
                   className={cn(
-                    'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition',
+                    'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition-all duration-300',
                     active
-                      ? 'border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/20 dark:border-white dark:bg-white dark:text-slate-900'
-                      : 'border-border/60 bg-background/70 text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                      ? 'border-emerald-600 bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'
+                      : 'border-border/60 bg-background/70 text-muted-foreground hover:border-emerald-500/40 hover:text-foreground'
                   )}
                 >
-                  <Icon className="h-3.5 w-3.5" />
+                  <Icon className="h-4 w-4" />
                   {view.label}
                 </button>
               );
@@ -81,24 +81,24 @@ export function BrowseFilters({
         </div>
       </div>
 
-      <CardContent className="grid gap-4 p-6 lg:grid-cols-3">
+      <CardContent className="grid gap-6 p-6 lg:grid-cols-3">
         <div>
-          <Field label="Search">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Field label="Semantic Search">
+            <div className="relative group">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground group-focus-within:text-emerald-500 transition-colors" />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search by name, type, description, or any loaded property..."
-                className="h-11 rounded-xl border-border/60 bg-background/70 pl-10"
+                placeholder="Find entities by any property..."
+                className="h-11 rounded-xl border-border/60 bg-background/50 pl-11 focus:bg-background transition-colors"
               />
             </div>
           </Field>
         </div>
 
-        <Field label="Entity type">
+        <Field label="Filter by Type">
           <Select value={activeType} onChange={(event) => setActiveType(event.target.value)}>
-            <option value="all">All types</option>
+            <option value="all">All Graph Entities</option>
             {nodeTypes.map((item) => (
               <option key={item.type} value={item.type}>
                 {item.type} ({item.count})
@@ -107,10 +107,10 @@ export function BrowseFilters({
           </Select>
         </Field>
 
-        <Field label="Sort">
-          <div className="relative">
-            <ArrowDownAZ className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Select value={sortMode} onChange={(event) => setSortMode(event.target.value)} className="pl-10">
+        <Field label="Logical Sort">
+          <div className="relative group">
+            <ArrowDownAZ className="pointer-events-none absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground group-focus-within:text-emerald-500 transition-colors" />
+            <Select value={sortMode} onChange={(event) => setSortMode(event.target.value)} className="pl-11">
               {SORT_OPTIONS.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.label}
