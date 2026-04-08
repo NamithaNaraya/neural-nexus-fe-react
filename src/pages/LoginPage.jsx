@@ -52,8 +52,8 @@ export default function LoginPage() {
             <Network className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">Neural Nexus</h1>
-            <p className="text-xs text-muted-foreground font-medium tracking-wider uppercase">Knowledge Graph Platform</p>
+            <h1 className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">NESSO Botanica</h1>
+            <p className="text-xs text-muted-foreground font-medium tracking-wider uppercase">Laboratory Intelligence</p>
           </div>
         </div>
 
@@ -91,7 +91,7 @@ export default function LoginPage() {
 
         {/* Bottom — Footer */}
         <p className="text-xs text-muted-foreground/50">
-          Neural Nexus Platform v2.0 · Built with React & FastAPI
+          NESSO Platform v2.0 · Natural & Essential Oil Insights
         </p>
       </div>
 
@@ -103,7 +103,7 @@ export default function LoginPage() {
             <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-700/20">
               <Network className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-xl font-bold text-emerald-700 dark:text-emerald-300">Neural Nexus</h1>
+            <h1 className="text-xl font-bold text-emerald-700 dark:text-emerald-300">NESSO Botanica</h1>
           </div>
 
           {/* Form card */}

@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useMemo, useRef, useState, useEffect, useCallback } from 'react';
-import { IconButton, Flex } from '@chakra-ui/react';
+import { IconButton } from '../components/ui/IconButton';
+import { Flex } from '@chakra-ui/react';
 import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input, Label } from '../components/ui/Input';
@@ -442,7 +443,7 @@ export default function FoldersPage() {
         {/* Folder Detail Area */}
         <div className="h-full min-h-0 overflow-hidden">
           {selectedFolder ? (
-            <Card className="flex h-full min-h-0 flex-col overflow-hidden backdrop-blur-none bg-card/60 rounded-4xl border-border/20 shadow-2xl">
+            <Card variant="branded" className="flex h-full min-h-0 flex-col overflow-hidden backdrop-blur-none bg-card/60 border-border/20 shadow-2xl">
               <div className="border-b border-border/20 px-6 py-5 bg-whiteAlpha.50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4 min-w-0">
@@ -465,7 +466,12 @@ export default function FoldersPage() {
                       </div>
                     </div>
                   </div>
-                  <IconButton icon={<X size={18} />} variant="ghost" className="rounded-2xl" onClick={() => setSelectedFolderId('')} />
+                  <IconButton 
+                    icon={<X size={18} />} 
+                    variant="ghost" 
+                    className="rounded-2xl text-muted-foreground hover:text-red-500 hover:bg-red-500/10" 
+                    onClick={() => setSelectedFolderId('')} 
+                  />
                 </div>
               </div>
 

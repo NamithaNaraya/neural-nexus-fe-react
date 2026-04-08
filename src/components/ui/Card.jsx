@@ -9,12 +9,18 @@ import {
 } from '@chakra-ui/react';
 import { cn } from '../../utils/cn';
 
-export function Card({ className, children, ...props }) {
+const cardVariants = {
+  default: 'rounded-xl border-border/50 bg-card/60',
+  branded: 'rounded-[32px] border-emerald-500/10 bg-card/75 shadow-[0_24px_70px_-48px_rgba(92,72,58,0.45)]',
+};
+
+export function Card({ className, variant = 'default', children, ...props }) {
   return (
     <ChakraCardRoot
       unstyled
       className={cn(
-        'rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm text-card-foreground shadow-sm transition-all duration-300',
+        'border backdrop-blur-xl text-card-foreground shadow-sm transition-all duration-300',
+        cardVariants[variant],
         className
       )}
       {...props}

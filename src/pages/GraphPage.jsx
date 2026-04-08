@@ -16,19 +16,12 @@ import { usePredictedLinks } from '../contexts/PredictedLinksContext';
 import { GlobalGraphSearch } from './graph/tools/GlobalGraphSearch';
 import { GraphToolbarControls } from './graph/tools/GraphToolbarControls';
 import { mergePredictedLinks } from './graph/mergePredictedLinks';
+import { GraphHeaderSkeleton } from './graph/components/GraphHeaderSkeleton';
 
 const GraphForceGraph3DPage = lazy(() => import('./graph/GraphForceGraph3DPage'));
 
 function GraphViewLoader() {
-  return (
-    <div className="flex h-full items-center justify-center px-6">
-      <div className="w-full max-w-sm rounded-3xl border border-border/50 bg-card/80 p-6 text-center shadow-xl backdrop-blur-sm">
-        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <h3 className="mt-4 text-base font-semibold">Loading graph view</h3>
-        <p className="mt-1 text-sm text-muted-foreground">Preparing the selected visualization.</p>
-      </div>
-    </div>
-  );
+  return <GraphHeaderSkeleton />;
 }
 
 export default function GraphPage() {
@@ -356,14 +349,14 @@ export default function GraphPage() {
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
       <div className="relative z-20 mx-4 mt-1 flex-shrink-0 overflow-visible">
-        <Card className="overflow-visible rounded-[26px] border border-border/60 bg-card/95 shadow-[0_12px_32px_rgba(15,23,42,0.08)]">
+        <Card variant="branded" className="overflow-visible border-border/60">
         <CardContent className="overflow-visible space-y-3 p-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 text-xs text-slate-700"
+                className="gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 text-xs font-bold uppercase tracking-wider text-emerald-600 hover:bg-emerald-500/15"
                 type="button"
                 onClick={() => setToolsOpen((value) => !value)}
                 aria-label={toolsOpen ? 'Close tools' : 'Open tools'}
@@ -404,7 +397,7 @@ export default function GraphPage() {
                 className={[
                   "rounded-full px-4 py-2 text-sm font-medium shadow-lg transition",
                   editMode === 'add-link' 
-                    ? "bg-primary/20 text-primary border border-primary/30 ring-4 ring-primary/20" 
+                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300 ring-4 ring-emerald-500/20" 
                     : "bg-slate-900 text-white hover:bg-slate-800"
                 ].join(' ')}
               >
@@ -430,16 +423,16 @@ export default function GraphPage() {
                       type="button"
                       onClick={() => handleOpenToolPanel(tool.id)}
                     className={[
-                        'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition',
+                        'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition',
                         active
-                          ? 'border-primary/35 bg-primary/10 text-primary shadow-sm'
-                          : 'border-border/60 bg-card text-muted-foreground hover:bg-primary/5 hover:text-foreground',
+                          ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-600 shadow-sm'
+                          : 'border-border/60 bg-card text-muted-foreground hover:bg-emerald-500/5 hover:text-foreground',
                       ].join(' ')}
                     >
                       <Icon className="h-3.5 w-3.5" />
                       {tool.label}
                       {tool.id === 'filters' && activeFilterCount > 0 ? (
-                        <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                        <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600">
                           {activeFilterCount}
                         </span>
                       ) : null}

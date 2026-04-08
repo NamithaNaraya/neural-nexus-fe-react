@@ -10,6 +10,7 @@ import api from '../../services/api';
 import chatService from '../../services/chatService';
 import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { ChatHistorySkeleton } from './components/ChatHistorySkeleton';
 import { cn } from '../../utils/cn';
 import { jsPDF } from 'jspdf';
 import {
@@ -392,15 +393,13 @@ export default function ChatPage() {
   }, [workspace, userKey]);
 
   if (isWorkspaceLoading) {
-    return (
       <div className="flex min-h-[calc(100vh-theme(spacing.16))] items-center justify-center p-6">
-        <div className="w-full max-w-xs rounded-3xl border border-border/40 bg-card/80 p-6 text-center shadow-lg backdrop-blur-sm">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <h2 className="mt-3 text-base font-semibold">Loading chat environment</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Preparing your sessions and history...</p>
+        <div className="w-full max-w-xs rounded-4xl border border-emerald-500/20 bg-card/80 p-8 text-center shadow-2xl backdrop-blur-xl">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+          <h2 className="mt-6 text-lg font-black tracking-tight text-foreground">Initialising Environment</h2>
+          <p className="mt-2 text-[13px] text-muted-foreground font-medium">Synchronising secure sessions...</p>
         </div>
       </div>
-    );
   }
 
   const persistWorkspace = (nextWorkspace) => {
@@ -864,14 +863,24 @@ export default function ChatPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={startNewChat} className="gap-1.5">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={startNewChat} 
+                className="gap-2 rounded-xl text-xs font-bold uppercase tracking-wider text-muted-foreground transition-all hover:bg-emerald-500/10 hover:text-emerald-500 border border-transparent hover:border-emerald-500/20 shadow-sm"
+              >
                 <SquarePen className="h-4 w-4" />
                 New chat
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-1.5"
+                className={cn(
+                  "gap-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border shadow-sm",
+                  isHistoryOpen 
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 shadow-emerald-500/10" 
+                    : "border-transparent text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500 hover:border-emerald-500/20"
+                )}
                 onClick={() => setHistoryOpen((v) => !v)}
                 aria-expanded={isHistoryOpen}
                 aria-controls="chat-history-drawer"
@@ -879,7 +888,12 @@ export default function ChatPage() {
                 <PanelRightClose className="h-4 w-4" />
                 {isHistoryOpen ? 'Hide history' : 'Open history'}
               </Button>
-              <Button variant="outline" size="sm" onClick={clearChat} className="gap-1.5">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={clearChat} 
+                className="gap-2 rounded-xl border-border/40 text-xs font-bold uppercase tracking-wider text-muted-foreground transition-all hover:bg-red-50 hover:text-red-500 hover:border-red-200 shadow-sm"
+              >
                 <RotateCcw className="h-4 w-4" />
                 Clear chat
               </Button>
@@ -887,7 +901,7 @@ export default function ChatPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="gap-2"
+                  className="gap-2 rounded-xl text-xs font-bold uppercase tracking-wider text-muted-foreground transition-all hover:bg-emerald-500/10 hover:text-emerald-500 border border-transparent hover:border-emerald-500/20 shadow-sm"
                   onClick={() => setDownloadOpen(true)}
                   aria-expanded={isDownloadOpen}
                 >
@@ -954,7 +968,7 @@ export default function ChatPage() {
             aria-hidden={!isHistoryOpen}
           >
             <div className="h-full overflow-hidden rounded-[32px] rounded-l-none border border-border/50 border-l-0 bg-card/75 shadow-[0_24px_70px_-48px_rgba(92,72,58,0.45)] backdrop-blur-xl">
-              <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading history...</div>}>
+              <Suspense fallback={<ChatHistorySkeleton />}>
                 <ChatHistoryPanel
                   chatHistory={chatHistory}
                   activeSessionId={workspace.currentSessionId}
@@ -977,15 +991,15 @@ export default function ChatPage() {
           aria-hidden={!isHistoryOpen}
         />
 
-        <aside
-          className={cn(
-            'absolute right-6 top-3 bottom-5 z-20 w-[min(100vw-3rem,19rem)] translate-x-[110%] transition-transform duration-300 ease-out lg:hidden',
-            isHistoryOpen ? 'translate-x-0' : 'pointer-events-none'
-          )}
-          aria-hidden={!isHistoryOpen}
-        >
-          <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading history...</div>}>
-            <ChatHistoryPanel
+          <aside
+            className={cn(
+              'absolute right-6 top-3 bottom-5 z-20 w-[min(100vw-3rem,19rem)] translate-x-[110%] transition-transform duration-300 ease-out lg:hidden',
+              isHistoryOpen ? 'translate-x-0' : 'pointer-events-none'
+            )}
+            aria-hidden={!isHistoryOpen}
+          >
+            <Suspense fallback={<ChatHistorySkeleton />}>
+              <ChatHistoryPanel
               chatHistory={chatHistory}
               activeSessionId={workspace.currentSessionId}
               onRestore={restoreSession}

@@ -98,23 +98,24 @@ export default function UploadPage() {
         {/* Upload Zone */}
         <div className="lg:col-span-2 space-y-4">
           {/* Folder selector */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <FolderOpen className="w-4 h-4 text-primary" />
-                  Target Folder
+          <Card variant="branded" className="backdrop-blur-xl transition-all hover:bg-card/80">
+            <CardContent className="p-5">
+              <div className="space-y-3">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 text-emerald-600/70">
+                  <FolderOpen className="w-3.5 h-3.5" />
+                  Target Workspace
                 </label>
                 {selectedFolderId ? (
-                  <div className="flex min-h-10 items-center justify-between rounded-lg border border-input bg-background/50 px-3 text-sm backdrop-blur-sm">
-                    <span className="font-medium">{currentFolder?.name || 'Selected folder'}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {Number(currentFolder?.file_count || 0).toLocaleString()} files
+                  <div className="flex min-h-12 items-center justify-between rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 text-sm backdrop-blur-md">
+                    <span className="font-bold text-foreground">{currentFolder?.name || 'Selected folder'}</span>
+                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
+                      {Number(currentFolder?.file_count || 0).toLocaleString()} documents
                     </span>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No global folder selected. <a href="/folders" className="text-primary hover:underline">Create one</a> or choose it in the header first.
+                  <p className="text-xs text-muted-foreground flex items-center justify-between rounded-xl border border-dashed border-border/50 p-4">
+                    <span>No active folder selected.</span>
+                    <a href="/folders" className="text-emerald-600 font-bold hover:underline">Select Now</a>
                   </p>
                 )}
               </div>

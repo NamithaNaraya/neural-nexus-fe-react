@@ -332,7 +332,7 @@ export const MessageBubble = React.memo(function MessageBubble({ message, onWebS
   return (
     <div className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
       {isUser ? (
-        <div className="w-8 h-8 rounded-lg bg-slate-500 flex items-center justify-center shrink-0 shadow-sm">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-amber-700 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/10 border border-white/10">
           <User className="w-4 h-4 text-white" />
         </div>
       ) : (
@@ -345,7 +345,7 @@ export const MessageBubble = React.memo(function MessageBubble({ message, onWebS
         'rounded-2xl px-4 py-3 text-sm leading-relaxed transition-all duration-300 hover:shadow-md',
         isUser ? 'max-w-[85%]' : 'max-w-[90%]',
         isUser
-          ? 'rounded-br-md border border-emerald-200/80 bg-emerald-100 text-emerald-950 shadow-sm shadow-emerald-500/10 dark:border-emerald-800/70 dark:bg-emerald-900/35 dark:text-emerald-50'
+          ? 'rounded-br-md border border-emerald-500/20 bg-emerald-500/5 text-emerald-950 shadow-[0_8px_30px_rgb(16,185,129,0.06)] dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-50'
           : isError
             ? 'bg-red-50 border border-red-200 text-red-900 rounded-bl-md dark:bg-red-900/20 dark:border-red-800 dark:text-red-100'
             : isStandaloneWebSearch

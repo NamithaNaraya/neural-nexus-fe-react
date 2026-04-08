@@ -3,13 +3,13 @@ import { Badge as ChakraBadge } from '@chakra-ui/react';
 import { cn } from '../../utils/cn';
 
 const badgeVariants = {
-  default: 'bg-primary/15 text-primary border-primary/30',
+  default: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   secondary: 'bg-secondary text-secondary-foreground border-secondary',
-  destructive: 'bg-destructive/15 text-red-400 border-destructive/30',
+  destructive: 'bg-destructive/15 text-red-500 border-destructive/20',
   outline: 'text-foreground border-border',
   success: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-300',
   warning: 'bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-300',
-  info: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-300',
+  info: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
 };
 
 export function Badge({ className, variant = 'default', children, ...props }) {
