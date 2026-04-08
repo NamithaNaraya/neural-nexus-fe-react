@@ -74,8 +74,8 @@ export function FolderNodesPanel({
         <div className="relative flex-1 min-h-0 space-y-2 overflow-y-auto pr-1">
           {nodesLoading && filteredFolderNodes.length > 0 && (
             <div className="sticky top-0 z-10 flex items-center justify-end pb-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-card/90 px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-[10px] font-bold text-emerald-500 shadow-sm backdrop-blur-md">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Updating
               </span>
             </div>

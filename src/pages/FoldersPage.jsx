@@ -473,8 +473,8 @@ export default function FoldersPage() {
                 {/* Stats Section */}
                 <div className="grid grid-cols-3 gap-4">
                   {[
-                    { label: 'Files', value: selectedFolder.file_count, icon: FileText, color: 'text-primary' },
-                    { label: 'Total Nodes', value: selectedFolder.node_count, icon: Network, color: 'text-primary' },
+                    { label: 'Files', value: selectedFolder.file_count, icon: FileText, color: 'text-emerald-500' },
+                    { label: 'Total Nodes', value: selectedFolder.node_count, icon: Network, color: 'text-emerald-500' },
                     { label: 'Last Sync', value: formatDate(selectedFolder.updated_at), icon: Calendar, color: 'text-muted-foreground', isDate: true }
                   ].map((stat, i) => (
                     <div key={i} className="bg-whiteAlpha.100 rounded-3xl p-4 border border-border/10 hover:border-primary/20 transition-all group">
