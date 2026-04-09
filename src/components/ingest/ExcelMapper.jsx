@@ -251,7 +251,7 @@ export function ExcelMapper({ folderId, onSuccess }) {
           
           {/* Active Progress Fill */}
           <div 
-            className="absolute top-[20px] left-0 h-[3px] bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-700 ease-out z-0 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.3)]" 
+            className="absolute top-[20px] left-0 h-[3px] bg-gradient-to-r from-primary to-teal-500 transition-all duration-700 ease-out z-0 rounded-full shadow-[0_0_15px_rgba(25,119,65,0.24)]" 
             style={{ width: `${((step - 1) / 4) * 100}%` }}
           />
 
@@ -265,10 +265,10 @@ export function ExcelMapper({ folderId, onSuccess }) {
                 className={cn(
                   "w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs transition-all duration-500",
                   step > s 
-                    ? "bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-110" 
+                    ? "bg-primary text-white shadow-[0_0_20px_rgba(25,119,65,0.28)] scale-110" 
                     : step === s 
-                    ? "bg-background border-[3px] border-emerald-500 text-emerald-500 shadow-[0_0_25px_rgba(16,185,129,0.2)] scale-125" 
-                    : "bg-background border-2 border-border/40 text-muted-foreground/40 group-hover:border-emerald-500/30 group-hover:text-emerald-500/30"
+                    ? "bg-background border-[3px] border-primary text-primary shadow-[0_0_25px_rgba(25,119,65,0.16)] scale-125" 
+                    : "bg-background border-2 border-border/40 text-muted-foreground/40 group-hover:border-primary/30 group-hover:text-primary/40"
                 )}
               >
                 {step > s ? (
@@ -282,12 +282,12 @@ export function ExcelMapper({ folderId, onSuccess }) {
               <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center">
                 <span className={cn(
                   "text-[9px] uppercase font-black tracking-[0.2em] transition-all duration-300 whitespace-nowrap",
-                  step >= s ? "text-emerald-500" : "text-muted-foreground/40"
+                  step >= s ? "text-primary" : "text-muted-foreground/40"
                 )}>
                   {s === 1 ? 'Import' : s === 2 ? 'Inspect' : s === 3 ? 'Mapping' : s === 4 ? 'Linking' : 'Commit'}
                 </span>
                 {step === s && (
-                  <div className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 animate-pulse shadow-[0_0_8px_rgba(52,211,153,1)]" />
+                  <div className="mt-1.5 h-1 w-1 rounded-full bg-teal-400 shadow-[0_0_8px_rgba(124,172,148,0.9)] animate-pulse" />
                 )}
               </div>
             </div>
@@ -416,7 +416,7 @@ export function ExcelMapper({ folderId, onSuccess }) {
                     <tr key={idx} className={cn("border-b border-border/10 transition-colors", !mapping.active && "opacity-40 grayscale")}>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={cn("w-2 h-2 rounded-full", mapping.role === 'node' ? "bg-emerald-500" : "bg-blue-500")} />
+                          <div className={cn("w-2 h-2 rounded-full", mapping.role === 'node' ? "bg-primary" : "bg-cyan-500")} />
                           <span className="text-sm font-bold truncate max-w-[200px]">{mapping.column}</span>
                         </div>
                       </td>
@@ -453,7 +453,7 @@ export function ExcelMapper({ folderId, onSuccess }) {
                           </div>
                         ) : mapping.role === 'property' ? (
                           <div className="flex items-center gap-2">
-                             <span className="text-[10px] font-black text-blue-500/50 uppercase">TO:</span>
+                             <span className="text-[10px] font-black uppercase text-cyan-500/60">TO:</span>
                              <select 
                                className="bg-secondary/50 border border-border/50 rounded-xl px-3 py-2 text-xs font-black uppercase outline-none text-foreground"
                                value={mapping.target}
@@ -566,9 +566,9 @@ export function ExcelMapper({ folderId, onSuccess }) {
                       </div>
 
                       <div className="w-full lg:w-1/3 space-y-2">
-                        <Label className="text-[9px] font-black uppercase tracking-widest opacity-60 px-1 text-sky-600/70">To Node</Label>
+                        <Label className="text-[9px] font-black uppercase tracking-widest opacity-60 px-1 text-cyan-600/70">To Node</Label>
                         <select 
-                          className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-3 text-xs font-black uppercase outline-none focus:ring-1 focus:ring-sky-500 text-foreground"
+                          className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-3 text-xs font-black uppercase outline-none focus:ring-1 focus:ring-cyan-500 text-foreground"
                           value={rel.target}
                           onChange={(e) => updateRelationship(rel.id, { target: e.target.value })}
                         >

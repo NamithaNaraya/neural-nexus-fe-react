@@ -9,7 +9,7 @@ const iconButtonVariants = {
     outline: 'border border-input bg-transparent hover:bg-accent hover:text-accent-foreground',
     secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
     ghost: 'hover:bg-accent hover:text-accent-foreground',
-    emerald: 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border border-emerald-500/20 shadow-sm shadow-emerald-500/5',
+    emerald: 'border border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 shadow-sm shadow-primary/10',
   },
   size: {
     default: 'h-10 w-10',

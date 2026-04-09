@@ -13,11 +13,11 @@ export function ChatToolbar({ onClear, onExportText, onExportJson, onToggleHisto
         <History className="w-4 h-4" /> {isHistoryOpen ? 'Hide History' : 'Show History'}
       </Button>
 
-      <Button size="sm" onClick={onExportText} className="gap-1 bg-gradient-to-r from-emerald-600 to-amber-700 text-white hover:opacity-90 shadow-md hover:shadow-lg transition-shadow">
+        <Button size="sm" onClick={onExportText} className="gap-1 bg-primary text-white hover:bg-primary/90 shadow-md hover:shadow-lg transition-shadow">
         <FileText className="w-4 h-4" /> Export TXT
       </Button>
 
-      <Button size="sm" onClick={onExportJson} className="gap-1 bg-gradient-to-r from-emerald-600 to-amber-700 text-white hover:opacity-90 shadow-md hover:shadow-lg transition-shadow">
+        <Button size="sm" onClick={onExportJson} className="gap-1 bg-primary text-white hover:bg-primary/90 shadow-md hover:shadow-lg transition-shadow">
         <Download className="w-4 h-4" /> Export JSON
       </Button>
 

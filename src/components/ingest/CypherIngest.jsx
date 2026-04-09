@@ -83,20 +83,20 @@ export function CypherIngest({ folderId, onSuccess }) {
         {/* Editor Side */}
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-amber-500/70">Transaction Reference</Label>
+            <Label className="text-[10px] font-black uppercase tracking-widest text-accent/80">Transaction Reference</Label>
             <Input
               placeholder="e.g., Manual BioActive Property Update"
               value={filename}
               onChange={(e) => setFilename(e.target.value)}
-              className="h-12 rounded-2xl border-border/40 bg-background/50 focus:ring-amber-500/20"
+              className="h-12 rounded-2xl border-border/40 bg-background/50 focus:ring-accent/30"
             />
           </div>
 
           <div className="space-y-2 relative group">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-amber-500/70">Cypher Logic</Label>
+            <Label className="text-[10px] font-black uppercase tracking-widest text-accent/80">Cypher Logic</Label>
             <textarea
               placeholder="CREATE (n:Entity {id: randomUUID(), name: '...'})"
-              className="flex min-h-[350px] w-full rounded-3xl border border-border/40 bg-zinc-950 px-5 py-4 font-mono text-xs leading-relaxed text-amber-500/90 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/20 custom-scrollbar selection:bg-amber-500/20"
+              className="flex min-h-[350px] w-full rounded-3xl border border-border/40 bg-zinc-950 px-5 py-4 font-mono text-xs leading-relaxed text-accent transition-all focus:outline-none focus:ring-2 focus:ring-accent/30 custom-scrollbar selection:bg-accent/20"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -113,7 +113,7 @@ export function CypherIngest({ folderId, onSuccess }) {
           <div className="flex gap-4">
             <Button
               variant="outline"
-              className="flex-1 h-12 rounded-2xl gap-2 font-bold border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
+              className="flex-1 h-12 rounded-2xl gap-2 border-accent/40 font-bold text-accent-foreground hover:bg-accent/10"
               disabled={previewLoading || !query.trim() || !folderId}
               onClick={handlePreview}
             >
@@ -123,7 +123,7 @@ export function CypherIngest({ folderId, onSuccess }) {
             
             <Button
               variant="gradient"
-              className="flex-1 h-12 rounded-2xl gap-2 font-black shadow-lg shadow-amber-500/20 bg-gradient-to-br from-amber-500 to-amber-700"
+              className="flex-1 h-12 rounded-2xl gap-2 font-black shadow-lg shadow-primary/20"
               disabled={loading || !query.trim() || !folderId || (preview && preview.error)}
               onClick={handleIngest}
             >
@@ -136,7 +136,7 @@ export function CypherIngest({ folderId, onSuccess }) {
         {/* Status/Preview Side */}
         <div className="space-y-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent/10 text-accent">
               <Database className="w-5 h-5" />
             </div>
             <div>
@@ -151,7 +151,7 @@ export function CypherIngest({ folderId, onSuccess }) {
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-3 py-10">
                   <Sparkles className="w-8 h-8 text-muted-foreground/20" />
                   <p className="text-xs text-muted-foreground font-medium px-8 leading-relaxed">
-                    Write your Cypher query and click <span className="text-amber-500 font-bold">Analyze Syntax</span> to preview graph transformations.
+                    Write your Cypher query and click <span className="font-bold text-accent">Analyze Syntax</span> to preview graph transformations.
                   </p>
                 </div>
               )}
@@ -159,7 +159,7 @@ export function CypherIngest({ folderId, onSuccess }) {
               {preview && !result && (
                 <div className={cn(
                   "space-y-4 animate-in zoom-in-95 duration-300",
-                  preview.error ? "text-red-500" : "text-amber-500"
+                  preview.error ? "text-red-500" : "text-accent-foreground"
                 )}>
                   <div className="flex items-center justify-between border-b border-whiteAlpha.100 pb-3">
                     <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Syntax Validation</span>

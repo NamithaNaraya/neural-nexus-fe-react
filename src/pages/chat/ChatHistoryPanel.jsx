@@ -7,7 +7,7 @@ export const ChatHistoryPanel = React.memo(function ChatHistoryPanel({ chatHisto
   const safeHistory = Array.isArray(chatHistory) ? chatHistory : [];
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[26px] border border-border/50 bg-card/92 shadow-[0_24px_70px_-50px_rgba(92,72,58,0.45)] backdrop-blur-xl">
+    <div className="flex h-full flex-col overflow-hidden rounded-[26px] border border-border/50 bg-card/92 shadow-[0_24px_70px_-50px_rgba(25,119,65,0.24)] backdrop-blur-xl">
       <div className="flex items-start justify-between gap-3 border-b border-border/40 px-4 py-3.5">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">

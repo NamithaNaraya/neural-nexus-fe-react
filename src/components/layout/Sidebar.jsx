@@ -76,15 +76,15 @@ export function Sidebar() {
           'flex items-center gap-3 overflow-hidden transition-all duration-300',
           expanded ? 'w-full' : 'w-10 justify-center'
         )}>
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-emerald-500/20 bg-white shadow-lg shadow-emerald-500/15 shrink-0 dark:bg-slate-950">
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-primary/20 bg-white shadow-lg shadow-primary/15 shrink-0 dark:bg-slate-950">
             <img src={nessoLogo} alt="NESSO" className="h-full w-full object-contain p-1" />
           </div>
           <div className={cn(
             'transition-all duration-200 overflow-hidden whitespace-nowrap',
             expanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'
           )}>
-            <h1 className="font-extrabold text-base leading-tight text-emerald-600 dark:text-emerald-300">NESSO Botanica</h1>
-            <p className="text-[10px] font-medium tracking-widest uppercase text-emerald-600/60 dark:text-emerald-300/60">
+            <h1 className="font-extrabold text-base leading-tight text-primary dark:text-primary">NESSO Botanica</h1>
+            <p className="text-[10px] font-medium tracking-widest uppercase text-primary/60 dark:text-primary/60">
               Natural &amp; Essential Oils
             </p>
           </div>
@@ -168,7 +168,7 @@ export function Sidebar() {
           !expanded && 'justify-center p-2'
         )}>
           {/* Avatar */}
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-amber-700 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-teal-500 text-sm font-bold text-white shadow-sm shrink-0">
             {user?.email?.[0]?.toUpperCase() || 'U'}
           </div>
 

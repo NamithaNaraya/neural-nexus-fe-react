@@ -99,10 +99,10 @@ export default function UploadPage() {
   };
 
   const tabs = [
-    { id: 'pipeline', label: 'AI Extraction', icon: Brain, color: 'text-emerald-500' },
-    { id: 'excel', label: 'Excel/CSV Mapper', icon: FileSpreadsheet, color: 'text-emerald-400' },
-    { id: 'text', label: 'Paste Text', icon: FileText, color: 'text-blue-500' },
-    { id: 'cypher', label: 'Direct Injection', icon: Database, color: 'text-amber-500' },
+    { id: 'pipeline', label: 'File Upload', icon: Brain, color: 'text-primary' },
+    { id: 'excel', label: 'Excel/CSV Mapper', icon: FileSpreadsheet, color: 'text-teal-500' },
+    { id: 'text', label: 'Paste Text', icon: FileText, color: 'text-cyan-500' },
+    { id: 'cypher', label: 'Direct Query', icon: Database, color: 'text-teal-600' },
   ];
 
   return (
@@ -110,14 +110,14 @@ export default function UploadPage() {
       {/* Page Title */}
       <div className="min-w-0 space-y-1">
         <div className="min-w-0 space-y-1">
-          <Badge variant="outline" className="px-3 py-1 text-[10px] bg-emerald-500/10 text-emerald-500 border-none uppercase tracking-widest font-black">
-            Knowledge Ingestion
+          <Badge variant="outline" className="border-none bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
+            Data Upload
           </Badge>
           <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">
-            Supply <span className="gradient-text">Intelligence</span>
+            Upload <span className="gradient-text">Workspace Data</span>
           </h1>
           <p className="max-w-2xl text-[13px] font-medium text-muted-foreground">
-            Choose your ingestion method to transform documents, data, or raw text into connected knowledge graph nodes.
+            Add files, tables, text, or direct queries to the selected workspace.
           </p>
         </div>
       </div>
@@ -132,7 +132,7 @@ export default function UploadPage() {
               className={cn(
                 'relative flex min-w-0 flex-1 items-center justify-center gap-2.5 overflow-hidden rounded-2xl px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all duration-300 group sm:px-6',
                 activeTab === tab.id
-                  ? 'bg-emerald-500 text-white shadow-xl shadow-emerald-500/30'
+                  ? 'bg-primary text-white shadow-xl shadow-primary/20'
                   : 'text-muted-foreground hover:text-foreground hover:bg-whiteAlpha.100'
               )}
             >
@@ -174,7 +174,7 @@ export default function UploadPage() {
               </div>
               <div className="space-y-2">
                 <h3 className="text-xl font-black uppercase tracking-tight">No Active Workspace</h3>
-                <p className="text-sm text-muted-foreground max-w-sm font-medium">You must select a folder in the Folders library to define the ingestion context before supply intelligence.</p>
+                <p className="text-sm text-muted-foreground max-w-sm font-medium">Select a folder first to choose where uploaded data should go.</p>
               </div>
               <Button 
                 variant="gradient" 
@@ -190,8 +190,8 @@ export default function UploadPage() {
                 <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)] lg:gap-12">
                   <div className="min-w-0 space-y-8 animate-in slide-in-from-left-8 duration-500">
                     <div className="space-y-1">
-                      <h3 className="text-2xl font-black uppercase tracking-tight">Document Extraction</h3>
-                      <p className="text-sm text-muted-foreground font-medium">Auto-uncover entities and relationships using the 7-phase agentic pipeline.</p>
+                      <h3 className="text-2xl font-black uppercase tracking-tight">Upload Files</h3>
+                      <p className="text-sm text-muted-foreground font-medium">Drop files here and process them into the current workspace.</p>
                     </div>
 
                     {/* Drag & Drop Zone */}
@@ -203,8 +203,8 @@ export default function UploadPage() {
                       className={cn(
                         'relative border-2 border-dashed rounded-[32px] p-20 text-center transition-all duration-500 cursor-pointer group',
                         isDragging
-                          ? 'border-emerald-500 bg-emerald-500/5 scale-[1.02] shadow-2xl'
-                          : 'border-border/40 hover:border-emerald-500/40 hover:bg-emerald-500/5'
+                          ? 'border-primary bg-primary/5 scale-[1.02] shadow-2xl'
+                          : 'border-border/40 hover:border-primary/40 hover:bg-primary/5'
                       )}
                     >
                       <input id="file-upload" type="file" multiple accept=".pdf,.txt,.csv,.json,.md,.docx" onChange={handleFileSelect} className="hidden" />
@@ -212,16 +212,16 @@ export default function UploadPage() {
                       <div className="space-y-4">
                         <div className={cn(
                           'w-20 h-20 rounded-3xl mx-auto flex items-center justify-center transition-all duration-500',
-                          isDragging ? 'bg-emerald-500 text-white rotate-6 scale-110 shadow-xl' : 'bg-whiteAlpha.100 text-muted-foreground group-hover:text-emerald-500'
+                          isDragging ? 'bg-primary text-white rotate-6 scale-110 shadow-xl' : 'bg-whiteAlpha.100 text-muted-foreground group-hover:text-primary'
                         )}>
                           <CloudUpload className="w-10 h-10" />
                         </div>
                         <div>
                           <p className="text-lg font-black uppercase tracking-tight">
-                            {isDragging ? 'Release To Ingest' : 'Drop Intel Files'}
+                            {isDragging ? 'Release To Upload' : 'Drop Files Here'}
                           </p>
                           <p className="text-sm text-muted-foreground font-medium mt-1">
-                            or <span className="text-emerald-500 font-bold decoration-2 underline-offset-4 hover:underline">browse files</span> from unit
+                            or <span className="text-primary font-bold decoration-2 underline-offset-4 hover:underline">browse files</span> from your device
                           </p>
                         </div>
                       </div>
@@ -231,22 +231,22 @@ export default function UploadPage() {
                     {files.length > 0 && (
                       <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
                         <div className="flex items-center justify-between px-2">
-                          <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60">Transmission Queue ({files.length})</h4>
+                          <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60">Upload Queue ({files.length})</h4>
                           <button onClick={() => setFiles([])} className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:underline">Wipe All</button>
                         </div>
                         <div className="space-y-2 max-h-[250px] overflow-auto pr-2 custom-scrollbar">
                           {files.map((item, i) => (
                             <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-whiteAlpha.50 border border-border/10 group animate-in slide-in-from-right-4">
-                              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
+                              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
                                 <FileText className="w-5 h-5" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="truncate text-sm font-black text-foreground/90">{item.file.name}</p>
                                 <p className="text-[10px] text-muted-foreground font-bold">{formatSize(item.file.size)}</p>
                               </div>
-                              {item.status === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> :
+                              {item.status === 'success' ? <CheckCircle2 className="w-5 h-5 text-primary" /> :
                                item.status === 'error' ? <AlertCircle className="w-5 h-5 text-red-500" /> :
-                               item.status === 'uploading' ? <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" /> :
+                               item.status === 'uploading' ? <Loader2 className="w-5 h-5 text-primary animate-spin" /> :
                                <button onClick={(e) => { e.stopPropagation(); removeFile(i); }} className="p-2 rounded-xl hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"><X className="w-4 h-4" /></button>
                               }
                             </div>
@@ -254,18 +254,18 @@ export default function UploadPage() {
                         </div>
                         {uploading && (
                           <div className="w-full bg-whiteAlpha.100 rounded-full h-2 overflow-hidden shadow-inner">
-                            <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-300 shadow-lg shadow-emerald-500/50" style={{ width: `${uploadProgress}%` }} />
+                            <div className="h-full rounded-full bg-gradient-to-r from-primary to-teal-500 transition-all duration-300 shadow-lg shadow-primary/30" style={{ width: `${uploadProgress}%` }} />
                           </div>
                         )}
                         <Button
                           variant="gradient"
-                          className="w-full h-14 rounded-2xl gap-3 text-base font-black shadow-xl shadow-emerald-500/20"
+                          className="w-full h-14 rounded-2xl gap-3 text-base font-black shadow-xl shadow-primary/20"
                           disabled={uploading || files.every(f => f.status === 'success')}
                           onClick={handleUpload}
                         >
-                          {uploading ? <><Loader2 className="w-5 h-5 animate-spin" /> Extraction Active... {uploadProgress}%</> :
-                           files.every(f => f.status === 'success') ? <><CheckCircle2 className="w-5 h-5" /> Data Synchronized</> :
-                           <><Zap className="w-5 h-5" /> Start Extraction</>}
+                          {uploading ? <><Loader2 className="w-5 h-5 animate-spin" /> Uploading... {uploadProgress}%</> :
+                           files.every(f => f.status === 'success') ? <><CheckCircle2 className="w-5 h-5" /> Upload Complete</> :
+                           <><Zap className="w-5 h-5" /> Start Upload</>}
                         </Button>
                       </div>
                     )}
@@ -273,17 +273,17 @@ export default function UploadPage() {
 
                   <div className="hidden min-w-0 lg:block space-y-8 animate-in slide-in-from-right-8 duration-500">
                     <div className="space-y-1">
-                      <h3 className="text-xl font-black uppercase tracking-tight">Intelligence Guidance</h3>
-                      <p className="text-[11px] text-muted-foreground font-medium tracking-wide">Optimization steps for high-fidelity extraction.</p>
+                      <h3 className="text-xl font-black uppercase tracking-tight">Upload Notes</h3>
+                      <p className="text-[11px] text-muted-foreground font-medium tracking-wide">A quick guide for cleaner imports.</p>
                     </div>
                     <div className="space-y-6">
                       {[
-                        { title: 'Schema Recognition', desc: 'AI automatically identifies entities like Compounds, Mechanisms, and Data Points.', icon: Zap },
-                        { title: 'Semantic Resolution', desc: 'Identifies synonymous concepts and merges them based on folder context.', icon: Network },
-                        { title: 'Review Protocol', desc: 'Extracts are pushed to the Review Inbox for human verification before graph commit.', icon: CheckCircle2 },
+                        { title: 'Supported Files', desc: 'Use PDF, TXT, CSV, JSON, MD, or DOCX files for the upload flow.', icon: Zap },
+                        { title: 'Workspace Scope', desc: 'All imported content is attached to the currently selected folder.', icon: Network },
+                        { title: 'Review First', desc: 'Check the results before relying on them in graph and chat views.', icon: CheckCircle2 },
                       ].map((step, i) => (
-                        <div key={i} className="flex gap-4 p-5 rounded-3xl bg-whiteAlpha.50 border border-border/5 hover:border-emerald-500/20 transition-all group">
-                          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0 group-hover:scale-110 transition-transform">
+                        <div key={i} className="flex gap-4 rounded-3xl border border-border/5 bg-whiteAlpha.50 p-5 transition-all group hover:border-primary/20">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary shrink-0 transition-transform group-hover:scale-110">
                             <step.icon className="w-5 h-5" />
                           </div>
                           <div className="space-y-1">
@@ -300,8 +300,8 @@ export default function UploadPage() {
               {activeTab === 'text' && (
                 <div className="animate-in slide-in-from-right-8 duration-500">
                   <div className="mb-8 space-y-1">
-                    <h3 className="text-2xl font-black uppercase tracking-tight">Direct Intelligence Paste</h3>
-                    <p className="text-sm text-muted-foreground font-medium">Capture raw ideas or copy-pasted research for AI processing.</p>
+                    <h3 className="text-2xl font-black uppercase tracking-tight">Paste Text</h3>
+                    <p className="text-sm text-muted-foreground font-medium">Paste plain text directly into the current workspace.</p>
                   </div>
                   <TextIngest folderId={selectedFolderId} />
                 </div>
@@ -310,8 +310,8 @@ export default function UploadPage() {
               {activeTab === 'cypher' && (
                 <div className="animate-in slide-in-from-right-8 duration-500">
                   <div className="mb-8 space-y-1">
-                    <h3 className="text-2xl font-black uppercase tracking-tight">Logical Injections</h3>
-                    <p className="text-sm text-muted-foreground font-medium">Bypass AI and inject graph transformations directly via Cypher protocol.</p>
+                    <h3 className="text-2xl font-black uppercase tracking-tight">Direct Query</h3>
+                    <p className="text-sm text-muted-foreground font-medium">Run a direct graph query in the current workspace.</p>
                   </div>
                   <CypherIngest folderId={selectedFolderId} />
                 </div>
@@ -320,8 +320,8 @@ export default function UploadPage() {
               {activeTab === 'excel' && (
                 <div className="animate-in slide-in-from-right-8 duration-500">
                   <div className="mb-8 space-y-1">
-                    <h3 className="text-2xl font-black uppercase tracking-tight">Structured Knowledge Mapper</h3>
-                    <p className="text-sm text-muted-foreground font-medium">Manually map tabular data (Excel/CSV) to graph concepts with deterministic logic.</p>
+                    <h3 className="text-2xl font-black uppercase tracking-tight">Table Mapper</h3>
+                    <p className="text-sm text-muted-foreground font-medium">Map Excel or CSV columns into graph fields step by step.</p>
                   </div>
                   <ExcelMapper folderId={selectedFolderId} />
                 </div>

@@ -17,7 +17,7 @@ export function TextIngest({ folderId, onSuccess }) {
     setResult(null);
     try {
       const data = await uploadService.ingestText(folderId, content, title);
-      setResult({ success: true, message: 'Text successfully queued for AI extraction.' });
+      setResult({ success: true, message: 'Text was added successfully.' });
       setTitle('');
       setContent('');
       if (onSuccess) onSuccess(data);
@@ -45,27 +45,27 @@ export function TextIngest({ folderId, onSuccess }) {
       <div className="grid grid-cols-1 gap-6">
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-emerald-500/70">Content Title</Label>
+            <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70">Title</Label>
             <Input
-              placeholder="e.g., Clinical trial notes for BioActive-X"
+              placeholder="Enter a short title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="h-12 rounded-2xl border-border/40 bg-background/50 focus:ring-emerald-500/20"
+              className="h-12 rounded-2xl border-border/40 bg-background/50 focus:ring-primary/20"
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-emerald-500/70">Quick Paste Text Area</Label>
+            <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70">Text</Label>
             <textarea
-              placeholder="Paste raw text, notes, or transcriptions here..."
-              className="flex min-h-[300px] w-full rounded-3xl border border-border/40 bg-background/50 px-5 py-4 text-sm font-medium leading-relaxed transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 custom-scrollbar"
+              placeholder="Paste text here..."
+              className="flex min-h-[300px] w-full rounded-3xl border border-border/40 bg-background/50 px-5 py-4 text-sm font-medium leading-relaxed transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 custom-scrollbar"
               value={content}
               onChange={(e) => setContent(e.target.value)}
             />
           </div>
 
           {result && (
-            <div className={`p-4 rounded-2xl flex items-center gap-3 border ${result.success ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+            <div className={`flex items-center gap-3 rounded-2xl border p-4 ${result.success ? 'border-primary/20 bg-primary/10 text-primary' : 'border-red-500/20 bg-red-500/10 text-red-500'}`}>
               {result.success ? <CheckCircle2 className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
               <p className="text-xs font-bold">{result.message}</p>
             </div>
@@ -73,17 +73,17 @@ export function TextIngest({ folderId, onSuccess }) {
 
           <Button
             variant="gradient"
-            className="w-full h-14 rounded-2xl gap-3 text-base font-black shadow-xl shadow-emerald-500/20 group overflow-hidden relative"
+            className="group relative h-14 w-full rounded-2xl gap-3 overflow-hidden text-base font-black shadow-xl shadow-primary/20"
             disabled={loading || !content.trim() || !title.trim() || !folderId}
             onClick={handleIngest}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+            <div className="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-primary/20 to-transparent transition-transform duration-1000 group-hover:translate-x-[100%]" />
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <Brain className="w-5 h-5 transition-transform group-hover:scale-110" />
             )}
-            <span>{loading ? 'Analyzing Content...' : 'Verify & Extract Knowledge'}</span>
+            <span>{loading ? 'Saving Text...' : 'Add Text'}</span>
           </Button>
         </div>
       </div>

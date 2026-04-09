@@ -10,7 +10,7 @@ export function GlobalGraphSearch({
   onJumpToNode,
 }) {
   return (
-    <div className="relative z-30 min-w-[240px] max-w-[360px] flex-1">
+    <div className="relative z-30 min-w-[240px] flex-1 xl:max-w-[360px]">
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         value={value}

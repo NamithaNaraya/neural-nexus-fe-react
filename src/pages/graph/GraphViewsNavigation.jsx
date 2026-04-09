@@ -1,21 +1,24 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-export function GraphViewsNavigation({ sections, basePath = '/graph' }) {
+
+export function GraphViewsNavigation({ sections, basePath = '/graph', toolsButton = null }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {sections.map((group) => (
-        <div key={group.label} className="space-y-2">
-          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">{group.label}</div>
-          <div className="flex flex-wrap gap-2">
+        <div key={group.label} className="space-y-1.5">
+          <div className="pl-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">{group.label}</div>
+          <div className="flex flex-wrap items-center gap-2">
+            {toolsButton}
             {group.items.map(({ path, label, icon: Icon }) => (
               <NavLink
                 key={path}
                 to={`${basePath}/${path}`}
                 className={({ isActive }) =>
-                  `px-4 py-2 rounded-lg border text-sm font-medium ${isActive ? 'bg-primary text-white border-primary' : 'bg-muted/10 text-muted-foreground border-border hover:bg-muted/20'}`
+                  `inline-flex h-10 items-center rounded-full border px-4 text-sm font-medium transition ${isActive ? 'border-primary bg-primary text-white shadow-sm' : 'border-border bg-muted/10 text-muted-foreground hover:bg-muted/20'}`
                 }
               >
-                <Icon className="w-4 h-4 mr-1 inline" /> {label}
+                <Icon className="mr-1.5 h-4 w-4" />
+                {label}
               </NavLink>
             ))}
           </div>

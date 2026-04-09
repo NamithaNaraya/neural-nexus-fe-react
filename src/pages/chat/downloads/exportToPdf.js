@@ -16,7 +16,7 @@ export const exportToPdf = ({ messages, folderName, sessionTitle }) => {
     const contentWidth = pageWidth - margin * 2;
     let y = margin;
 
-    const accentColor = [16, 185, 129]; // Emerald
+const accentColor = [25, 119, 65];
     const dateStr = new Date().toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'long', 

@@ -3,13 +3,13 @@ import { Badge as ChakraBadge } from '@chakra-ui/react';
 import { cn } from '../../utils/cn';
 
 const badgeVariants = {
-  default: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  default: 'bg-primary/10 text-primary border-primary/20',
   secondary: 'bg-secondary text-secondary-foreground border-secondary',
   destructive: 'bg-destructive/15 text-red-500 border-destructive/20',
   outline: 'text-foreground border-border',
-  success: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-300',
-  warning: 'bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-300',
-  info: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  success: 'bg-primary/15 text-primary border-primary/30 dark:text-primary',
+  warning: 'bg-accent/20 text-accent-foreground border-accent/40 dark:text-accent',
+  info: 'bg-secondary text-secondary-foreground border-secondary',
 };
 
 export function Badge({ className, variant = 'default', children, ...props }) {
@@ -31,9 +31,9 @@ export function Badge({ className, variant = 'default', children, ...props }) {
 // Specialized status badge with animated dot
 export function StatusBadge({ status, label, className }) {
   const statusConfig = {
-    healthy: { color: 'bg-emerald-500', variant: 'success', text: label || 'Healthy' },
-    up: { color: 'bg-emerald-500', variant: 'success', text: label || 'Online' },
-    degraded: { color: 'bg-amber-600', variant: 'warning', text: label || 'Degraded' },
+    healthy: { color: 'bg-primary', variant: 'success', text: label || 'Healthy' },
+    up: { color: 'bg-primary', variant: 'success', text: label || 'Online' },
+    degraded: { color: 'bg-accent', variant: 'warning', text: label || 'Degraded' },
     unhealthy: { color: 'bg-red-400', variant: 'destructive', text: label || 'Offline' },
     down: { color: 'bg-red-400', variant: 'destructive', text: label || 'Down' },
   };

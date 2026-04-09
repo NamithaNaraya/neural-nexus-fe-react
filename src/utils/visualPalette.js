@@ -1,28 +1,29 @@
 /**
- * NESSO Branded Palette for Data Visualizations.
- * These colors are synchronized with the laboratory emerald identity.
+ * NESSO branded palette aligned to the core 5-color system.
  */
 
 export const BRAND_COLORS = {
-  emerald: '#10B981', // emerald-500
-  sage: '#14B8A6',    // teal-500
-  amber: '#F59E0B',   // amber-500
-  slate: '#64748B',   // slate-500
-  cyan: '#06B6D4',    // cyan-500
-  violet: '#8B5CF6',  // violet-500
-  rose: '#F43F5E',    // rose-500
-  lime: '#84CC16',    // lime-500
+  forest: '#197741',
+  cloud: '#fafbfb',
+  citron: '#e9d319',
+  mint: '#95c9ac',
+  moss: '#7cac94',
+  emerald: '#197741',
+  sage: '#95c9ac',
+  amber: '#7cac94',
+  slate: '#7cac94',
+  cyan: '#95c9ac',
+  violet: '#7cac94',
+  rose: '#7cac94',
+  lime: '#95c9ac',
 };
 
 export const VISUAL_PALETTE = [
-  BRAND_COLORS.emerald,
-  BRAND_COLORS.amber,
-  BRAND_COLORS.sage,
-  BRAND_COLORS.violet,
-  BRAND_COLORS.cyan,
-  BRAND_COLORS.rose,
-  BRAND_COLORS.lime,
-  BRAND_COLORS.slate,
+  BRAND_COLORS.forest,
+  BRAND_COLORS.citron,
+  BRAND_COLORS.mint,
+  BRAND_COLORS.moss,
+  BRAND_COLORS.cloud,
 ];
 
 export const getStatusColor = (status) => {
@@ -30,16 +31,16 @@ export const getStatusColor = (status) => {
     case 'success':
     case 'healthy':
     case 'up':
-      return BRAND_COLORS.emerald;
+      return BRAND_COLORS.forest;
     case 'warning':
     case 'degraded':
-      return BRAND_COLORS.amber;
+      return BRAND_COLORS.citron;
     case 'error':
     case 'danger':
     case 'unhealthy':
     case 'down':
-      return BRAND_COLORS.rose;
+      return BRAND_COLORS.moss;
     default:
-      return BRAND_COLORS.slate;
+      return BRAND_COLORS.mint;
   }
 };

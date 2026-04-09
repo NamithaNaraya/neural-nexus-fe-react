@@ -889,7 +889,7 @@ export default function ChatPage() {
     <>
     <div className="-mx-6 -my-5 flex h-[calc(100vh-theme(spacing.16))] w-[calc(100%+theme(spacing.12))] flex-col bg-gradient-to-br from-background via-background to-muted/20">
       <div className="px-6 pt-4">
-        <section className="rounded-[28px] border border-border/50 bg-card/75 px-5 py-3.5 shadow-[0_18px_50px_-36px_rgba(92,72,58,0.35)] backdrop-blur-xl">
+        <section className="rounded-[28px] border border-border/50 bg-card/75 px-5 py-3.5 shadow-[0_18px_50px_-36px_rgba(25,119,65,0.22)] backdrop-blur-xl">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0 space-y-1.5">
               <div className="space-y-1">
@@ -966,7 +966,7 @@ export default function ChatPage() {
         <div className="flex min-h-0 flex-1 gap-0 lg:gap-4">
           <div
             className={cn(
-              'flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-border/50 bg-card/75 shadow-[0_24px_70px_-48px_rgba(92,72,58,0.45)] backdrop-blur-xl',
+              'flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-border/50 bg-card/75 shadow-[0_24px_70px_-48px_rgba(25,119,65,0.24)] backdrop-blur-xl',
               isHistoryOpen ? 'lg:border-r-0 lg:rounded-r-none' : ''
             )}
           >
@@ -1022,7 +1022,7 @@ export default function ChatPage() {
             )}
             aria-hidden={!isHistoryOpen}
           >
-            <div className="h-full overflow-hidden rounded-[32px] rounded-l-none border border-border/50 border-l-0 bg-card/75 shadow-[0_24px_70px_-48px_rgba(92,72,58,0.45)] backdrop-blur-xl">
+            <div className="h-full overflow-hidden rounded-[32px] rounded-l-none border border-border/50 border-l-0 bg-card/75 shadow-[0_24px_70px_-48px_rgba(25,119,65,0.24)] backdrop-blur-xl">
               <Suspense fallback={<ChatHistorySkeleton />}>
                 <ChatHistoryPanel
                   chatHistory={chatHistory}

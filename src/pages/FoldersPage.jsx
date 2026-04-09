@@ -350,7 +350,7 @@ export default function FoldersPage() {
           </div>
           <Button
             variant="gradient"
-            className="h-11 gap-2 shrink-0 rounded-2xl px-6 font-bold shadow-lg shadow-emerald-500/20 bg-gradient-to-br from-emerald-500 to-emerald-700"
+                className="h-11 shrink-0 gap-2 rounded-2xl bg-primary px-6 font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90"
             onClick={() => setShowCreate(!showCreate)}
           >
             <Plus className="w-5 h-5" />

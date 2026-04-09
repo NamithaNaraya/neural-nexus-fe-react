@@ -396,24 +396,36 @@ export default function GraphPage() {
       <div className="relative z-20 mx-4 mt-1 flex-shrink-0 overflow-visible">
         <Card variant="branded" className="overflow-visible border-border/60">
         <CardContent className="overflow-visible space-y-3 p-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 text-xs font-bold uppercase tracking-wider text-emerald-600 hover:bg-emerald-500/15"
-                type="button"
-                onClick={() => setToolsOpen((value) => !value)}
-                aria-label={toolsOpen ? 'Close tools' : 'Open tools'}
-                title={toolsOpen ? 'Close tools' : 'Open tools'}
-              >
-                <Compass className="h-4 w-4" />
-                Tools
-              </Button>
-              <GraphViewsNavigation sections={knowledgeGraphSections} basePath="/graph" />
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+            <div className="flex min-w-0 flex-1 xl:max-w-[58%]">
+              <div className="min-w-0">
+                <GraphViewsNavigation
+                  sections={knowledgeGraphSections}
+                  basePath="/graph"
+                  toolsButton={(
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={[
+                        'h-10 gap-2 rounded-full border px-4 text-xs font-bold uppercase tracking-[0.18em] transition',
+                        toolsOpen
+                          ? 'border-primary/30 bg-primary/12 text-primary shadow-sm'
+                          : 'border-primary/18 bg-primary/4 text-primary/80 hover:bg-primary/8 hover:text-primary',
+                      ].join(' ')}
+                      type="button"
+                      onClick={() => setToolsOpen((value) => !value)}
+                      aria-label={toolsOpen ? 'Close tools' : 'Open tools'}
+                      title={toolsOpen ? 'Close tools' : 'Open tools'}
+                    >
+                      <Compass className="h-4 w-4" />
+                      Tools
+                    </Button>
+                  )}
+                />
+              </div>
             </div>
 
-            <div className="flex min-w-0 flex-1 items-center justify-end gap-2 overflow-visible">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 overflow-visible xl:self-end">
               <GlobalGraphSearch
                 value={nodeSearch}
                 onChange={setNodeSearch}
@@ -428,10 +440,10 @@ export default function GraphPage() {
                 type="button"
                 onClick={() => setEditMode(editMode === 'add-node' ? 'view' : 'add-node')}
                 className={[
-                  "rounded-full px-4 py-2 text-sm font-medium shadow-lg transition",
+                  "inline-flex h-10 items-center rounded-full px-4 text-sm font-medium shadow-lg transition",
                   editMode === 'add-node' 
-                    ? "bg-amber-100 text-amber-800 border border-amber-300 ring-4 ring-amber-500/20" 
-                    : "bg-gradient-to-r from-emerald-600 to-amber-700 text-white shadow-emerald-500/20 hover:from-emerald-700 hover:to-amber-800"
+                    ? "border border-teal-300 bg-teal-100 text-teal-800 ring-4 ring-teal-500/20" 
+                    : "bg-primary text-white shadow-primary/20 hover:bg-primary/90"
                 ].join(' ')}
               >
                 {editMode === 'add-node' ? 'Place Node...' : 'Add Node'}
@@ -440,15 +452,15 @@ export default function GraphPage() {
                 type="button"
                 onClick={() => setEditMode(editMode === 'add-link' ? 'view' : 'add-link')}
                 className={[
-                  "rounded-full px-4 py-2 text-sm font-medium shadow-lg transition",
+                  "inline-flex h-10 items-center rounded-full px-4 text-sm font-medium shadow-lg transition",
                   editMode === 'add-link' 
-                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300 ring-4 ring-emerald-500/20" 
-                    : "bg-slate-900 text-white hover:bg-slate-800"
+                    ? "border border-primary/30 bg-primary/10 text-primary ring-4 ring-primary/15" 
+                    : "bg-teal-600 text-white shadow-teal-500/20 hover:bg-teal-700"
                 ].join(' ')}
               >
                 {editMode === 'add-link' ? 'Select Nodes...' : 'Add Relation'}
               </button>
-              <div className="hidden items-center gap-2 rounded-full border border-border/40 bg-background/60 px-3 py-1.5 text-xs text-muted-foreground md:flex">
+              <div className="hidden h-10 items-center gap-2 rounded-full border border-border/40 bg-background/60 px-3 text-xs text-muted-foreground md:flex">
                 <span>{Number(graphStats.nodes || 0).toLocaleString()} nodes</span>
                 <span className="text-border">•</span>
                 <span>{Number(graphStats.links || 0).toLocaleString()} relationships</span>

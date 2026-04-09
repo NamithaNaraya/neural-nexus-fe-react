@@ -35,9 +35,9 @@ export function AppLayout({ children }) {
               className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
             >
               {theme === 'dark' ? (
-                <Sun className="h-[18px] w-[18px] text-amber-600" />
+                <Sun className="h-[18px] w-[18px] text-accent" />
               ) : (
-                <Moon className="h-[18px] w-[18px] text-emerald-600" />
+                <Moon className="h-[18px] w-[18px] text-primary" />
               )}
             </button>
 
@@ -49,7 +49,7 @@ export function AppLayout({ children }) {
 
         <main className="relative flex-1 overflow-auto">
           <div className="absolute inset-0 -z-10 bg-gradient-to-br from-background via-background to-primary/[0.02]" />
-          <div className="absolute right-0 top-0 -z-10 h-[600px] w-[600px] rounded-full bg-emerald-500/[0.04] blur-[120px]" />
+          <div className="absolute right-0 top-0 -z-10 h-[600px] w-[600px] rounded-full bg-primary/[0.04] blur-[120px]" />
 
           <div className="flex h-full w-full flex-col px-6 py-5">
             {children}
