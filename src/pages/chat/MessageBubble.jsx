@@ -316,7 +316,7 @@ const AnimatedDots = ({ tone = 'neutral' }) => {
   );
 };
 
-export const MessageBubble = React.memo(function MessageBubble({ message, onWebSearch, messageIndex }) {
+function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
   const isUser = message.role === 'user';
   const isError = message.isError;
   const isWebSearch = message.isWebSearch;
@@ -356,7 +356,7 @@ export const MessageBubble = React.memo(function MessageBubble({ message, onWebS
           'prose prose-sm max-w-none break-words whitespace-normal w-full',
           isUser ? 'prose-stone dark:prose-invert' : 'dark:prose-invert'
         )}>
-          {hasAssistantText ? renderMarkdownContent(cleanedContent) : null}
+          {hasAssistantText ? (message.isStreaming ? <StreamingText text={cleanedContent} /> : renderMarkdownContent(cleanedContent)) : null}
           {message.isStreaming && !hasAssistantText && (
             <AnimatedDots />
           )}
@@ -394,7 +394,7 @@ export const MessageBubble = React.memo(function MessageBubble({ message, onWebS
                 <span className="text-xs font-semibold uppercase tracking-wide">Web Answer</span>
             </div>
             <div className="prose prose-sm max-w-none break-words whitespace-normal w-full text-stone-800 dark:prose-invert dark:text-stone-100">
-              {hasWebSearchText ? renderMarkdownContent(cleanedWebSearchAnswer) : null}
+              {hasWebSearchText ? (message.isStreamingWebSearch ? <StreamingText text={cleanedWebSearchAnswer} /> : renderMarkdownContent(cleanedWebSearchAnswer)) : null}
               {message.isStreamingWebSearch && !hasWebSearchText && (
                 <AnimatedDots tone="amber" />
               )}
@@ -432,7 +432,22 @@ export const MessageBubble = React.memo(function MessageBubble({ message, onWebS
       </div>
     </div>
   );
-});
+}
+
+export const MessageBubble = React.memo(
+  MessageBubbleComponent,
+  (prevProps, nextProps) =>
+    prevProps.message === nextProps.message
+    && prevProps.messageIndex === nextProps.messageIndex
+);
+
+function StreamingText({ text }) {
+  return (
+    <p className="mb-0 whitespace-pre-wrap leading-[1.75] text-stone-800 dark:text-stone-100">
+      {text}
+    </p>
+  );
+}
 
 export const TypingIndicator = React.memo(function TypingIndicator() {
   return (

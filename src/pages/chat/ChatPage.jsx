@@ -1,8 +1,9 @@
-import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { RotateCcw, PanelRightClose, Download, ChevronDown, FileText, FileJson, SquarePen } from 'lucide-react';
 import { MessageBubble, TypingIndicator } from './MessageBubble';
 import { ChatInput } from './ChatInput';
+import { VirtualMessageList } from './components/VirtualMessageList';
 const ChatHistoryPanel = React.lazy(() =>
   import('./ChatHistoryPanel').then((m) => ({ default: m.ChatHistoryPanel }))
 );
@@ -168,6 +169,8 @@ export default function ChatPage() {
     [workspace.currentSessionId, workspace.sessions]
   );
   const messages = activeSession?.messages?.length ? activeSession.messages : [WELCOME_MESSAGE];
+  const deferredMessages = useDeferredValue(messages);
+  const activeSessionMessageCount = activeSession?.messages?.length ?? 0;
   const chatHistory = useMemo(
     () => (Array.isArray(workspace?.sessions) ? workspace.sessions : [])
       .filter(Boolean)
@@ -179,8 +182,27 @@ export default function ChatPage() {
     [workspace.sessions]
   );
   const hasPendingWebSearchMessage = messages.some((message) => message?.webSearchPending);
+  const hasActiveStream = messages.some((message) => message?.isStreaming || message?.isStreamingWebSearch || message?.webSearchPending);
+  const virtualItems = useMemo(() => {
+    const baseItems = deferredMessages.map((message, index) => ({
+      type: 'message',
+      key: `message-${index}`,
+      message,
+      index,
+    }));
 
-  const normalizeBackendMessages = (rawMessages = []) => {
+    const lastMsg = deferredMessages[deferredMessages.length - 1];
+    const isWaitingForFirstToken = !lastMsg || lastMsg.role !== 'assistant' || !lastMsg.content;
+    const shouldShowTyping = loading && !lastMsg?.isStreaming && !hasPendingWebSearchMessage && isWaitingForFirstToken;
+
+    if (shouldShowTyping) {
+      baseItems.push({ type: 'typing', key: 'typing-indicator' });
+    }
+
+    return baseItems;
+  }, [deferredMessages, hasPendingWebSearchMessage, loading]);
+
+  const normalizeBackendMessages = useCallback((rawMessages = []) => {
     if (!Array.isArray(rawMessages)) return [];
     const result = [];
     for (const msg of rawMessages) {
@@ -219,7 +241,7 @@ export default function ChatPage() {
       result.push(normalizedMessage);
     }
     return result;
-  };
+  }, []);
 
   const scrollToBottom = (behavior = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
@@ -327,7 +349,7 @@ export default function ChatPage() {
 
     const currentSession = workspace.sessions.find((s) => s.id === workspace.currentSessionId);
     // Only hydrate if we have no messages (except welcome) AND it's not a brand new local session
-    const needsHydration = currentSession && (!currentSession.messages || currentSession.messages.length <= 1);
+    const needsHydration = currentSession && (!currentSession.messages || currentSession.messages.length <= 1) && !currentSession.isLocalOnly;
     
     if (!needsHydration) return;
 
@@ -360,30 +382,50 @@ export default function ChatPage() {
 
     loadActiveSessionHistory();
     return () => { cancelled = true; };
-  }, [isWorkspaceLoading, user?.id, workspace.currentSessionId, workspace.sessions.length]);
+  }, [activeSessionMessageCount, isWorkspaceLoading, user?.id, workspace.currentSessionId, normalizeBackendMessages]);
 
   useEffect(() => {
     if (!hasHydratedWorkspaceRef.current) return;
+    if (hasActiveStream) return;
     if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+      if (typeof window !== 'undefined' && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(saveTimeoutRef.current);
+      } else {
+        clearTimeout(saveTimeoutRef.current);
+      }
     }
-    saveTimeoutRef.current = setTimeout(() => {
+
+    const persistWorkspaceIdle = () => {
       saveChatWorkspace(userKey, workspace);
       saveTimeoutRef.current = null;
-    }, 180);
+    };
+
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+      saveTimeoutRef.current = window.requestIdleCallback(persistWorkspaceIdle, { timeout: 1200 });
+    } else {
+      saveTimeoutRef.current = setTimeout(persistWorkspaceIdle, 260);
+    }
 
     return () => {
       if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
+        if (typeof window !== 'undefined' && typeof window.cancelIdleCallback === 'function') {
+          window.cancelIdleCallback(saveTimeoutRef.current);
+        } else {
+          clearTimeout(saveTimeoutRef.current);
+        }
       }
     };
-  }, [workspace, userKey]);
+  }, [workspace, userKey, hasActiveStream]);
 
   // Safety net: save workspace before page close/refresh
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
+        if (typeof window !== 'undefined' && typeof window.cancelIdleCallback === 'function') {
+          window.cancelIdleCallback(saveTimeoutRef.current);
+        } else {
+          clearTimeout(saveTimeoutRef.current);
+        }
         saveTimeoutRef.current = null;
       }
       saveChatWorkspace(userKey, workspace);
@@ -392,22 +434,12 @@ export default function ChatPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [workspace, userKey]);
 
-  if (isWorkspaceLoading) {
-      <div className="flex min-h-[calc(100vh-theme(spacing.16))] items-center justify-center p-6">
-        <div className="w-full max-w-xs rounded-4xl border border-emerald-500/20 bg-card/80 p-8 text-center shadow-2xl backdrop-blur-xl">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-          <h2 className="mt-6 text-lg font-black tracking-tight text-foreground">Initialising Environment</h2>
-          <p className="mt-2 text-[13px] text-muted-foreground font-medium">Synchronising secure sessions...</p>
-        </div>
-      </div>
-  }
-
-  const persistWorkspace = (nextWorkspace) => {
+  const persistWorkspace = useCallback((nextWorkspace) => {
     setWorkspace(nextWorkspace);
     saveChatWorkspace(userKey, nextWorkspace);
-  };
+  }, [userKey]);
 
-  const updateCurrentSession = (updater) => {
+  const updateCurrentSession = useCallback((updater) => {
     setWorkspace((prev) => {
       const current = prev.sessions.find((session) => session.id === prev.currentSessionId);
       if (!current) return prev;
@@ -418,18 +450,18 @@ export default function ChatPage() {
       );
       return { currentSessionId: nextSession.id, sessions };
     });
-  };
+  }, []);
 
-  const updateMessageAtIndex = (index, updater) => {
+  const updateMessageAtIndex = useCallback((index, updater) => {
     updateCurrentSession((session) => ({
       ...session,
       messages: session.messages.map((message, messageIndex) => (messageIndex === index ? updater(message) : message)),
       title: session.title || getSessionTitleFromMessages(session.messages, getDefaultSessionTitle(currentFolder?.name || 'New Chat')),
       updatedAt: Date.now(),
     }));
-  };
+  }, [currentFolder?.name, updateCurrentSession]);
 
-  const performWebSearch = async ({ question, contextHint = '', messageIndex = null, appendMessage = false }) => {
+  const performWebSearch = useCallback(async ({ question, contextHint = '', messageIndex = null, appendMessage = false }) => {
     const searchQuery = (question || '').trim();
     if (!searchQuery) return;
 
@@ -546,7 +578,13 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    currentFolder?.name,
+    messages.length,
+    updateCurrentSession,
+    updateMessageAtIndex,
+    workspace.currentSessionId,
+  ]);
 
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -611,24 +649,28 @@ export default function ChatPage() {
 
       const flushStreamingUpdate = (force = false) => {
         const now = Date.now();
-        if (!force && now - lastUpdateTimestamp < 80) return; // Throttle to ~12fps for streaming
+        if (!force && now - lastUpdateTimestamp < 120) return;
         lastUpdateTimestamp = now;
+        const chunkToApply = accumulatedContent;
+        accumulatedContent = '';
+        if (!chunkToApply) return;
 
-        setWorkspace((prev) => {
-          const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
-          if (!session) return prev;
-          const msgs = [...session.messages];
-          const lastMsg = msgs[msgs.length - 1];
-          if (lastMsg?.role === 'assistant') {
-            msgs[msgs.length - 1] = { ...lastMsg, content: lastMsg.content + accumulatedContent };
-            accumulatedContent = ''; // Clear after flushing
-          }
-          return {
-            ...prev,
-            sessions: prev.sessions.map((s) =>
-              s.id === prev.currentSessionId ? { ...s, messages: msgs, updatedAt: Date.now() } : s
-            ),
-          };
+        startTransition(() => {
+          setWorkspace((prev) => {
+            const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
+            if (!session) return prev;
+            const msgs = [...session.messages];
+            const lastMsg = msgs[msgs.length - 1];
+            if (lastMsg?.role === 'assistant') {
+              msgs[msgs.length - 1] = { ...lastMsg, content: lastMsg.content + chunkToApply };
+            }
+            return {
+              ...prev,
+              sessions: prev.sessions.map((s) =>
+                s.id === prev.currentSessionId ? { ...s, messages: msgs } : s
+              ),
+            };
+          });
         });
       };
 
@@ -692,7 +734,7 @@ export default function ChatPage() {
         const nextWorkspace = {
           ...prev,
           sessions: prev.sessions.map((s) =>
-            s.id === prev.currentSessionId ? { ...s, messages: msgs, updatedAt: Date.now() } : s
+            s.id === prev.currentSessionId ? { ...s, messages: msgs, updatedAt: Date.now(), isLocalOnly: false } : s
           ),
         };
         saveChatWorkspace(userKey, nextWorkspace);
@@ -733,6 +775,7 @@ export default function ChatPage() {
       folderId: selectedFolderId || '',
       folderName: currentFolder?.name || '',
     });
+    nextSession.isLocalOnly = true;
     persistWorkspace({
       currentSessionId: nextSession.id,
       sessions: [nextSession, ...workspace.sessions],
@@ -837,6 +880,18 @@ export default function ChatPage() {
     }
   };
 
+  if (isWorkspaceLoading) {
+    return (
+      <div className="flex min-h-[calc(100vh-theme(spacing.16))] items-center justify-center p-6">
+        <div className="w-full max-w-xs rounded-4xl border border-emerald-500/20 bg-card/80 p-8 text-center shadow-2xl backdrop-blur-xl">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+          <h2 className="mt-6 text-lg font-black tracking-tight text-foreground">Initialising Environment</h2>
+          <p className="mt-2 text-[13px] text-muted-foreground font-medium">Synchronising secure sessions...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
     <div className="-mx-6 -my-5 flex h-[calc(100vh-theme(spacing.16))] w-[calc(100%+theme(spacing.12))] flex-col bg-gradient-to-br from-background via-background to-muted/20">
@@ -928,20 +983,27 @@ export default function ChatPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4 lg:px-6">
-            {messages.map((message, index) => (
-              <MessageBubble key={index} message={message} onWebSearch={performWebSearch} messageIndex={index} />
-            ))}
-            {loading && (() => {
-              const lastMsg = messages[messages.length - 1];
-              // Don't show typing dots if a streaming message already exists (it has its own cursor)
-              if (lastMsg?.isStreaming) return null;
-              // Show typing indicator only while waiting for first content token
-              const isWaitingForFirstToken = !lastMsg || lastMsg.role !== 'assistant' || !lastMsg.content;
-              return isWaitingForFirstToken && !hasPendingWebSearchMessage ? <TypingIndicator /> : null;
-            })()}
-            <div ref={messagesEndRef} />
-          </div>
+          <VirtualMessageList
+            items={virtualItems}
+            bottomRef={messagesEndRef}
+            className="flex-1 overflow-y-auto px-4 py-5 lg:px-6"
+            innerClassName="min-h-full"
+            renderItem={(item) => {
+              if (item.type === 'typing') {
+                return (
+                  <div className="pb-4">
+                    <TypingIndicator />
+                  </div>
+                );
+              }
+
+              return (
+                <div className="pb-4">
+                  <MessageBubble message={item.message} onWebSearch={performWebSearch} messageIndex={item.index} />
+                </div>
+              );
+            }}
+          />
 
           <ChatInput
             input={input}
