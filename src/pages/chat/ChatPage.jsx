@@ -14,6 +14,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ChatHistorySkeleton } from './components/ChatHistorySkeleton';
 import { cn } from '../../utils/cn';
 import { jsPDF } from 'jspdf';
+import { ChatPageSkeleton } from '../../components/skeletons/RoutePageSkeleton';
 import {
   WELCOME_MESSAGE,
   createBlankSession,
@@ -881,15 +882,7 @@ export default function ChatPage() {
   };
 
   if (isWorkspaceLoading) {
-    return (
-      <div className="flex min-h-[calc(100vh-theme(spacing.16))] items-center justify-center p-6">
-        <div className="w-full max-w-xs rounded-4xl border border-emerald-500/20 bg-card/80 p-8 text-center shadow-2xl backdrop-blur-xl">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-          <h2 className="mt-6 text-lg font-black tracking-tight text-foreground">Initialising Environment</h2>
-          <p className="mt-2 text-[13px] text-muted-foreground font-medium">Synchronising secure sessions...</p>
-        </div>
-      </div>
-    );
+    return <ChatPageSkeleton />;
   }
 
   return (
