@@ -45,6 +45,8 @@ export default function GraphForcePage({
   displayGraphData = null,
   traversalModeActive = false,
   traversalPath = [],
+  explorerModeActive = false,
+  onExplorerNodeClick = null,
   showNodeLabels = false,
   showRelationshipLabels = false,
   jumpRequest = null,
@@ -170,7 +172,7 @@ export default function GraphForcePage({
 
   // Filtering & Capping
   const processedGraph = useMemo(() => {
-    const rawData = traversalModeActive ? displayGraphData || graphDataProp || fullGraphData : fullGraphData;
+    const rawData = (traversalModeActive || explorerModeActive) ? displayGraphData || graphDataProp || fullGraphData : fullGraphData;
     const filtered = filterGraphData(rawData, {
       nodeTypeFilters,
       relationshipTypeFilters,
@@ -180,7 +182,7 @@ export default function GraphForcePage({
       searchResultIds,
     });
     return sanitizeGraphForRender(filtered, GRAPH_RENDER_LIMITS.canvas2d);
-  }, [traversalModeActive, displayGraphData, graphDataProp, fullGraphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch, searchResultIds]);
+  }, [traversalModeActive, explorerModeActive, displayGraphData, graphDataProp, fullGraphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch, searchResultIds]);
 
   const allSimulationNodes = useMemo(() => {
     const nextNodeIds = new Set(processedGraph.nodes.map((node) => String(node.id)));
@@ -284,8 +286,13 @@ export default function GraphForcePage({
   };
 
   const handleNodeClick = async (node) => {
+    if (explorerModeActive && onExplorerNodeClick) {
+      onExplorerNodeClick(node);
+      return;
+    }
     if (traversalModeActive && onTraversalNodeClick) {
       onTraversalNodeClick(node);
+      return;
     }
     setActiveNode(node);
     setActiveRelationship(null);
@@ -712,7 +719,7 @@ export default function GraphForcePage({
       window.cancelAnimationFrame(animationId);
       canvas.removeEventListener('mousemove', handleMouseOver);
     };
-  }, [allSimulationNodes, allSimulationLinks, visibleNodeIds, visibleLinkIds, highlightedNodeIds, highlightedLinkIds, showNodeLabels, showRelationshipLabels, activeNode, traversalModeActive, draggingNode, lockDraggedNodes]);
+  }, [allSimulationNodes, allSimulationLinks, visibleNodeIds, visibleLinkIds, highlightedNodeIds, highlightedLinkIds, showNodeLabels, showRelationshipLabels, activeNode, traversalModeActive, explorerModeActive, draggingNode, lockDraggedNodes]);
 
   // Handle Signal/Reset logic
   useEffect(() => {

@@ -8,18 +8,20 @@ import { GlobalFolderProvider } from './contexts/GlobalFolderContext';
 import { PredictedLinksProvider } from './contexts/PredictedLinksContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { ChakraAppProvider } from './providers/ChakraAppProvider';
+import { RoutePageSkeleton } from './components/skeletons/RoutePageSkeleton';
+import { pageLoaders } from './pages/pageLoaders';
 
-const LoginPage = lazy(() => import('./pages/LoginPage'));
-const FoldersPage = lazy(() => import('./pages/FoldersPage'));
-const GraphPage = lazy(() => import('./pages/GraphPage'));
-const ChatPage = lazy(() => import('./pages/chat/ChatPage'));
-const UploadPage = lazy(() => import('./pages/UploadPage'));
-const VisualizeDataPage = lazy(() => import('./pages/visualize/VisualizeDataPage'));
-const BrowsePage = lazy(() => import('./pages/BrowsePage'));
-const MLPredictionPage = lazy(() => import('./pages/InsightsPage'));
-const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
-const HelpPage = lazy(() => import('./pages/HelpPage'));
+const LoginPage = lazy(pageLoaders.login);
+const FoldersPage = lazy(pageLoaders.folders);
+const GraphPage = lazy(pageLoaders.graph);
+const ChatPage = lazy(pageLoaders.chat);
+const UploadPage = lazy(pageLoaders.upload);
+const VisualizeDataPage = lazy(pageLoaders.visualize);
+const BrowsePage = lazy(pageLoaders.browse);
+const MLPredictionPage = lazy(pageLoaders.mlPrediction);
+const AnalyticsPage = lazy(pageLoaders.analytics);
+const SettingsPage = lazy(pageLoaders.settings);
+const HelpPage = lazy(pageLoaders.help);
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -70,6 +72,9 @@ function AnimatedRoutes() {
 }
 
 function AppContent() {
+  const location = useLocation();
+  const protectedFallback = <RoutePageSkeleton pathname={location.pathname} />;
+
   return (
     <Routes>
       <Route
@@ -90,7 +95,7 @@ function AppContent() {
               <GlobalFolderProvider>
                 <PredictedLinksProvider>
                   <AppLayout>
-                    <Suspense fallback={null}>
+                    <Suspense fallback={protectedFallback}>
                       <AnimatedRoutes />
                     </Suspense>
                   </AppLayout>

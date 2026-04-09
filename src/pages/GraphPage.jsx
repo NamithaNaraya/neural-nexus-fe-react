@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { ChevronRight, Compass, MoveRight, Radar, RotateCcw, SlidersHorizontal, Sparkles, Spline, Waypoints } from 'lucide-react';
+import { ChevronRight, Compass, MoveRight, Radar, RotateCcw, SlidersHorizontal, Sparkles, Spline, Waypoints, Layout } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import GraphForcePage from './graph/GraphForcePage';
@@ -8,6 +8,7 @@ import GraphPropertyTablePage from './graph/GraphPropertyTablePage';
 import { GraphViewsNavigation } from './graph/GraphViewsNavigation';
 import { GraphWorkspaceSidebar } from './graph/GraphWorkspaceSidebar';
 import { knowledgeGraphSections } from './graph/graphViewSections';
+import { filterGraphForExpansion, toggleNodeExpansion } from './graph/expansionUtils';
 import { filterGraphForTraversal, resetTraversal, traverseBack, traverseToNode } from './graph/graphTraversalUtils';
 import { semanticSearchNodeIds } from './graph/semanticSearch';
 import { graphService } from '../services/graphService';
@@ -46,6 +47,11 @@ export default function GraphPage() {
   const [traversalPath, setTraversalPath] = useState([]);
   const [traversalVisibleNodeIds, setTraversalVisibleNodeIds] = useState(new Set());
   const [traversalVisibleLinkIds, setTraversalVisibleLinkIds] = useState(new Set());
+  
+  // Knowledge Explorer Mode State
+  const [explorerModeActive, setExplorerModeActive] = useState(false);
+  const [expandedNodeIds, setExpandedNodeIds] = useState(new Set());
+
   const [showNodeLabels, setShowNodeLabels] = useState(false);
   const [showRelationshipLabels, setShowRelationshipLabels] = useState(false);
   const [jumpRequest, setJumpRequest] = useState(null);
@@ -72,6 +78,7 @@ export default function GraphPage() {
   const toolOptions = useMemo(
     () => [
       { id: 'filters', label: 'Node Filter', icon: SlidersHorizontal },
+      { id: 'explorer', label: 'Explorer', icon: Sparkles },
       { id: 'traversal', label: 'Path Traversal', icon: Waypoints },
       { id: 'hop', label: 'Hop Finder', icon: Radar },
       { id: 'distance', label: 'Distance Finder', icon: MoveRight },
@@ -122,6 +129,8 @@ export default function GraphPage() {
     setTraversalPath(result.path);
     setTraversalVisibleNodeIds(result.visibleNodeIds);
     setTraversalVisibleLinkIds(result.visibleLinkIds);
+    setExplorerModeActive(false);
+    setExpandedNodeIds(new Set());
     setPathSummary(null);
     setHighlightedNodeIds(new Set());
     setHighlightedLinkIds(new Set());
@@ -169,6 +178,11 @@ export default function GraphPage() {
     [graphDataWithPredictions, traversalVisibleNodeIds, traversalVisibleLinkIds]
   );
 
+  const explorerGraphData = useMemo(
+    () => filterGraphForExpansion(graphDataWithPredictions, expandedNodeIds),
+    [graphDataWithPredictions, expandedNodeIds]
+  );
+
   const traversalPathNodes = useMemo(
     () => traversalPath
       .map((nodeId) => (graphDataWithPredictions.nodes || []).find((node) => String(node.id) === String(nodeId)))
@@ -207,6 +221,8 @@ export default function GraphPage() {
     setNodeTypeFilters(new Set());
     setRelationshipTypeFilters(new Set());
     setTraversalModeActive(false);
+    setExplorerModeActive(false);
+    setExpandedNodeIds(new Set());
     setTraversalPath(result.path);
     setTraversalVisibleNodeIds(result.visibleNodeIds);
     setTraversalVisibleLinkIds(result.visibleLinkIds);
@@ -298,6 +314,7 @@ export default function GraphPage() {
   };
 
   const handleTraversalToggle = () => {
+    setExplorerModeActive(false);
     setTraversalModeActive((value) => {
       const next = !value;
       const result = resetTraversal();
@@ -306,6 +323,20 @@ export default function GraphPage() {
       setTraversalVisibleLinkIds(result.visibleLinkIds);
       return next;
     });
+  };
+
+  const handleExplorerToggle = () => {
+    setTraversalModeActive(false);
+    setExplorerModeActive(v => {
+      const next = !v;
+      if (!next) setExpandedNodeIds(new Set());
+      return next;
+    });
+  };
+
+  const handleExplorerNodeClick = (node) => {
+    if (!node?.id) return;
+    setExpandedNodeIds(prev => toggleNodeExpansion(prev, String(node.id)));
   };
 
   const sharedGraphProps = {
@@ -322,12 +353,17 @@ export default function GraphPage() {
     traversalModeActive,
     traversalPath,
     traversalGraphData,
+    explorerModeActive,
+    expandedNodeIds,
+    explorerGraphData,
     showNodeLabels,
     showRelationshipLabels,
     jumpRequest,
     highlightedNodeIds,
     highlightedLinkIds,
     onTraversalToggle: handleTraversalToggle,
+    onExplorerToggle: handleExplorerToggle,
+    onExplorerNodeClick: handleExplorerNodeClick,
     onTraversalNodeClick: handleTraversalNodeClick,
     onTraversalBack: handleTraversalBack,
     onTraversalReset: handleTraversalReset,
@@ -543,6 +579,28 @@ export default function GraphPage() {
         </div>
       ) : null}
 
+      {explorerModeActive ? (
+        <div className="pointer-events-none absolute left-1/2 top-[92px] z-20 -translate-x-1/2">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-border/60 bg-card/92 px-4 py-2 shadow-2xl backdrop-blur-xl animate-in slide-in-from-top-4 duration-500">
+             <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-500" />
+                <span className="text-xs font-black uppercase tracking-widest text-foreground">Explorer Mode</span>
+             </div>
+             <div className="h-4 w-px bg-border/40" />
+             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
+                Click nodes to expand or collapse layers
+             </p>
+             <button
+              type="button"
+              onClick={handleExplorerToggle}
+              className="ml-2 rounded-xl bg-destructive/10 px-3 py-1 text-[10px] font-black uppercase text-destructive transition hover:bg-destructive/20"
+            >
+              Exit Explorer
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="relative mx-4 mb-3 mt-2 min-h-0 flex-1 overflow-hidden rounded-[28px] border border-border/60 bg-card shadow-[0_16px_38px_rgba(15,23,42,0.08)]">
         <Routes>
           <Route index element={<Navigate to="2d" replace />} />
@@ -551,7 +609,10 @@ export default function GraphPage() {
             element={
               <GraphForcePage
                 {...sharedGraphProps}
-                displayGraphData={traversalModeActive && traversalPath.length > 0 ? traversalGraphData : null}
+                displayGraphData={
+                  traversalModeActive && traversalPath.length > 0 ? traversalGraphData : 
+                  explorerModeActive ? explorerGraphData : null
+                }
               />
             }
           />
@@ -562,7 +623,10 @@ export default function GraphPage() {
               <Suspense fallback={<GraphViewLoader />}>
                 <GraphForceGraph3DPage
                   {...sharedGraphProps}
-                  displayGraphData={traversalModeActive && traversalPath.length > 0 ? traversalGraphData : null}
+                  displayGraphData={
+                    traversalModeActive && traversalPath.length > 0 ? traversalGraphData : 
+                    explorerModeActive ? explorerGraphData : null
+                  }
                 />
               </Suspense>
             }

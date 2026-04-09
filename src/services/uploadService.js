@@ -20,4 +20,39 @@ export const uploadService = {
 
     return response.data;
   },
+
+  // Ingest direct Cypher query
+  async ingestCypher(folderId, query, filename, fileId = null) {
+    const payload = {
+      query: String(query || ''),
+      folder_id: String(folderId || ''),
+      filename: String(filename || 'Direct Cypher Ingestion'),
+    };
+    if (fileId) {
+      payload.file_id = String(fileId);
+    }
+
+    const response = await api.post('/upload/cypher', payload);
+    return response.data;
+  },
+
+  // Ingest direct text
+  async ingestText(folderId, content, filename) {
+    const response = await api.post('/upload/text', {
+      content: String(content || ''),
+      filename: String(filename || `Text Ingestion ${new Date().toLocaleString()}`),
+      folder_id: String(folderId || ''),
+    });
+    return response.data;
+  },
+
+  // Preview Cypher query
+  async previewCypher(folderId, query) {
+    const response = await api.post('/upload/cypher/preview', {
+      query: String(query || ''),
+      folder_id: String(folderId || ''),
+    });
+    return response.data;
+  },
 };
+

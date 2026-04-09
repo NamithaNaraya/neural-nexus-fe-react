@@ -11,14 +11,22 @@ import {
   AlertCircle,
   X,
   Loader2,
-  FolderOpen,
+  Brain,
+  Database,
+  FileSpreadsheet,
+  Zap,
+  Network,
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { uploadService } from '../services/uploadService';
 import { useGlobalFolder } from '../contexts/GlobalFolderContext';
+import { TextIngest } from '../components/ingest/TextIngest';
+import { CypherIngest } from '../components/ingest/CypherIngest';
+import { ExcelMapper } from '../components/ingest/ExcelMapper';
 
 export default function UploadPage() {
   const { currentFolder, selectedFolderId } = useGlobalFolder();
+  const [activeTab, setActiveTab] = useState('pipeline');
   const [files, setFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -75,197 +83,253 @@ export default function UploadPage() {
       // Mark all as success
       setFiles(prev => prev.map(f => ({ ...f, status: 'success' })));
     } catch (err) {
-      const message = err.response?.data?.detail || 'Upload failed';
+      const detail = err.response?.data?.detail;
+      let message = 'Upload failed';
+      if (typeof detail === 'string') {
+        message = detail;
+      } else if (Array.isArray(detail)) {
+        message = detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+      } else if (detail && typeof detail === 'object') {
+        message = detail.msg || JSON.stringify(detail);
+      }
       setFiles(prev => prev.map(f => ({ ...f, status: 'error', error: message })));
-      alert(message);
     } finally {
       setUploading(false);
     }
   };
 
+  const tabs = [
+    { id: 'pipeline', label: 'AI Extraction', icon: Brain, color: 'text-emerald-500' },
+    { id: 'excel', label: 'Excel/CSV Mapper', icon: FileSpreadsheet, color: 'text-emerald-400' },
+    { id: 'text', label: 'Paste Text', icon: FileText, color: 'text-blue-500' },
+    { id: 'cypher', label: 'Direct Injection', icon: Database, color: 'text-amber-500' },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">
-          <span className="gradient-text">Upload & Ingest</span>
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Upload documents to extract knowledge and build your graph automatically.
-        </p>
+    <div className="mx-auto w-full max-w-[1360px] min-w-0 space-y-5 overflow-x-hidden px-2">
+      {/* Page Title */}
+      <div className="min-w-0 space-y-1">
+        <div className="min-w-0 space-y-1">
+          <Badge variant="outline" className="px-3 py-1 text-[10px] bg-emerald-500/10 text-emerald-500 border-none uppercase tracking-widest font-black">
+            Knowledge Ingestion
+          </Badge>
+          <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">
+            Supply <span className="gradient-text">Intelligence</span>
+          </h1>
+          <p className="max-w-2xl text-[13px] font-medium text-muted-foreground">
+            Choose your ingestion method to transform documents, data, or raw text into connected knowledge graph nodes.
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Upload Zone */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Folder selector */}
-          <Card variant="branded" className="backdrop-blur-xl transition-all hover:bg-card/80">
-            <CardContent className="p-5">
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 text-emerald-600/70">
-                  <FolderOpen className="w-3.5 h-3.5" />
-                  Target Workspace
-                </label>
-                {selectedFolderId ? (
-                  <div className="flex min-h-12 items-center justify-between rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 text-sm backdrop-blur-md">
-                    <span className="font-bold text-foreground">{currentFolder?.name || 'Selected folder'}</span>
-                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
-                      {Number(currentFolder?.file_count || 0).toLocaleString()} documents
-                    </span>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground flex items-center justify-between rounded-xl border border-dashed border-border/50 p-4">
-                    <span>No active folder selected.</span>
-                    <a href="/folders" className="text-emerald-600 font-bold hover:underline">Select Now</a>
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+      {/* Modern High-End Tabs */}
+      <div className="w-full max-w-full overflow-x-auto pb-1">
+        <div className="flex min-w-[920px] items-stretch gap-2 rounded-3xl border border-border/10 bg-blackAlpha.200 p-1.5 shadow-inner">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                'relative flex min-w-0 flex-1 items-center justify-center gap-2.5 overflow-hidden rounded-2xl px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all duration-300 group sm:px-6',
+                activeTab === tab.id
+                  ? 'bg-emerald-500 text-white shadow-xl shadow-emerald-500/30'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-whiteAlpha.100'
+              )}
+            >
+              {activeTab === tab.id && (
+                <div className="absolute inset-0 bg-gradient-to-r from-whiteAlpha.200 to-transparent animate-pulse" />
+              )}
+              <tab.icon className={cn("w-4 h-4 shrink-0 transition-transform group-hover:scale-110", activeTab === tab.id ? "text-white" : tab.color)} />
+              <span className="whitespace-nowrap">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
-          {/* Drop zone */}
-          <Card className="overflow-hidden">
-            <CardContent className="p-6">
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={cn(
-                  'relative border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300 cursor-pointer',
-                  isDragging
-                    ? 'border-primary bg-primary/5 scale-[1.01]'
-                    : 'border-border/50 hover:border-primary/40 hover:bg-muted/20'
-                )}
-                onClick={() => document.getElementById('file-upload').click()}
+      {!selectedFolderId && (
+        <div className="rounded-2xl border border-red-500/15 bg-red-500/5 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-red-600">
+              Select a folder first to define the upload destination.
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 rounded-xl bg-red-500/10 text-[10px] font-black text-red-500 hover:bg-red-500/20"
+              onClick={() => window.location.href='/folders'}
+            >
+              OPEN FOLDERS
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <Card className="flex min-h-[600px] w-full min-w-0 max-w-full flex-col overflow-hidden rounded-[32px] border-border/10 bg-card/60 shadow-2xl backdrop-blur-3xl">
+        <CardContent className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
+          {!selectedFolderId ? (
+            <div className="h-[500px] flex flex-col items-center justify-center text-center space-y-6">
+              <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 animate-pulse">
+                <AlertCircle className="w-10 h-10" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black uppercase tracking-tight">No Active Workspace</h3>
+                <p className="text-sm text-muted-foreground max-w-sm font-medium">You must select a folder in the Folders library to define the ingestion context before supply intelligence.</p>
+              </div>
+              <Button 
+                variant="gradient" 
+                className="h-12 rounded-2xl px-8 font-black shadow-lg shadow-emerald-500/20"
+                onClick={() => window.location.href='/folders'}
               >
-                <input
-                  id="file-upload"
-                  type="file"
-                  multiple
-                  accept=".pdf,.txt,.csv,.json,.md,.docx"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
+                Open Library
+              </Button>
+            </div>
+          ) : (
+            <>
+              {activeTab === 'pipeline' && (
+                <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)] lg:gap-12">
+                  <div className="min-w-0 space-y-8 animate-in slide-in-from-left-8 duration-500">
+                    <div className="space-y-1">
+                      <h3 className="text-2xl font-black uppercase tracking-tight">Document Extraction</h3>
+                      <p className="text-sm text-muted-foreground font-medium">Auto-uncover entities and relationships using the 7-phase agentic pipeline.</p>
+                    </div>
 
-                <div className="space-y-4">
-                  <div className={cn(
-                    'w-16 h-16 rounded-2xl mx-auto flex items-center justify-center transition-all duration-300',
-                    isDragging ? 'bg-primary/20 scale-110' : 'bg-muted/30'
-                  )}>
-                    <CloudUpload className={cn(
-                      'w-8 h-8 transition-colors',
-                      isDragging ? 'text-primary' : 'text-muted-foreground'
-                    )} />
-                  </div>
-
-                  <div>
-                    <p className="text-base font-medium">
-                      {isDragging ? 'Drop files here' : 'Drag & drop files here'}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      or <span className="text-primary font-medium">click to browse</span>
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {['PDF', 'TXT', 'CSV', 'JSON', 'MD', 'DOCX'].map(ext => (
-                      <Badge key={ext} variant="secondary" className="text-[10px]">{ext}</Badge>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* File list */}
-              {files.length > 0 && (
-                <div className="mt-6 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium">{files.length} file(s) selected</h3>
-                    <Button variant="ghost" size="sm" onClick={() => setFiles([])}>Clear all</Button>
-                  </div>
-
-                  {files.map((item, i) => (
+                    {/* Drag & Drop Zone */}
                     <div
-                      key={i}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/20 border border-border/30 transition-all duration-200"
-                    >
-                      <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{item.file.name}</p>
-                        <p className="text-xs text-muted-foreground">{formatSize(item.file.size)}</p>
-                      </div>
-
-                      {item.status === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
-                      {item.status === 'error' && <AlertCircle className="w-4 h-4 text-red-500" />}
-                      {item.status === 'uploading' && <Loader2 className="w-4 h-4 text-primary animate-spin" />}
-
-                      {item.status === 'pending' && (
-                        <button
-                          onClick={() => removeFile(i)}
-                          className="p-1 rounded hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => document.getElementById('file-upload').click()}
+                      className={cn(
+                        'relative border-2 border-dashed rounded-[32px] p-20 text-center transition-all duration-500 cursor-pointer group',
+                        isDragging
+                          ? 'border-emerald-500 bg-emerald-500/5 scale-[1.02] shadow-2xl'
+                          : 'border-border/40 hover:border-emerald-500/40 hover:bg-emerald-500/5'
                       )}
+                    >
+                      <input id="file-upload" type="file" multiple accept=".pdf,.txt,.csv,.json,.md,.docx" onChange={handleFileSelect} className="hidden" />
+                      
+                      <div className="space-y-4">
+                        <div className={cn(
+                          'w-20 h-20 rounded-3xl mx-auto flex items-center justify-center transition-all duration-500',
+                          isDragging ? 'bg-emerald-500 text-white rotate-6 scale-110 shadow-xl' : 'bg-whiteAlpha.100 text-muted-foreground group-hover:text-emerald-500'
+                        )}>
+                          <CloudUpload className="w-10 h-10" />
+                        </div>
+                        <div>
+                          <p className="text-lg font-black uppercase tracking-tight">
+                            {isDragging ? 'Release To Ingest' : 'Drop Intel Files'}
+                          </p>
+                          <p className="text-sm text-muted-foreground font-medium mt-1">
+                            or <span className="text-emerald-500 font-bold decoration-2 underline-offset-4 hover:underline">browse files</span> from unit
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  ))}
 
-                  {/* Progress bar */}
-                  {uploading && (
-                    <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-emerald-600 to-amber-700 rounded-full transition-all duration-300"
-                        style={{ width: `${uploadProgress}%` }}
-                      />
-                    </div>
-                  )}
-
-                  <Button
-                    variant="gradient"
-                    className="w-full mt-4 gap-2"
-                    disabled={uploading || !selectedFolderId || files.every(f => f.status === 'success')}
-                    onClick={handleUpload}
-                  >
-                    {uploading ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" /> Processing... {uploadProgress}%</>
-                    ) : files.every(f => f.status === 'success') ? (
-                      <><CheckCircle2 className="w-4 h-4" /> Uploaded Successfully</>
-                    ) : (
-                      <><UploadIcon className="w-4 h-4" /> Upload & Process</>
+                    {/* File List */}
+                    {files.length > 0 && (
+                      <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                        <div className="flex items-center justify-between px-2">
+                          <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60">Transmission Queue ({files.length})</h4>
+                          <button onClick={() => setFiles([])} className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:underline">Wipe All</button>
+                        </div>
+                        <div className="space-y-2 max-h-[250px] overflow-auto pr-2 custom-scrollbar">
+                          {files.map((item, i) => (
+                            <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-whiteAlpha.50 border border-border/10 group animate-in slide-in-from-right-4">
+                              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
+                                <FileText className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="truncate text-sm font-black text-foreground/90">{item.file.name}</p>
+                                <p className="text-[10px] text-muted-foreground font-bold">{formatSize(item.file.size)}</p>
+                              </div>
+                              {item.status === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> :
+                               item.status === 'error' ? <AlertCircle className="w-5 h-5 text-red-500" /> :
+                               item.status === 'uploading' ? <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" /> :
+                               <button onClick={(e) => { e.stopPropagation(); removeFile(i); }} className="p-2 rounded-xl hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"><X className="w-4 h-4" /></button>
+                              }
+                            </div>
+                          ))}
+                        </div>
+                        {uploading && (
+                          <div className="w-full bg-whiteAlpha.100 rounded-full h-2 overflow-hidden shadow-inner">
+                            <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-300 shadow-lg shadow-emerald-500/50" style={{ width: `${uploadProgress}%` }} />
+                          </div>
+                        )}
+                        <Button
+                          variant="gradient"
+                          className="w-full h-14 rounded-2xl gap-3 text-base font-black shadow-xl shadow-emerald-500/20"
+                          disabled={uploading || files.every(f => f.status === 'success')}
+                          onClick={handleUpload}
+                        >
+                          {uploading ? <><Loader2 className="w-5 h-5 animate-spin" /> Extraction Active... {uploadProgress}%</> :
+                           files.every(f => f.status === 'success') ? <><CheckCircle2 className="w-5 h-5" /> Data Synchronized</> :
+                           <><Zap className="w-5 h-5" /> Start Extraction</>}
+                        </Button>
+                      </div>
                     )}
-                  </Button>
+                  </div>
+
+                  <div className="hidden min-w-0 lg:block space-y-8 animate-in slide-in-from-right-8 duration-500">
+                    <div className="space-y-1">
+                      <h3 className="text-xl font-black uppercase tracking-tight">Intelligence Guidance</h3>
+                      <p className="text-[11px] text-muted-foreground font-medium tracking-wide">Optimization steps for high-fidelity extraction.</p>
+                    </div>
+                    <div className="space-y-6">
+                      {[
+                        { title: 'Schema Recognition', desc: 'AI automatically identifies entities like Compounds, Mechanisms, and Data Points.', icon: Zap },
+                        { title: 'Semantic Resolution', desc: 'Identifies synonymous concepts and merges them based on folder context.', icon: Network },
+                        { title: 'Review Protocol', desc: 'Extracts are pushed to the Review Inbox for human verification before graph commit.', icon: CheckCircle2 },
+                      ].map((step, i) => (
+                        <div key={i} className="flex gap-4 p-5 rounded-3xl bg-whiteAlpha.50 border border-border/5 hover:border-emerald-500/20 transition-all group">
+                          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0 group-hover:scale-110 transition-transform">
+                            <step.icon className="w-5 h-5" />
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="text-[13px] font-black uppercase tracking-tight">{step.title}</h4>
+                            <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">{step.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* Info sidebar */}
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <FolderPlus className="w-4 h-4 text-primary" />
-                How it works
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm text-muted-foreground">
-              {[
-                'Choose the active folder from the global header',
-                'Upload documents (PDF, text, CSV, etc.)',
-                'AI extracts entities & relationships',
-                'Review extractons in the Review Inbox',
-                'Approve to commit to knowledge graph',
-              ].map((step, i) => (
-                <div key={i} className="flex gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
-                    {i + 1}
+              {activeTab === 'text' && (
+                <div className="animate-in slide-in-from-right-8 duration-500">
+                  <div className="mb-8 space-y-1">
+                    <h3 className="text-2xl font-black uppercase tracking-tight">Direct Intelligence Paste</h3>
+                    <p className="text-sm text-muted-foreground font-medium">Capture raw ideas or copy-pasted research for AI processing.</p>
                   </div>
-                  <p>{step}</p>
+                  <TextIngest folderId={selectedFolderId} />
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+              )}
+
+              {activeTab === 'cypher' && (
+                <div className="animate-in slide-in-from-right-8 duration-500">
+                  <div className="mb-8 space-y-1">
+                    <h3 className="text-2xl font-black uppercase tracking-tight">Logical Injections</h3>
+                    <p className="text-sm text-muted-foreground font-medium">Bypass AI and inject graph transformations directly via Cypher protocol.</p>
+                  </div>
+                  <CypherIngest folderId={selectedFolderId} />
+                </div>
+              )}
+
+              {activeTab === 'excel' && (
+                <div className="animate-in slide-in-from-right-8 duration-500">
+                  <div className="mb-8 space-y-1">
+                    <h3 className="text-2xl font-black uppercase tracking-tight">Structured Knowledge Mapper</h3>
+                    <p className="text-sm text-muted-foreground font-medium">Manually map tabular data (Excel/CSV) to graph concepts with deterministic logic.</p>
+                  </div>
+                  <ExcelMapper folderId={selectedFolderId} />
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

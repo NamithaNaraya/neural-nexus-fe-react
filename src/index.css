@@ -4,31 +4,31 @@
 
 @layer base {
   :root {
-    --background: 40 30% 97%;
-    --foreground: 24 28% 16%;
+    --background: 140 18% 97%;
+    --foreground: 152 18% 16%;
     --card: 0 0% 100%;
-    --card-foreground: 24 28% 16%;
+    --card-foreground: 152 18% 16%;
     --popover: 0 0% 100%;
-    --popover-foreground: 24 28% 16%;
+    --popover-foreground: 152 18% 16%;
     --primary: 145 58% 30%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 35 26% 92%;
-    --secondary-foreground: 24 28% 20%;
-    --muted: 34 18% 92%;
-    --muted-foreground: 28 10% 42%;
-    --accent: 42 28% 90%;
-    --accent-foreground: 24 28% 20%;
+    --secondary: 150 20% 93%;
+    --secondary-foreground: 152 18% 20%;
+    --muted: 150 16% 93%;
+    --muted-foreground: 155 10% 42%;
+    --accent: 148 22% 91%;
+    --accent-foreground: 152 18% 20%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 34 16% 84%;
-    --input: 34 16% 84%;
+    --border: 150 14% 85%;
+    --input: 150 14% 85%;
     --ring: 145 58% 30%;
     --radius: 1rem;
     --sidebar-width: 16rem;
     --sidebar-collapsed: 4.5rem;
     --success: 145 58% 30%;
     --warning: 38 70% 42%;
-    --info: 28 48% 40%;
+    --info: 175 44% 38%;
   }
 
   .dark {
@@ -40,20 +40,20 @@
     --popover-foreground: 42 24% 92%;
     --primary: 145 48% 42%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 25 18% 14%;
+    --secondary: 145 14% 14%;
     --secondary-foreground: 42 24% 92%;
-    --muted: 25 14% 14%;
-    --muted-foreground: 34 12% 65%;
-    --accent: 28 20% 16%;
+    --muted: 145 12% 14%;
+    --muted-foreground: 152 10% 65%;
+    --accent: 145 16% 16%;
     --accent-foreground: 42 24% 92%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 24 14% 22%;
-    --input: 24 14% 22%;
+    --border: 145 12% 22%;
+    --input: 145 12% 22%;
     --ring: 145 48% 42%;
     --success: 145 48% 42%;
     --warning: 38 70% 52%;
-    --info: 28 48% 48%;
+    --info: 175 42% 46%;
   }
 }
 
@@ -92,7 +92,7 @@
     text-rendering: optimizeLegibility;
     background-image:
       radial-gradient(circle at top left, hsl(145 45% 35% / 0.08), transparent 28%),
-      radial-gradient(circle at top right, hsl(28 32% 42% / 0.08), transparent 26%);
+      radial-gradient(circle at top right, hsl(165 28% 42% / 0.06), transparent 26%);
     background-attachment: fixed;
   }
 
@@ -138,11 +138,11 @@
   }
 
   .brand-earth {
-    @apply text-amber-800;
+    @apply text-emerald-700;
   }
 
   .dark .brand-earth {
-    @apply text-amber-300;
+    @apply text-emerald-300;
   }
 
   .glow {

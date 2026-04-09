@@ -30,6 +30,8 @@ export default function GraphForceGraph3DPage({
   onTraversalBack = null,
   onTraversalReset = null,
   traversalPath = [],
+  explorerModeActive = false,
+  onExplorerNodeClick = null,
   showNodeLabels = false,
   showRelationshipLabels = false,
   onToggleNodeLabels = null,
@@ -120,10 +122,10 @@ export default function GraphForceGraph3DPage({
               relationshipTypes: expandRelationshipTypes,
               force: forceRefreshRef.current,
             });
-            setFocusedGraphData(buildNodeFocusGraph(data, expanded, activeNode));
+            setFocusedGraphData(buildNodeFocusGraph(firstData, expanded, activeNode));
           } catch (focusError) {
             console.error('Failed to restore focused node:', focusError);
-            setFocusedGraphData(buildNodeFocusGraph(data, { nodes: [activeNode], links: [] }, activeNode));
+            setFocusedGraphData(buildNodeFocusGraph(firstData, { nodes: [activeNode], links: [] }, activeNode));
           } finally {
             setFocusLoading(false);
           }
@@ -175,7 +177,7 @@ export default function GraphForceGraph3DPage({
     setInspectorOpen(false);
   }, [addNodeSignal]);
 
-  const activeGraphData = traversalModeActive
+  const activeGraphData = (traversalModeActive || explorerModeActive)
     ? displayGraphData || graphData || graphDataOverride || fullGraphData
     : fullGraphData;
 
@@ -282,6 +284,10 @@ export default function GraphForceGraph3DPage({
   };
 
   const handleNodeClick = async (node) => {
+    if (explorerModeActive && onExplorerNodeClick) {
+      onExplorerNodeClick(node);
+      return;
+    }
     if (traversalModeActive && onTraversalNodeClick) {
       onTraversalNodeClick(node);
       setActiveNode(node);
