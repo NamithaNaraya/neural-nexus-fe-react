@@ -17,7 +17,7 @@ import { graphService } from '../../services/graphService';
 import { GraphFocusDrawer } from './GraphFocusDrawer';
 import { buildNodeFocusGraph, buildRelationshipFocusGraph } from './graphFocusUtils';
 import { filterGraphData } from './filterGraphData';
-import { capGraphData } from './graphDisplayData';
+import { GRAPH_FETCH_STEPS, GRAPH_RENDER_LIMITS, sanitizeGraphForRender } from './graphDisplayData';
 import { getNodeTypeColor, getRelationshipTypeColor, withAlpha } from './colorSystem';
 import { annotateParallelLinks, getLinkLabelPlacement } from './rendering/linkLabelLayout';
 
@@ -157,6 +157,7 @@ export default function GraphHybridForcePage({
   const [radialStrength, setRadialStrength] = useState(0.14);
   const [particleSpeed, setParticleSpeed] = useState(1.4);
   const [showGrid, setShowGrid] = useState(true);
+  const [hydrating, setHydrating] = useState(false);
 
   useEffect(() => {
     setFocusedGraphData(null);
@@ -175,10 +176,12 @@ export default function GraphHybridForcePage({
     };
 
     window.addEventListener('nnv2:graph-crud', handleCrud);
+    let cancelled = false;
 
     async function loadGraph() {
       if (graphData || disableRemoteLoad) {
         setLoading(false);
+        setHydrating(false);
         setError(null);
         setFullGraphData(graphData || graphDataOverride || { nodes: [], links: [] });
         setFocusedGraphData(null);
@@ -187,28 +190,51 @@ export default function GraphHybridForcePage({
       }
 
       if (!folderId) {
+        setLoading(false);
+        setHydrating(false);
         setFullGraphData({ nodes: [], links: [] });
         setFocusedGraphData(null);
         return;
       }
 
       setLoading(true);
+      setHydrating(false);
       setError(null);
       try {
-        const data = await graphService.getFolder(folderId, 10000, { force: forceRefreshRef.current });
-        setFullGraphData(data);
+        const [firstLimit, ...nextLimits] = GRAPH_FETCH_STEPS.hybrid2d;
+        const firstData = await graphService.getFolder(folderId, firstLimit, { force: forceRefreshRef.current });
+        if (cancelled) return;
+
+        setFullGraphData(firstData);
         setFocusedGraphData(null);
+        setLoading(false);
+
+        if (nextLimits.length) {
+          setHydrating(true);
+        }
+
+        for (const limit of nextLimits) {
+          const nextData = await graphService.getFolder(folderId, limit, { force: forceRefreshRef.current });
+          if (cancelled) return;
+          setFullGraphData(nextData);
+        }
       } catch (err) {
         console.error(err);
-        setError('Failed to load graph data.');
+        if (!cancelled) setError('Failed to load graph data.');
       } finally {
         forceRefreshRef.current = false;
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setHydrating(false);
+        }
       }
     }
 
     loadGraph();
-    return () => window.removeEventListener('nnv2:graph-crud', handleCrud);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('nnv2:graph-crud', handleCrud);
+    };
   }, [folderId, refreshToken, graphData, graphDataOverride, disableRemoteLoad]);
 
   useEffect(() => {
@@ -267,7 +293,7 @@ export default function GraphHybridForcePage({
       }))
     );
 
-    return capGraphData({ nodes: enrichedNodes, links: enrichedLinks }, 5000);
+    return sanitizeGraphForRender({ nodes: enrichedNodes, links: enrichedLinks }, GRAPH_RENDER_LIMITS.hybrid2d);
   }, [filteredGraph, nodeTypeColors, relationshipTypeColors]);
 
   const graphNodes = useMemo(
@@ -1027,11 +1053,17 @@ export default function GraphHybridForcePage({
             </div>
           ) : error ? (
             <div className="flex h-full items-center justify-center text-red-500">{error}</div>
-          ) : (
-            <svg ref={svgRef} className="h-full w-full cursor-grab active:cursor-grabbing">
-              <g ref={viewportRef} />
-            </svg>
-          )}
+        ) : (
+          <svg ref={svgRef} className="h-full w-full cursor-grab active:cursor-grabbing">
+            <g ref={viewportRef} />
+          </svg>
+        )}
+
+        {!loading && hydrating ? (
+          <div className="pointer-events-none absolute right-4 top-4 z-20 rounded-full border border-border/60 bg-card/92 px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur-xl">
+            Loading more nodes in background...
+          </div>
+        ) : null}
         </div>
 
         {!_traversalMode && !hideEngineHud ? (

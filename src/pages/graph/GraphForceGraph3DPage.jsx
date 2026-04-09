@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { graphService } from '../../services/graphService';
 import { getNodeTypeColor, getRelationshipTypeColor, withAlpha } from './colorSystem';
 import { GraphNodeCrudModal } from '../../components/crud';
-import { capGraphData } from './graphDisplayData';
+import { GRAPH_FETCH_STEPS, GRAPH_RENDER_LIMITS, sanitizeGraphForRender } from './graphDisplayData';
 import { GraphFocusDrawer } from './GraphFocusDrawer';
 import { buildNodeFocusGraph, buildRelationshipFocusGraph } from './graphFocusUtils';
 
@@ -62,6 +62,7 @@ export default function GraphForceGraph3DPage({
   const [expandRelationshipTypes, setExpandRelationshipTypes] = useState([]);
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
   const [draggingNodeId, setDraggingNodeId] = useState(null);
+  const [hydrating, setHydrating] = useState(false);
   const forceRefreshRef = useRef(false);
   const graphRef = useRef(null);
 
@@ -81,9 +82,12 @@ export default function GraphForceGraph3DPage({
     };
 
     window.addEventListener('nnv2:graph-crud', handleCrud);
+    let cancelled = false;
+
     async function loadGraph() {
       if (graphData || disableRemoteLoad) {
         setLoading(false);
+        setHydrating(false);
         setError(null);
         setFullGraphData(graphData || graphDataOverride || { nodes: [], links: [] });
         setFocusedGraphData(null);
@@ -92,16 +96,22 @@ export default function GraphForceGraph3DPage({
       }
 
       if (!folderId) {
+        setLoading(false);
+        setHydrating(false);
         setFullGraphData({ nodes: [], links: [] });
         setFocusedGraphData(null);
         return;
       }
 
       setLoading(true);
+      setHydrating(false);
       setError(null);
       try {
-        const data = await graphService.getFolder(folderId, 10000, { force: forceRefreshRef.current });
-        setFullGraphData(data);
+        const [firstLimit, ...nextLimits] = GRAPH_FETCH_STEPS.force3d;
+        const firstData = await graphService.getFolder(folderId, firstLimit, { force: forceRefreshRef.current });
+        if (cancelled) return;
+
+        setFullGraphData(firstData);
         if (focusType === 'node' && activeNode?.id) {
           setFocusLoading(true);
           try {
@@ -118,9 +128,21 @@ export default function GraphForceGraph3DPage({
             setFocusLoading(false);
           }
         } else if (focusType === 'relationship' && activeRelationship) {
-          setFocusedGraphData(buildRelationshipFocusGraph(data, activeRelationship));
+          setFocusedGraphData(buildRelationshipFocusGraph(firstData, activeRelationship));
         } else {
           setFocusedGraphData(null);
+        }
+
+        setLoading(false);
+
+        if (nextLimits.length) {
+          setHydrating(true);
+        }
+
+        for (const limit of nextLimits) {
+          const nextData = await graphService.getFolder(folderId, limit, { force: forceRefreshRef.current });
+          if (cancelled) return;
+          setFullGraphData(nextData);
         }
 
         setTimeout(() => {
@@ -128,15 +150,21 @@ export default function GraphForceGraph3DPage({
         }, 220);
       } catch (err) {
         console.error(err);
-        setError('Failed to load graph data.');
+        if (!cancelled) setError('Failed to load graph data.');
       } finally {
         forceRefreshRef.current = false;
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setHydrating(false);
+        }
       }
     }
 
     loadGraph();
-    return () => window.removeEventListener('nnv2:graph-crud', handleCrud);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('nnv2:graph-crud', handleCrud);
+    };
   }, [folderId, refreshToken, graphData, graphDataOverride, disableRemoteLoad, focusType, activeNode, activeRelationship, expandDepth, expandRelationshipTypes]);
 
   useEffect(() => {
@@ -218,7 +246,10 @@ export default function GraphForceGraph3DPage({
     searchResultIds,
   ]);
 
-  const renderedGraph = useMemo(() => capGraphData(filteredGraph, 5000), [filteredGraph]);
+  const renderedGraph = useMemo(
+    () => sanitizeGraphForRender(filteredGraph, GRAPH_RENDER_LIMITS.force3d),
+    [filteredGraph]
+  );
   useEffect(() => {
     onStatsChange?.({
       nodes: filteredGraph.nodes.length,
@@ -506,6 +537,12 @@ export default function GraphForceGraph3DPage({
               />
             </div>
           )}
+
+          {!loading && hydrating ? (
+            <div className="pointer-events-none absolute right-4 top-4 rounded-full border border-border/60 bg-card/90 px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur-xl">
+              Loading more nodes in background...
+            </div>
+          ) : null}
         </div>
 
         {!_traversalMode && (

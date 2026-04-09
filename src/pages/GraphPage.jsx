@@ -17,6 +17,7 @@ import { GlobalGraphSearch } from './graph/tools/GlobalGraphSearch';
 import { GraphToolbarControls } from './graph/tools/GraphToolbarControls';
 import { mergePredictedLinks } from './graph/mergePredictedLinks';
 import { GraphHeaderSkeleton } from './graph/components/GraphHeaderSkeleton';
+import { GRAPH_FETCH_STEPS } from './graph/graphDisplayData';
 
 const GraphForceGraph3DPage = lazy(() => import('./graph/GraphForceGraph3DPage'));
 
@@ -89,8 +90,16 @@ export default function GraphPage() {
       }
 
       try {
-        const data = await graphService.getFolder(folderId, 10000);
-        if (!ignore) setGraphData(data || { nodes: [], links: [] });
+        const [firstLimit, ...nextLimits] = GRAPH_FETCH_STEPS.hybrid2d;
+        const firstData = await graphService.getFolder(folderId, firstLimit);
+        if (ignore) return;
+        setGraphData(firstData || { nodes: [], links: [] });
+
+        for (const limit of nextLimits) {
+          const nextData = await graphService.getFolder(folderId, limit);
+          if (ignore) return;
+          setGraphData(nextData || { nodes: [], links: [] });
+        }
       } catch (error) {
         console.error('Failed to load graph context:', error);
         if (!ignore) setGraphData({ nodes: [], links: [] });

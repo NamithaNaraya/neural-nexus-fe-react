@@ -14,7 +14,7 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import { graphService } from '../../services/graphService';
 import { GraphNodeCrudModal } from '../../components/crud';
 import { filterGraphData } from './filterGraphData';
-import { capGraphData } from './graphDisplayData';
+import { GRAPH_FETCH_STEPS, GRAPH_RENDER_LIMITS, sanitizeGraphForRender } from './graphDisplayData';
 import { getNodeTypeColor, getRelationshipTypeColor, withAlpha } from './colorSystem';
 import { GraphFocusDrawer } from './GraphFocusDrawer';
 import { buildNodeFocusGraph, buildRelationshipFocusGraph } from './graphFocusUtils';
@@ -75,7 +75,6 @@ export default function GraphForcePage({
   const simulationRef = useRef(null);
   const zoomTransformRef = useRef({ x: 0, y: 0, k: 1 });
   const masterNodesRef = useRef(new Map()); // Stores persistent node objects with x,y,vx,vy
-  const masterLinksRef = useRef(new Map()); // Stores persistent link objects
   const lastMousePos = useRef([0, 0]);
 
   // Sync cursor position for rubber-band link
@@ -104,6 +103,7 @@ export default function GraphForcePage({
   const [expandDepth, setExpandDepth] = useState(1);
   const [expandRelationshipTypes, setExpandRelationshipTypes] = useState([]);
   const [draggingNode, setDraggingNode] = useState(null);
+  const [hydrating, setHydrating] = useState(false);
 
   // Sync with folderId
   useEffect(() => {
@@ -117,23 +117,55 @@ export default function GraphForcePage({
 
   // Loading Logic (Lazy/Initial)
   useEffect(() => {
+    let cancelled = false;
+
     async function initGraph() {
       if (graphDataProp) {
         setFullGraphData(graphDataProp);
+        setLoading(false);
+        setHydrating(false);
         return;
       }
-      if (!folderId) return;
+
+      if (!folderId) {
+        setLoading(false);
+        setHydrating(false);
+        return;
+      }
+
       setLoading(true);
+      setHydrating(false);
       try {
-        const data = await graphService.getFolder(folderId, 5000);
-        setFullGraphData(data);
+        const [firstLimit, ...nextLimits] = GRAPH_FETCH_STEPS.canvas2d;
+        const firstData = await graphService.getFolder(folderId, firstLimit);
+        if (cancelled) return;
+
+        setFullGraphData(firstData);
+        setLoading(false);
+
+        if (nextLimits.length) {
+          setHydrating(true);
+        }
+
+        for (const limit of nextLimits) {
+          const nextData = await graphService.getFolder(folderId, limit);
+          if (cancelled) return;
+          setFullGraphData(nextData);
+        }
       } catch (err) {
         console.error('Failed to load unified graph data:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setHydrating(false);
+        }
       }
     }
+
     initGraph();
+    return () => {
+      cancelled = true;
+    };
   }, [folderId, graphDataProp]);
 
   // Filtering & Capping
@@ -147,11 +179,18 @@ export default function GraphForcePage({
       nodeSearch,
       searchResultIds,
     });
-    return capGraphData(filtered, 5000);
+    return sanitizeGraphForRender(filtered, GRAPH_RENDER_LIMITS.canvas2d);
   }, [traversalModeActive, displayGraphData, graphDataProp, fullGraphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch, searchResultIds]);
 
   const allSimulationNodes = useMemo(() => {
-    return (fullGraphData.nodes || []).map(n => {
+    const nextNodeIds = new Set(processedGraph.nodes.map((node) => String(node.id)));
+    masterNodesRef.current.forEach((_, id) => {
+      if (!nextNodeIds.has(id)) {
+        masterNodesRef.current.delete(id);
+      }
+    });
+
+    return processedGraph.nodes.map((n) => {
       const id = String(n.id);
       if (masterNodesRef.current.has(id)) {
         const existing = masterNodesRef.current.get(id);
@@ -162,13 +201,13 @@ export default function GraphForcePage({
       masterNodesRef.current.set(id, newNode);
       return newNode;
     });
-  }, [fullGraphData]);
+  }, [processedGraph.nodes]);
 
   const visibleNodeIds = useMemo(() => new Set(processedGraph.nodes.map(n => String(n.id))), [processedGraph.nodes]);
   const visibleLinkIds = useMemo(() => new Set(processedGraph.links.map(l => String(l.id))), [processedGraph.links]);
 
   const allSimulationLinks = useMemo(() => {
-    const rawLinks = (fullGraphData.links || []).map(l => ({
+    const rawLinks = processedGraph.links.map(l => ({
       ...l,
       id: String(l.id),
       source: String(typeof l.source === 'object' ? l.source.id : l.source),
@@ -218,16 +257,8 @@ export default function GraphForcePage({
         }
     });
 
-    return rawLinks.map(l => {
-      if (masterLinksRef.current.has(l.id)) {
-        const existing = masterLinksRef.current.get(l.id);
-        Object.assign(existing, l);
-        return existing;
-      }
-      masterLinksRef.current.set(l.id, l);
-      return l;
-    });
-  }, [fullGraphData, visibleNodeIds, linkStyle]);
+    return rawLinks;
+  }, [processedGraph.links, linkStyle]);
 
   const nodeLookup = useMemo(() => new Map(allSimulationNodes.map(n => [n.id, n])), [allSimulationNodes]);
 
@@ -750,6 +781,12 @@ export default function GraphForcePage({
         />
       )}
 
+      {!loading && hydrating ? (
+        <div className="pointer-events-none absolute right-4 top-4 rounded-full border border-border/60 bg-card/90 px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur-xl">
+          Loading more nodes in background...
+        </div>
+      ) : null}
+
       {!loading && visibleNodeIds.size === 0 && (
          <div className="flex h-full items-center justify-center px-6">
             <div className="flex items-center gap-3 rounded-2xl border border-border/50 bg-card/90 px-4 py-3 text-sm text-muted-foreground shadow-sm">
@@ -803,8 +840,8 @@ export default function GraphForcePage({
           onClose={() => setCrudOpen(false)}
           onSuccess={() => {
             setCrudOpen(false);
-            setLoading(true); // Trigger a refresh
-            graphService.getFolder(folderId, 5000, { force: true }).then(data => {
+            setLoading(true);
+            graphService.getFolder(folderId, GRAPH_FETCH_STEPS.canvas2d.at(-1), { force: true }).then(data => {
               setFullGraphData(data);
               setLoading(false);
             });
