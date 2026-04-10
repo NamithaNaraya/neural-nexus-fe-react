@@ -251,7 +251,7 @@ export function ExcelMapper({ folderId, onSuccess }) {
           
           {/* Active Progress Fill */}
           <div 
-            className="absolute top-[20px] left-0 h-[3px] bg-gradient-to-r from-primary to-teal-500 transition-all duration-700 ease-out z-0 rounded-full shadow-[0_0_15px_rgba(25,119,65,0.24)]" 
+            className="absolute top-[20px] left-0 h-[3px] bg-gradient-to-r from-primary to-accent transition-all duration-700 ease-out z-0 rounded-full shadow-[0_0_15px_hsl(var(--primary)/0.24)]" 
             style={{ width: `${((step - 1) / 4) * 100}%` }}
           />
 
@@ -265,9 +265,9 @@ export function ExcelMapper({ folderId, onSuccess }) {
                 className={cn(
                   "w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs transition-all duration-500",
                   step > s 
-                    ? "bg-primary text-white shadow-[0_0_20px_rgba(25,119,65,0.28)] scale-110" 
+                    ? "bg-primary text-white shadow-[0_0_20px_hsl(var(--primary)/0.28)] scale-110" 
                     : step === s 
-                    ? "bg-background border-[3px] border-primary text-primary shadow-[0_0_25px_rgba(25,119,65,0.16)] scale-125" 
+                    ? "bg-background border-[3px] border-primary text-primary shadow-[0_0_25px_hsl(var(--primary)/0.16)] scale-125" 
                     : "bg-background border-2 border-border/40 text-muted-foreground/40 group-hover:border-primary/30 group-hover:text-primary/40"
                 )}
               >
@@ -287,7 +287,7 @@ export function ExcelMapper({ folderId, onSuccess }) {
                   {s === 1 ? 'Import' : s === 2 ? 'Inspect' : s === 3 ? 'Mapping' : s === 4 ? 'Linking' : 'Commit'}
                 </span>
                 {step === s && (
-                  <div className="mt-1.5 h-1 w-1 rounded-full bg-teal-400 shadow-[0_0_8px_rgba(124,172,148,0.9)] animate-pulse" />
+                  <div className="mt-1.5 h-1 w-1 rounded-full bg-accent shadow-[0_0_8px_hsl(var(--accent)/0.9)] animate-pulse" />
                 )}
               </div>
             </div>

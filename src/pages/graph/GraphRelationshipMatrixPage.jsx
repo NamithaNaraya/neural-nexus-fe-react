@@ -74,17 +74,18 @@ export default function GraphRelationshipMatrixPage(props) {
   const activePairs = Object.values(matrix.counts).filter((count) => count > 0).length;
 
   const getColorForCount = (count) => {
-    if (count === 0) return 'rgba(241, 245, 249, 0.72)';
+    if (count === 0) return 'color-mix(in srgb, hsl(var(--background)) 88%, hsl(var(--foreground)) 12%)';
     const intensity = Math.min(count / maxCount, 1);
-    const lightness = 96 - intensity * 42;
-    const saturation = 42 + intensity * 28;
-    return `hsl(174, ${saturation}%, ${lightness}%)`;
+    const accentWeight = 12 + intensity * 28;
+    const primaryWeight = 16 + intensity * 46;
+    const backgroundWeight = Math.max(8, 100 - accentWeight - primaryWeight);
+    return `color-mix(in srgb, hsl(var(--background)) ${backgroundWeight}%, hsl(var(--accent)) ${accentWeight}%, hsl(var(--primary)) ${primaryWeight}%)`;
   };
 
   const getTextColorForCount = (count) => {
-    if (count === 0) return '#94A3B8';
+    if (count === 0) return 'hsl(var(--muted-foreground))';
     const intensity = Math.min(count / maxCount, 1);
-    return intensity > 0.58 ? '#F8FAFC' : '#134E4A';
+    return intensity > 0.58 ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))';
   };
 
   return (
@@ -105,7 +106,7 @@ export default function GraphRelationshipMatrixPage(props) {
         <Card className="border-border/60 bg-card/80 shadow-sm">
           <CardContent className="p-5">
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Peak Density</p>
-            <p className="mt-2 text-3xl font-semibold text-emerald-700 dark:text-emerald-300">{maxCount}</p>
+            <p className="mt-2 text-3xl font-semibold text-primary">{maxCount}</p>
           </CardContent>
         </Card>
       </div>
@@ -172,12 +173,15 @@ export default function GraphRelationshipMatrixPage(props) {
           <div>
             <h2 className="text-sm font-semibold">Legend</h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Light cells show weak or no interaction. Deeper teal cells show stronger relationship density.
+              Light cells show weak or no interaction. Deeper violet-pink cells show stronger relationship density.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground">Low</span>
-            <div className="h-3 w-40 rounded-full bg-gradient-to-r from-slate-100 via-teal-200 to-teal-700" />
+            <div
+              className="h-3 w-40 rounded-full"
+              style={{ backgroundImage: 'linear-gradient(to right, hsl(var(--muted)), hsl(var(--accent) / 0.45), hsl(var(--primary)))' }}
+            />
             <span className="text-xs text-muted-foreground">High</span>
           </div>
         </CardContent>

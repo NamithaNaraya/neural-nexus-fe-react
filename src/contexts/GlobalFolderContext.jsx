@@ -16,6 +16,7 @@ export function GlobalFolderProvider({ children }) {
       setFolders(items);
 
       setSelectedFolderId((current) => {
+        if (!current) return '';
         const stillExists = items.some((folder) => String(folder.id) === String(current));
         const nextId = stillExists ? current : String(items[0]?.id || '');
         if (nextId) {
@@ -37,7 +38,11 @@ export function GlobalFolderProvider({ children }) {
 
   const updateSelectedFolderId = useCallback((folderId) => {
     setSelectedFolderId(folderId);
-    if (folderId) localStorage.setItem('neural_nexus_global_folder_id', String(folderId));
+    if (folderId) {
+      localStorage.setItem('neural_nexus_global_folder_id', String(folderId));
+    } else {
+      localStorage.removeItem('neural_nexus_global_folder_id');
+    }
   }, []);
 
   const currentFolder = useMemo(

@@ -10,7 +10,7 @@ export function BrowseHero({ totalKnownNodes, totalTypes, currentFolderName }) {
   ];
 
   return (
-    <section aria-labelledby="browse-page-title" className="relative overflow-hidden rounded-[32px] border border-border/50 bg-[radial-gradient(circle_at_top_left,_rgba(25,119,65,0.1),_transparent_45%),radial-gradient(circle_at_top_right,_rgba(149,201,172,0.14),_transparent_45%),linear-gradient(135deg,rgba(250,251,251,0.96),rgba(149,201,172,0.06))] p-6 sm:p-8 dark:bg-[radial-gradient(circle_at_top_left,_rgba(149,201,172,0.08),_transparent_45%),radial-gradient(circle_at_top_right,_rgba(124,172,148,0.12),_transparent_45%),linear-gradient(135deg,rgba(14,32,22,0.92),rgba(20,46,31,0.96))]">
+    <section aria-labelledby="browse-page-title" className="hero-surface-brand relative overflow-hidden rounded-[32px] border border-border/50 p-6 sm:p-8">
       <div className="absolute inset-0 opacity-60">
         <div className="absolute -left-16 top-4 h-48 w-48 rounded-full bg-primary/10 blur-3xl animate-pulse" />
         <div className="absolute right-0 top-0 h-56 w-56 rounded-full bg-secondary/20 blur-3xl" />

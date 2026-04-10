@@ -10,21 +10,21 @@ const themes = [
     label: 'Auto',
     icon: Palette,
     description: 'Match the device theme automatically.',
-    preview: 'bg-[linear-gradient(135deg,#fafbfb_0%,#95c9ac_52%,#173426_100%)]',
+    preview: 'theme-preview-auto',
   },
   {
     value: 'light',
     label: 'Clean Laboratory',
     icon: Sun,
     description: 'Optimized for high-visibility analysis.',
-    preview: 'bg-[linear-gradient(135deg,#fafbfb_0%,#eef6f1_48%,#95c9ac_100%)]',
+    preview: 'theme-preview-light',
   },
   {
     value: 'dark',
     label: 'Deep Analysis',
     icon: Moon,
     description: 'Reduced eye strain for long sessions.',
-    preview: 'bg-[linear-gradient(135deg,#102319_0%,#173426_52%,#2d5640_100%)]',
+    preview: 'theme-preview-dark',
   },
 ];
 

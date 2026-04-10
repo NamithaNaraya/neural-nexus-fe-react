@@ -43,7 +43,7 @@ export function HelpQuickStart() {
   return (
     <section className="space-y-6">
       <div className="px-1">
-        <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-emerald-600 dark:text-emerald-400 opacity-80">Onboarding Protocol</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary opacity-80">Onboarding Protocol</p>
         <h2 className="mt-1 text-3xl font-bold tracking-tight">System Workflow</h2>
       </div>
 
@@ -51,7 +51,7 @@ export function HelpQuickStart() {
         {steps.map(({ icon: Icon, title, description, accent, iconColor }) => (
           <div
             key={title}
-            className="group relative flex flex-col rounded-[32px] border border-border/50 bg-card/70 p-6 shadow-xl shadow-[0_24px_54px_-38px_rgba(25,119,65,0.18)] backdrop-blur-2xl transition-all duration-500 hover:border-primary/20 hover:shadow-[0_24px_54px_-36px_rgba(25,119,65,0.2)]"
+            className="group relative flex flex-col rounded-[32px] border border-border/50 bg-card/70 p-6 shadow-xl shadow-[0_24px_54px_-38px_hsl(var(--primary)/0.18)] backdrop-blur-2xl transition-all duration-500 hover:border-primary/20 hover:shadow-[0_24px_54px_-36px_hsl(var(--primary)/0.2)]"
           >
             <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ring-1 ring-border/20 transition-transform duration-500 group-hover:scale-110 ${accent}`}>
               <Icon className={`h-6 w-6 ${iconColor}`} />

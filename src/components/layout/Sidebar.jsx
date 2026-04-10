@@ -70,29 +70,8 @@ export function Sidebar() {
         expanded ? 'w-64' : 'w-[72px]'
       )}
     >
-      {/* Logo Area */}
-      <div className="h-16 flex items-center border-b border-border/30 px-4 shrink-0">
-        <div className={cn(
-          'flex items-center gap-3 overflow-hidden transition-all duration-300',
-          expanded ? 'w-full' : 'w-10 justify-center'
-        )}>
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-primary/20 bg-white shadow-lg shadow-primary/15 shrink-0 dark:bg-slate-950">
-            <img src={nessoLogo} alt="NESSO" className="h-full w-full object-contain p-1" />
-          </div>
-          <div className={cn(
-            'transition-all duration-200 overflow-hidden whitespace-nowrap',
-            expanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'
-          )}>
-            <h1 className="font-extrabold text-base leading-tight text-primary dark:text-primary">NESSO Botanica</h1>
-            <p className="text-[10px] font-medium tracking-widest uppercase text-primary/60 dark:text-primary/60">
-              Natural &amp; Essential Oils
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Navigation */}
-      <nav aria-label="Primary" className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-6 scrollbar-thin">
+      <nav aria-label="Primary" className="flex-1 overflow-y-auto overflow-x-hidden py-6 px-3 space-y-6 scrollbar-thin">
         {navSections.map((section) => (
           <div key={section.label} className="space-y-1">
             {/* Section label */}
@@ -186,7 +165,7 @@ export function Sidebar() {
               onClick={logout}
               type="button"
               aria-label="Sign out"
-              className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-red-400 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
               title="Sign out"
             >
               <LogOut className="w-4 h-4" />

@@ -116,10 +116,10 @@ export default function GraphDegreeDistributionPage(props) {
                       axisLine={{ stroke: 'rgba(148,163,184,0.2)' }}
                     />
                     <Tooltip
-                      cursor={{ fill: 'rgba(16,185,129,0.04)' }}
+                      cursor={{ fill: 'hsl(var(--primary) / 0.04)' }}
                       contentStyle={{
                         backgroundColor: 'rgba(255,255,255,0.92)',
-                        border: '1px solid rgba(16,185,129,0.12)',
+                        border: '1px solid hsl(var(--primary) / 0.12)',
                         borderRadius: '16px',
                         boxShadow: '0 20px 50px rgba(15,23,42,0.06)',
                         backdropFilter: 'blur(8px)'
@@ -142,9 +142,9 @@ export default function GraphDegreeDistributionPage(props) {
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Max Degree" value={maxDegree} />
-            <StatCard label="Avg Degree" value={avgDegree} accentClass="text-emerald-600 dark:text-emerald-400" />
+            <StatCard label="Avg Degree" value={avgDegree} accentClass="text-primary" />
             <StatCard label="Orphans" value={orphanCount} accentClass="text-primary dark:text-primary" />
-            <StatCard label="Hubs > 5" value={hubCount} accentClass="text-emerald-600" />
+            <StatCard label="Hubs > 5" value={hubCount} accentClass="text-primary" />
           </div>
         </>
       )}

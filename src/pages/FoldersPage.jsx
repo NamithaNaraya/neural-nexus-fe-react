@@ -22,6 +22,8 @@ import {
   Search,
   Pencil,
   AlertTriangle,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { folderService } from '../services/folderService';
@@ -32,23 +34,47 @@ import { FolderCrudModal } from '../components/crud';
 const FolderNodesPanel = lazy(() => import('./folders/FolderNodesPanel').then((m) => ({ default: m.FolderNodesPanel })));
 const FolderFilesPanel = lazy(() => import('./folders/FolderFilesPanel').then((m) => ({ default: m.FolderFilesPanel })));
 
-const FolderCardSkeleton = () => (
-  <Card className="backdrop-blur-none bg-card/50 overflow-hidden border-border/10">
-    <CardContent className="p-4">
-      <div className="flex items-start gap-3">
-        <Skeleton className="w-9 h-9 rounded-lg shrink-0" />
-        <div className="flex-1 space-y-2 py-1">
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-1/2" />
+const FolderCardSkeleton = ({ mode = 'grid' }) => {
+  if (mode === 'list') {
+    return (
+      <Card className="backdrop-blur-none bg-card/50 overflow-hidden border-border/10">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-1/4" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+            <div className="flex gap-3 shrink-0 mr-4">
+              <Skeleton className="h-5 w-12 rounded-lg" />
+              <Skeleton className="h-5 w-12 rounded-lg" />
+            </div>
+            <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
+            <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="backdrop-blur-none bg-card/50 overflow-hidden border-border/10">
+      <CardContent className="p-7">
+        <div className="flex items-start gap-5">
+          <Skeleton className="w-14 h-14 rounded-2xl shrink-0" />
+          <div className="flex-1 space-y-3 py-1">
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
         </div>
-      </div>
-      <div className="flex gap-4 mt-4">
-        <Skeleton className="h-3 w-12" />
-        <Skeleton className="h-3 w-12" />
-      </div>
-    </CardContent>
-  </Card>
-);
+        <div className="flex gap-4 mt-6">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-16" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const DetailPanelSkeleton = () => (
   <Card className="flex h-full min-h-0 flex-col overflow-hidden backdrop-blur-none bg-card border-border/10">
@@ -75,6 +101,11 @@ const DetailPanelSkeleton = () => (
 export default function FoldersPage() {
   const { refreshFolders, selectedFolderId, setSelectedFolderId } = useGlobalFolder();
   const [folders, setFolders] = useState([]);
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('folder_view_mode') || 'grid');
+
+  useEffect(() => {
+    localStorage.setItem('folder_view_mode', viewMode);
+  }, [viewMode]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -140,6 +171,22 @@ export default function FoldersPage() {
     });
   }, [folderFiles, folderContentSearch]);
 
+  const resetFolderSelection = useCallback(() => {
+    setSelectedFolder(null);
+    setSelectedFolderId('');
+    setSelectedFolderTab('nodes');
+    setFolderContentSearch('');
+    setNodeSearch('');
+    setSelectedNodeType('');
+    setFolderFiles([]);
+    setNodeTypes([]);
+    setFolderNodes([]);
+    setNodesPage(1);
+    setNodesTotalPages(0);
+    lastSyncedFolderIdRef.current = '';
+    pendingFolderSyncRef.current = '';
+  }, [setSelectedFolderId]);
+
   const fetchFolders = useCallback(async () => {
     setLoading(true);
     try {
@@ -181,8 +228,7 @@ export default function FoldersPage() {
     try {
       await folderService.delete(folderId);
       if (selectedFolder?.id === folderId) {
-        setSelectedFolder(null);
-        setFolderFiles([]);
+        resetFolderSelection();
       }
       await fetchFolders();
       await refreshFolders();
@@ -267,7 +313,7 @@ export default function FoldersPage() {
     } finally {
       setFilesLoading(false);
     }
-  }, [fetchFolderNodes]);
+  }, [fetchFolderNodes, resetFolderSelection]);
 
   const activateFolder = useCallback(async (folder) => {
     if (!folder) return;
@@ -287,15 +333,7 @@ export default function FoldersPage() {
 
     if (!nextFolder) {
       pendingFolderSyncRef.current = '';
-      setSelectedFolder(null);
-      setFolderFiles([]);
-      setNodeTypes([]);
-      setSelectedNodeType('');
-      setFolderNodes([]);
-      setNodeSearch('');
-      setFolderContentSearch('');
-      setNodesPage(1);
-      setNodesTotalPages(0);
+      resetFolderSelection();
       return;
     }
 
@@ -309,7 +347,7 @@ export default function FoldersPage() {
     }
 
     void loadFolderDetails(nextFolder);
-  }, [folders, loadFolderDetails, selectedFolder?.id, selectedFolderId]);
+  }, [folders, loadFolderDetails, resetFolderSelection, selectedFolder?.id, selectedFolderId]);
 
   const formatDate = (isoStr) => {
     if (!isoStr) return '—';
@@ -336,7 +374,7 @@ export default function FoldersPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-1.5">
-          <Badge variant="secondary" className="px-3 py-1 text-[10px] bg-emerald-500/10 text-emerald-500 border-none uppercase tracking-widest font-black">
+          <Badge variant="secondary" className="px-3 py-1 text-[10px] bg-primary/10 text-primary border-none uppercase tracking-widest font-black">
             Personal Workspace
           </Badge>
           <div className="space-y-1">
@@ -357,9 +395,35 @@ export default function FoldersPage() {
               className="h-11 pl-11 rounded-2xl border-border/40 focus:ring-primary/20"
             />
           </div>
+          <div className="flex items-center gap-2 p-1.5 bg-whiteAlpha.50 rounded-2xl border border-border/20 backdrop-blur-sm">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                "p-2 rounded-xl transition-all duration-200",
+                viewMode === 'grid' 
+                  ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                  : "text-muted-foreground hover:bg-whiteAlpha.100 hover:text-foreground"
+              )}
+              title="Grid View"
+            >
+              <LayoutGrid className="w-4.5 h-4.5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={cn(
+                "p-2 rounded-xl transition-all duration-200",
+                viewMode === 'list' 
+                  ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                  : "text-muted-foreground hover:bg-whiteAlpha.100 hover:text-foreground"
+              )}
+              title="List View"
+            >
+              <List className="w-4.5 h-4.5" />
+            </button>
+          </div>
           <Button
             variant="gradient"
-                className="h-11 shrink-0 gap-2 rounded-2xl bg-primary px-6 font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90"
+            className="h-11 shrink-0 gap-2 rounded-2xl bg-primary px-6 font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90"
             onClick={() => setShowCreate(!showCreate)}
           >
             <Plus className="w-5 h-5" />
@@ -369,27 +433,46 @@ export default function FoldersPage() {
       </div>
 
       {/* Main Grid — Dynamic Response */}
-      <div className="grid flex-1 min-h-0 items-start grid-cols-1 gap-8 overflow-hidden lg:grid-cols-[minmax(18rem,1fr)_minmax(0,2.2fr)]">
+      <div className={cn(
+        "grid flex-1 min-h-0 items-start gap-8 overflow-hidden transition-all duration-500",
+        selectedFolder ? "grid-cols-1 lg:grid-cols-[minmax(18rem,1fr)_minmax(0,2.2fr)]" : "grid-cols-1"
+      )}>
         
         {/* Folder List — Small & Neat */}
-        <div className="self-start space-y-3 overflow-y-auto max-h-full pr-1 custom-scrollbar">
+        <div className={cn(
+          "self-start space-y-3 overflow-y-auto max-h-full pr-1 custom-scrollbar transition-all duration-500",
+          !selectedFolder && "w-full"
+        )}>
+
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
-              {[1, 2, 3, 4].map(i => <FolderCardSkeleton key={i} />)}
+            <div className={cn(
+              "grid gap-3",
+              viewMode === 'grid' 
+                ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-1" 
+                : "grid-cols-1"
+            )}>
+              {[1, 2, 3, 4, 5, 6].map(i => <FolderCardSkeleton key={i} mode={viewMode} />)}
             </div>
           ) : filteredFolders.length > 0 ? (
             <div className={cn(
-              'grid gap-3.5',
-              selectedFolder ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'
+              'transition-all duration-500',
+              viewMode === 'list' 
+                ? 'space-y-2' 
+                : cn(
+                    'grid gap-3.5',
+                    selectedFolder ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5'
+                  )
             )}>
+
               {filteredFolders.map((folder) => (
                 <Card
                   key={folder.id}
                   role="button"
                   tabIndex={0}
                   className={cn(
-                    'cursor-pointer group backdrop-blur-none bg-card/60 hover:bg-card hover:border-emerald-500/40 hover:shadow-xl transition-all duration-300 rounded-3xl border-border/30',
-                    (selectedFolder?.id === folder.id || String(selectedFolderId) === String(folder.id)) && 'border-emerald-500/50 bg-emerald-500/10 ring-1 ring-emerald-500/20'
+                    'cursor-pointer group backdrop-blur-none bg-card/60 hover:bg-card hover:border-primary/40 hover:shadow-xl transition-all duration-300 border-border/30',
+                    viewMode === 'list' ? 'rounded-2xl' : 'rounded-3xl',
+                    (selectedFolder?.id === folder.id || String(selectedFolderId) === String(folder.id)) && 'border-primary/50 bg-primary/10 ring-1 ring-primary/20'
                   )}
                   onClick={() => activateFolder(folder)}
                   onKeyDown={(event) => {
@@ -399,48 +482,107 @@ export default function FoldersPage() {
                     }
                   }}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3.5 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                          <FolderOpen className="w-5 h-5 text-emerald-500" />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-bold text-[14px] truncate text-foreground/90">{folder.name}</h3>
-                          {folder.description && (
-                            <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1 font-medium italic">
-                              {folder.description}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-3 mt-2.5">
-                            <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[9px] font-black border-border/40 text-muted-foreground uppercase tracking-wider">
-                              <FileText className="w-2.5 h-2.5" />
-                              {folder.file_count}
-                            </Badge>
-                            <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[9px] font-black border-border/40 text-muted-foreground uppercase tracking-wider">
-                              <Network className="w-2.5 h-2.5" />
-                              {folder.node_count}
-                            </Badge>
+                  {viewMode === 'grid' ? (
+                    <CardContent className="p-7">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-5 min-w-0">
+                          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                            <FolderOpen className="w-7 h-7 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="font-bold text-lg truncate text-foreground/90">{folder.name}</h3>
+                            {folder.description && (
+                              <p className="text-sm text-muted-foreground mt-1 line-clamp-1 font-medium italic">
+                                {folder.description}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-4 mt-4">
+                              <Badge variant="outline" className="h-6 gap-1.5 px-2.5 text-[10px] font-black border-border/40 text-muted-foreground uppercase tracking-wider">
+                                <FileText className="w-3 h-3" />
+                                {folder.file_count}
+                              </Badge>
+                              <Badge variant="outline" className="h-6 gap-1.5 px-2.5 text-[10px] font-black border-border/40 text-muted-foreground uppercase tracking-wider">
+                                <Network className="w-3 h-3" />
+                                {folder.node_count}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setEditingFolder(folder); setShowEdit(true); }}
-                          className="p-1.5 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-whiteAlpha.200 text-muted-foreground hover:text-emerald-500 transition-all duration-200"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setDeletePromptFolder(folder); }}
-                          className="p-1.5 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all duration-200"
-                        >
-                          {deleting === folder.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditingFolder(folder); setShowEdit(true); }}
+                            className="p-2 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-whiteAlpha.200 text-muted-foreground hover:text-primary transition-all duration-200"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeletePromptFolder(folder); }}
+                            className="p-2 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all duration-200"
+                          >
+                            {deleting === folder.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
+                    </CardContent>
+                  ) : (
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 min-w-0 flex-1">
+                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-all duration-300">
+                            <FolderOpen className="w-6 h-6 text-primary" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-3">
+                              <h3 className="font-bold text-base truncate text-foreground/90">{folder.name}</h3>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[10px] font-bold border-border/30 text-muted-foreground/70">
+                                  <FileText className="w-3 h-3" />
+                                  {folder.file_count}
+                                </Badge>
+                                <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[10px] font-bold border-border/30 text-muted-foreground/70">
+                                  <Network className="w-3 h-3" />
+                                  {folder.node_count}
+                                </Badge>
+                              </div>
+                            </div>
+                            {folder.description && (
+                              <p className="text-[12px] text-muted-foreground truncate font-medium italic mt-0.5">
+                                {folder.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0 pr-1">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditingFolder(folder); setShowEdit(true); }}
+                            className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200"
+                            title="Edit Folder"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeletePromptFolder(folder); }}
+                            className="p-2 rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all duration-200"
+                            title="Delete Folder"
+                          >
+                            {deleting === folder.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                          </button>
+                          {viewMode === 'list' && (
+                            <div className={cn(
+                              "ml-1 h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground transition-all duration-300",
+                              (selectedFolder?.id === folder.id || String(selectedFolderId) === String(folder.id))
+                                ? "bg-primary text-white scale-100"
+                                : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
+                            )}>
+                              <ChevronRight className="w-5 h-5" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  )}
                 </Card>
               ))}
             </div>
@@ -458,8 +600,8 @@ export default function FoldersPage() {
         </div>
 
         {/* Folder Detail Area */}
-        <div className="h-full min-h-0 overflow-hidden">
-          {selectedFolder ? (
+        {selectedFolder && (
+          <div className="h-full min-h-0 overflow-hidden animate-in fade-in slide-in-from-right-4 duration-500">
             <Card variant="branded" className="flex h-full min-h-0 flex-col overflow-hidden backdrop-blur-none bg-card/60 border-border/20 shadow-2xl">
               <div className="border-b border-border/20 px-6 py-5 bg-whiteAlpha.50">
                 <div className="flex items-center justify-between">
@@ -467,18 +609,15 @@ export default function FoldersPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-10 w-10 p-0 rounded-2xl bg-whiteAlpha.100 hover:bg-emerald-500/20 hover:text-emerald-500 transition-colors"
-                      onClick={() => {
-                        setSelectedFolder(null);
-                        setSelectedFolderId('');
-                      }}
+                      className="h-10 w-10 p-0 rounded-2xl bg-whiteAlpha.100 hover:bg-primary/20 hover:text-primary transition-colors"
+                      onClick={resetFolderSelection}
                     >
                       <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <div className="min-w-0">
                       <h2 className="text-xl font-black tracking-tight truncate">{selectedFolder.name}</h2>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <Badge variant="outline" className="h-4 text-[9px] font-bold border-emerald-500/20 text-emerald-500/80 uppercase">Active Collection</Badge>
+                        <Badge variant="outline" className="h-4 text-[9px] font-bold border-primary/20 text-primary/80 uppercase">Active Collection</Badge>
                         <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{selectedFolder.description || "Botanical Database"}</span>
                       </div>
                     </div>
@@ -487,7 +626,7 @@ export default function FoldersPage() {
                     icon={<X size={18} />} 
                     variant="ghost" 
                     className="rounded-2xl text-muted-foreground hover:text-red-500 hover:bg-red-500/10" 
-                    onClick={() => setSelectedFolderId('')} 
+                    onClick={resetFolderSelection} 
                   />
                 </div>
               </div>
@@ -496,8 +635,8 @@ export default function FoldersPage() {
                 {/* Stats Section */}
                 <div className="grid grid-cols-3 gap-4">
                   {[
-                    { label: 'Files', value: selectedFolder.file_count, icon: FileText, color: 'text-emerald-500' },
-                    { label: 'Total Nodes', value: selectedFolder.node_count, icon: Network, color: 'text-emerald-500' },
+                    { label: 'Files', value: selectedFolder.file_count, icon: FileText, color: 'text-primary' },
+                    { label: 'Total Nodes', value: selectedFolder.node_count, icon: Network, color: 'text-primary' },
                     { label: 'Last Sync', value: formatDate(selectedFolder.updated_at), icon: Calendar, color: 'text-muted-foreground', isDate: true }
                   ].map((stat, i) => (
                     <div key={i} className="bg-whiteAlpha.100 rounded-3xl p-4 border border-border/10 hover:border-primary/20 transition-all group">
@@ -523,7 +662,7 @@ export default function FoldersPage() {
                         className={cn(
                           'rounded-xl px-5 py-2 text-[12px] font-bold transition-all duration-300',
                           selectedFolderTab === tab.id
-                            ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
                             : 'text-muted-foreground hover:text-foreground hover:bg-whiteAlpha.100'
                         )}
                       >
@@ -533,7 +672,7 @@ export default function FoldersPage() {
                   </div>
 
                   <div className="relative min-h-[400px]">
-                     <Suspense fallback={<Flex align="center" justify="center" h="200px"><Loader2 className="animate-spin text-emerald-500" /></Flex>}>
+                     <Suspense fallback={<Flex align="center" justify="center" h="200px"><Loader2 className="animate-spin text-primary" /></Flex>}>
                         {selectedFolderTab === 'nodes' ? (
                           <FolderNodesPanel
                             active={true}
@@ -563,10 +702,8 @@ export default function FoldersPage() {
                 </div>
               </CardContent>
             </Card>
-          ) : (
-            <DetailPanelSkeleton />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <FolderCrudModal open={showEdit} mode="edit" initialFolder={editingFolder} onClose={() => setShowEdit(false)} onSuccess={() => fetchFolders()} />

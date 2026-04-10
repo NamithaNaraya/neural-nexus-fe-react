@@ -11,7 +11,7 @@ import { cn } from '../../utils/cn';
 
 const cardVariants = {
   default: 'rounded-xl border-border/50 bg-card/60',
-  branded: 'rounded-[32px] border-primary/10 bg-card/75 shadow-[0_24px_70px_-48px_rgba(25,119,65,0.24)]',
+  branded: 'rounded-[32px] border-primary/10 bg-card/75 shadow-[0_24px_70px_-48px_hsl(var(--primary)/0.24)]',
 };
 
 export function Card({ className, variant = 'default', children, ...props }) {

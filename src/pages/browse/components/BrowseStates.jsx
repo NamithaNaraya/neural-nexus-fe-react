@@ -40,7 +40,7 @@ export function BrowseEmptyState({ query, error }) {
   return (
     <Card className="overflow-hidden border-border/60 bg-card/70 backdrop-blur-xl">
       <CardContent className="relative flex min-h-[320px] flex-col items-center justify-center px-6 py-12 text-center">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.12),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(16,185,129,0.12),_transparent_35%)]" />
+        <div className="ambient-empty-brand absolute inset-0" />
         <div className="relative space-y-4">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl border border-border/50 bg-background/70 shadow-lg shadow-slate-900/5">
             {error ? <Loader2 className="h-8 w-8 text-primary" /> : query ? <SearchX className="h-8 w-8 text-primary" /> : <Sparkles className="h-8 w-8 text-primary" />}

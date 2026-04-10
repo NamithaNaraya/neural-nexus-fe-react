@@ -88,7 +88,7 @@ export default function VisualizeDataPage() {
           <div className="flex min-w-0 items-center gap-3">
             <GraphViewsNavigation sections={visualizeDataSections} basePath="/visualize" />
           </div>
-          <div className="hidden rounded-full border border-emerald-600/20 bg-emerald-600/5 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 md:block">
+          <div className="hidden rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-xs font-medium text-primary md:block">
             {currentFolder?.name || 'Selected folder'}
           </div>
         </CardContent>

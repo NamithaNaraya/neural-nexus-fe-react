@@ -42,6 +42,9 @@ export default function GraphTreemapPage(props) {
   );
 
   const renderedGraph = useMemo(() => capGraphData(filteredGraph, 12000), [filteredGraph]);
+  const brandPrimary = 'hsl(var(--primary))';
+  const brandBorder = 'hsl(var(--primary) / 0.24)';
+  const tooltipSurface = 'hsl(var(--card) / 0.92)';
 
   const treeData = useMemo(() => {
     const groups = {};
@@ -71,10 +74,10 @@ export default function GraphTreemapPage(props) {
                 dataKey="value"
                 ratio={4 / 3}
                 stroke="rgba(0,0,0,0.05)"
-                fill="#10B981"
+                fill={brandPrimary}
               >
                 <Tooltip 
-                   contentStyle={{ backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.2)' }}
+                   contentStyle={{ backgroundColor: tooltipSurface, borderRadius: '12px', border: `1px solid ${brandBorder}` }}
                 />
               </Treemap>
             </ResponsiveContainer>

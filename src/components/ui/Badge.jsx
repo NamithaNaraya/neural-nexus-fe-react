@@ -5,7 +5,7 @@ import { cn } from '../../utils/cn';
 const badgeVariants = {
   default: 'bg-primary/10 text-primary border-primary/20',
   secondary: 'bg-secondary text-secondary-foreground border-secondary',
-  destructive: 'bg-destructive/15 text-red-500 border-destructive/20',
+  destructive: 'bg-destructive/15 text-destructive border-destructive/20',
   outline: 'text-foreground border-border',
   success: 'bg-primary/15 text-primary border-primary/30 dark:text-primary',
   warning: 'bg-accent/20 text-accent-foreground border-accent/40 dark:text-accent',
@@ -34,8 +34,8 @@ export function StatusBadge({ status, label, className }) {
     healthy: { color: 'bg-primary', variant: 'success', text: label || 'Healthy' },
     up: { color: 'bg-primary', variant: 'success', text: label || 'Online' },
     degraded: { color: 'bg-accent', variant: 'warning', text: label || 'Degraded' },
-    unhealthy: { color: 'bg-red-400', variant: 'destructive', text: label || 'Offline' },
-    down: { color: 'bg-red-400', variant: 'destructive', text: label || 'Down' },
+    unhealthy: { color: 'bg-destructive', variant: 'destructive', text: label || 'Offline' },
+    down: { color: 'bg-destructive', variant: 'destructive', text: label || 'Down' },
   };
 
   const config = statusConfig[status] || statusConfig.unhealthy;

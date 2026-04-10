@@ -72,7 +72,7 @@ export default function GraphSchemaExplorerPage(props) {
     return { nodeTypeCounts, relTypeCounts };
   }, [renderedGraph.nodes, renderedGraph.links]);
 
-  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#14B8A6', '#F97316', '#EC4899', '#64748B'];
+  const colors = ['#7C3AED', '#EC4899', '#A855F7', '#F472B6', '#9333EA', '#DB2777', '#C084FC', '#64748B'];
   const sortedNodeTypes = Object.entries(schema.nodeTypeCounts).sort((a, b) => b[1] - a[1]);
   const sortedRelTypes = Object.entries(schema.relTypeCounts).sort((a, b) => b[1] - a[1]);
 
@@ -94,7 +94,7 @@ export default function GraphSchemaExplorerPage(props) {
     <div className="space-y-5">
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard label="Node Types" value={sortedNodeTypes.length} />
-        <SummaryCard label="Total Nodes" value={filteredGraph.nodes.length} accentClass="text-emerald-700 dark:text-emerald-300" />
+        <SummaryCard label="Total Nodes" value={filteredGraph.nodes.length} accentClass="text-primary" />
         <SummaryCard label="Relationship Types" value={sortedRelTypes.length} />
         <SummaryCard label="Total Links" value={filteredGraph.links.length} />
       </div>
