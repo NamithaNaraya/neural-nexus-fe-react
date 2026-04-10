@@ -28,7 +28,7 @@ export default function LoginPage() {
   ];
 
   return (
-    <div className="min-h-screen flex bg-background overflow-hidden">
+    <main className="min-h-screen flex bg-background overflow-hidden">
       {/* Left Panel — Branding & Features */}
       <div className="hidden lg:flex lg:w-[55%] relative flex-col justify-between p-12 overflow-hidden">
         {/* Animated background blobs */}
@@ -107,9 +107,9 @@ export default function LoginPage() {
           </div>
 
           {/* Form card */}
-          <div className="space-y-6 p-8 rounded-2xl border border-border/50 bg-card/40 backdrop-blur-xl shadow-2xl shadow-black/20">
+          <section aria-labelledby="login-title" className="space-y-6 p-8 rounded-2xl border border-border/50 bg-card/40 backdrop-blur-xl shadow-2xl shadow-black/20">
             <div className="space-y-2 text-center">
-              <h2 className="text-2xl font-bold tracking-tight">
+              <h2 id="login-title" className="text-2xl font-bold tracking-tight">
                 {isRegister ? 'Create an account' : 'Welcome back'}
               </h2>
               <p className="text-sm text-muted-foreground">
@@ -131,6 +131,7 @@ export default function LoginPage() {
                   onChange={(e) => { setEmail(e.target.value); clearError(); }}
                   required
                   autoFocus
+                  autoComplete="email"
                   className="h-11"
                 />
               </div>
@@ -146,13 +147,15 @@ export default function LoginPage() {
                     onChange={(e) => { setPassword(e.target.value); clearError(); }}
                     required
                     minLength={3}
+                    autoComplete={isRegister ? 'new-password' : 'current-password'}
                     className="h-11 pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPassword}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -160,7 +163,7 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-red-400 animate-fade-up">
+                <div role="alert" aria-live="polite" className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-red-400 animate-fade-up">
                   {error}
                 </div>
               )}
@@ -192,6 +195,7 @@ export default function LoginPage() {
             </div>
 
             <button
+              type="button"
               onClick={() => { setIsRegister(!isRegister); clearError(); }}
               className="w-full text-center text-sm text-muted-foreground hover:text-primary transition-colors"
             >
@@ -200,7 +204,7 @@ export default function LoginPage() {
                 : "Don't have an account? Create one"
               }
             </button>
-          </div>
+          </section>
 
           {/* Extra text */}
           <p className="text-center text-xs text-muted-foreground/40">
@@ -208,6 +212,6 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

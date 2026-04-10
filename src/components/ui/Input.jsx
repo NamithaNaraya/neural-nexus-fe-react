@@ -9,9 +9,9 @@ export const Input = forwardRef(function Input({ className, type = 'text', ...pr
       ref={ref}
       type={type}
       className={cn(
-        'flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm transition-all duration-200',
+        'flex min-h-11 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm transition-all duration-200',
         'placeholder:text-muted-foreground/60',
-        'focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-primary/50',
+        'focus:outline-none focus:ring-2 focus:ring-ring/60 focus:border-primary/60',
         'disabled:cursor-not-allowed disabled:opacity-50',
         'backdrop-blur-sm',
         className

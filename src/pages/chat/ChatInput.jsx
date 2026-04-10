@@ -7,13 +7,19 @@ export function ChatInput({ input, setInput, onSubmit, onWebSearch, loading, inp
   return (
     <div className="border-t border-border/30 bg-card/50 px-4 py-3 backdrop-blur-sm">
       <form onSubmit={onSubmit} className="flex gap-2">
+        <label htmlFor="chat-message-input" className="sr-only">
+          Ask a question about the selected folder or knowledge graph
+        </label>
         <Input
+          id="chat-message-input"
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask anything about your knowledge graph. Use the globe for web search."
           className="flex-1 h-11 bg-muted/20 transition-all duration-300 focus:shadow-lg focus:shadow-primary/10 focus:ring-2 focus:ring-primary/20 rounded-xl"
           disabled={loading}
+          aria-describedby="chat-input-help"
+          autoComplete="off"
         />
         <Button
           type="button"
@@ -23,6 +29,7 @@ export function ChatInput({ input, setInput, onSubmit, onWebSearch, loading, inp
           onClick={() => onWebSearch?.(input.trim())}
           disabled={loading || !input.trim()}
           title="Search Web"
+          aria-label="Search the web with the current message"
         >
           <Globe className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
         </Button>
@@ -32,6 +39,7 @@ export function ChatInput({ input, setInput, onSubmit, onWebSearch, loading, inp
           size="icon"
           className="h-11 w-11 shrink-0 shadow-lg hover:shadow-xl transition-shadow duration-200"
           disabled={loading || !input.trim()}
+          aria-label={loading ? 'Sending message' : 'Send message'}
         >
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -40,6 +48,9 @@ export function ChatInput({ input, setInput, onSubmit, onWebSearch, loading, inp
           )}
         </Button>
       </form>
+      <p id="chat-input-help" className="sr-only">
+        Press Enter to send. Use the web search button to search external sources.
+      </p>
     </div>
   );
 }

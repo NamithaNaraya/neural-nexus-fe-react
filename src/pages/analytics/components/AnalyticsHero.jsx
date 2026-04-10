@@ -3,10 +3,10 @@ import { Cpu, PlayCircle, Sparkles } from 'lucide-react';
 
 export function AnalyticsHero() {
   return (
-    <div className="relative overflow-hidden rounded-[32px] border border-border/60 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.14),_transparent_45%),radial-gradient(circle_at_bottom_right,_rgba(245,158,11,0.12),_transparent_45%),linear-gradient(140deg,rgba(15,23,42,0.02),rgba(16,185,129,0.04))] p-6 sm:p-8">
+    <div className="relative overflow-hidden rounded-[32px] border border-border/60 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.14),_transparent_45%),radial-gradient(circle_at_bottom_right,_rgba(149,201,172,0.12),_transparent_45%),linear-gradient(140deg,rgba(15,23,42,0.02),rgba(16,185,129,0.04))] p-6 sm:p-8">
       <div className="absolute inset-0 opacity-70">
         <div className="absolute -left-10 top-10 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl animate-pulse" />
-        <div className="absolute right-0 top-0 h-56 w-56 rounded-full bg-amber-500/10 blur-3xl" />
+        <div className="absolute right-0 top-0 h-56 w-56 rounded-full bg-secondary/20 blur-3xl" />
       </div>
 
       <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
@@ -33,7 +33,7 @@ export function AnalyticsHero() {
           </div>
           <div className="rounded-2xl border border-border/50 bg-background/70 px-4 py-4 backdrop-blur-xl shadow-lg shadow-slate-900/5">
             <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-              <Sparkles className="h-4.5 w-4.5 text-amber-500" />
+              <Sparkles className="h-4.5 w-4.5 text-primary" />
               Structural Insight
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground font-medium">Ranked outputs and topological summaries instantly materialized.</p>

@@ -5,7 +5,7 @@ import { cn } from '../../../../utils/cn';
 
 const TYPE_COLORS = [
   'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  'border-primary/25 bg-primary/10 text-primary',
   'border-teal-500/25 bg-teal-500/10 text-teal-700 dark:text-teal-300',
   'border-cyan-500/25 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300',
   'border-slate-500/25 bg-slate-500/10 text-slate-700 dark:text-slate-300',
@@ -166,7 +166,7 @@ export function DataSelectionModal({
                   <button
                     type="button"
                     onClick={clearAllFiltered}
-                    className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-left text-xs font-bold text-amber-700 transition hover:bg-amber-500/10"
+                    className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-left text-xs font-bold text-primary transition hover:bg-primary/10"
                   >
                     Clear Visible
                   </button>

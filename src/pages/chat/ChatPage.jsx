@@ -887,13 +887,13 @@ export default function ChatPage() {
 
   return (
     <>
-    <div className="-mx-6 -my-5 flex h-[calc(100vh-theme(spacing.16))] w-[calc(100%+theme(spacing.12))] flex-col bg-gradient-to-br from-background via-background to-muted/20">
+    <section aria-labelledby="chat-page-title" className="-mx-6 -my-5 flex h-[calc(100vh-theme(spacing.16))] w-[calc(100%+theme(spacing.12))] flex-col bg-gradient-to-br from-background via-background to-muted/20">
       <div className="px-6 pt-4">
         <section className="rounded-[28px] border border-border/50 bg-card/75 px-5 py-3.5 shadow-[0_18px_50px_-36px_rgba(25,119,65,0.22)] backdrop-blur-xl">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0 space-y-1.5">
               <div className="space-y-1">
-                <h1 className="text-[1.8rem] font-semibold tracking-tight text-foreground">Chat</h1>
+                <h1 id="chat-page-title" className="text-[1.8rem] font-semibold tracking-tight text-foreground">Chat</h1>
                 <p className="max-w-3xl text-sm text-muted-foreground">
                   {currentFolder?.name
                     ? (
@@ -976,6 +976,7 @@ export default function ChatPage() {
             </div>
           </div>
 
+          <div aria-live="polite" aria-busy={loading} className="contents">
           <VirtualMessageList
             items={virtualItems}
             bottomRef={messagesEndRef}
@@ -997,6 +998,7 @@ export default function ChatPage() {
               );
             }}
           />
+          </div>
 
           <ChatInput
             input={input}
@@ -1016,6 +1018,7 @@ export default function ChatPage() {
 
           <aside
             id="chat-history-drawer"
+            aria-label="Chat history"
             className={cn(
               'hidden min-h-0 w-[19rem] shrink-0 border-l border-border/40 lg:block',
               isHistoryOpen ? 'lg:block' : 'lg:hidden'
@@ -1047,6 +1050,7 @@ export default function ChatPage() {
         />
 
           <aside
+            aria-label="Chat history"
             className={cn(
               'absolute right-6 top-3 bottom-5 z-20 w-[min(100vw-3rem,19rem)] translate-x-[110%] transition-transform duration-300 ease-out lg:hidden',
               isHistoryOpen ? 'translate-x-0' : 'pointer-events-none'
@@ -1064,7 +1068,7 @@ export default function ChatPage() {
           </Suspense>
         </aside>
       </div>
-    </div>
+    </section>
     {isDownloadOpen && (
       <div
         className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/55 backdrop-blur-sm px-4"

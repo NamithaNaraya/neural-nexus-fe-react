@@ -102,6 +102,7 @@ export default function FoldersPage() {
   const [deletePromptFolder, setDeletePromptFolder] = useState(null);
   const [editingFolder, setEditingFolder] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
 
   const filteredFolders = useMemo(() => {
     const term = folderSearch.trim().toLowerCase();
@@ -157,6 +158,7 @@ export default function FoldersPage() {
   const createFolder = async (e) => {
     e.preventDefault();
     if (!newFolderName.trim() || creating) return;
+    setStatusMessage('');
     setCreating(true);
     try {
       const createdFolder = await folderService.create(newFolderName.trim(), newFolderDesc.trim() || null);
@@ -167,7 +169,7 @@ export default function FoldersPage() {
       await refreshFolders();
       if (createdFolder?.id) setSelectedFolderId(String(createdFolder.id));
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to create folder');
+      setStatusMessage(err.response?.data?.detail || 'Failed to create folder');
     } finally {
       setCreating(false);
     }
@@ -175,6 +177,7 @@ export default function FoldersPage() {
 
   const deleteFolder = async (folderId) => {
     setDeleting(folderId);
+    setStatusMessage('');
     try {
       await folderService.delete(folderId);
       if (selectedFolder?.id === folderId) {
@@ -184,7 +187,7 @@ export default function FoldersPage() {
       await fetchFolders();
       await refreshFolders();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to delete folder');
+      setStatusMessage(err.response?.data?.detail || 'Failed to delete folder');
     } finally {
       setDeleting(null);
     }
@@ -324,7 +327,12 @@ export default function FoldersPage() {
   }, [nodeSearch, selectedFolder, selectedNodeType, fetchFolderNodes]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-6 overflow-hidden">
+    <section aria-labelledby="folders-page-title" className="flex h-full min-h-0 flex-col gap-6 overflow-hidden">
+      {statusMessage ? (
+        <div role="alert" aria-live="polite" className="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {statusMessage}
+        </div>
+      ) : null}
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-1.5">
@@ -332,7 +340,7 @@ export default function FoldersPage() {
             Personal Workspace
           </Badge>
           <div className="space-y-1">
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Folders</h1>
+            <h1 id="folders-page-title" className="text-3xl font-extrabold tracking-tight text-foreground">Folders</h1>
             <p className="max-w-2xl text-[13px] text-muted-foreground font-medium">
               Orchestrate your knowledge graph data into collections and discover insights.
             </p>
@@ -342,6 +350,7 @@ export default function FoldersPage() {
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
             <Input
+              aria-label="Search folders"
               value={folderSearch}
               onChange={(e) => setFolderSearch(e.target.value)}
               placeholder="Quick search library..."
@@ -376,11 +385,19 @@ export default function FoldersPage() {
               {filteredFolders.map((folder) => (
                 <Card
                   key={folder.id}
+                  role="button"
+                  tabIndex={0}
                   className={cn(
                     'cursor-pointer group backdrop-blur-none bg-card/60 hover:bg-card hover:border-emerald-500/40 hover:shadow-xl transition-all duration-300 rounded-3xl border-border/30',
                     (selectedFolder?.id === folder.id || String(selectedFolderId) === String(folder.id)) && 'border-emerald-500/50 bg-emerald-500/10 ring-1 ring-emerald-500/20'
                   )}
                   onClick={() => activateFolder(folder)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      void activateFolder(folder);
+                    }
+                  }}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
@@ -553,6 +570,6 @@ export default function FoldersPage() {
       </div>
 
       <FolderCrudModal open={showEdit} mode="edit" initialFolder={editingFolder} onClose={() => setShowEdit(false)} onSuccess={() => fetchFolders()} />
-    </div>
+    </section>
   );
 }

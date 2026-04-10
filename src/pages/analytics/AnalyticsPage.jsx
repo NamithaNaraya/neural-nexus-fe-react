@@ -59,7 +59,8 @@ export default function AnalyticsPage() {
   }, [result]);
 
   return (
-    <div className="h-[calc(100vh-8.5rem)] min-h-[640px] overflow-hidden">
+    <section aria-labelledby="analytics-page-title" className="h-[calc(100vh-8.5rem)] min-h-[640px] overflow-hidden">
+      <h1 id="analytics-page-title" className="sr-only">Analytics workbench</h1>
       <div className="grid h-full gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
         <div className="min-h-0">
           <AlgorithmSidebar
@@ -119,7 +120,7 @@ export default function AnalyticsPage() {
             />
           </div>
 
-          <div className="min-h-0">
+          <div className="min-h-0" aria-live="polite">
             <AnalyticsResultsPanel
               result={result}
               error={error}
@@ -133,6 +134,6 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

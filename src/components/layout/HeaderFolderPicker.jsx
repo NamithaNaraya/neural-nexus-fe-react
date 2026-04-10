@@ -62,6 +62,10 @@ export function HeaderFolderPicker({
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
+        aria-label="Select active folder"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-controls="header-folder-options"
         disabled={loading || folders.length === 0}
         className="flex h-10 items-center gap-2 rounded-xl border border-border/50 bg-background/70 px-3 text-left transition hover:border-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-60"
       >
@@ -86,7 +90,7 @@ export function HeaderFolderPicker({
             />
           </div>
 
-          <div className="mt-3 max-h-72 space-y-1 overflow-y-auto pr-1">
+          <div id="header-folder-options" role="listbox" aria-label="Folders" className="mt-3 max-h-72 space-y-1 overflow-y-auto pr-1">
             {filteredFolders.length > 0 ? (
               filteredFolders.map((folder) => {
                 const active = String(folder.id) === String(selectedFolderId);
@@ -95,6 +99,8 @@ export function HeaderFolderPicker({
                   <button
                     key={folder.id}
                     type="button"
+                    role="option"
+                    aria-selected={active}
                     onClick={() => {
                       setSelectedFolderId(String(folder.id));
                       setOpen(false);

@@ -105,13 +105,13 @@ export default function GraphDegreeDistributionPage(props) {
                     <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="rgba(148,163,184,0.12)" />
                     <XAxis
                       dataKey="degree"
-                      tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                      tick={{ fontSize: 11, fill: '#7cac94', fontWeight: 500 }}
                       tickLine={false}
                       axisLine={{ stroke: 'rgba(148,163,184,0.2)' }}
                       tickMargin={12}
                     />
                     <YAxis
-                      tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                      tick={{ fontSize: 11, fill: '#7cac94', fontWeight: 500 }}
                       tickLine={false}
                       axisLine={{ stroke: 'rgba(148,163,184,0.2)' }}
                     />
@@ -143,7 +143,7 @@ export default function GraphDegreeDistributionPage(props) {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Max Degree" value={maxDegree} />
             <StatCard label="Avg Degree" value={avgDegree} accentClass="text-emerald-600 dark:text-emerald-400" />
-            <StatCard label="Orphans" value={orphanCount} accentClass="text-amber-600" />
+            <StatCard label="Orphans" value={orphanCount} accentClass="text-primary dark:text-primary" />
             <StatCard label="Hubs > 5" value={hubCount} accentClass="text-emerald-600" />
           </div>
         </>

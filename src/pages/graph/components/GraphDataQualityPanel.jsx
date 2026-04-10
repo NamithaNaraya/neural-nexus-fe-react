@@ -11,7 +11,7 @@ function statusTone(status) {
     case 'critical':
       return 'text-red-600 dark:text-red-300';
     default:
-      return 'text-amber-600 dark:text-amber-300';
+      return 'text-primary dark:text-primary';
   }
 }
 
@@ -114,7 +114,7 @@ export function GraphDataQualityPanel({ folderId }) {
             <Card className="border-border/50 bg-card/70">
               <CardContent className="space-y-2 p-4">
                 <div className="flex items-center gap-2 text-sm font-semibold">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <AlertTriangle className="h-4 w-4 text-primary" />
                   Incomplete
                 </div>
                 <div className="text-xl font-bold">{summary.incompleteCount}</div>

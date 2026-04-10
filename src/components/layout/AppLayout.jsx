@@ -6,7 +6,7 @@ import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
 import { Moon, Sun } from 'lucide-react';
 
 export function AppLayout({ children }) {
-  const { theme, toggleTheme } = useTheme();
+  const { resolvedTheme, toggleTheme } = useTheme();
   const {
     folders,
     selectedFolderId,
@@ -16,6 +16,9 @@ export function AppLayout({ children }) {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <Sidebar />
 
       <div className="relative flex h-full w-full flex-1 flex-col">
@@ -32,9 +35,11 @@ export function AppLayout({ children }) {
 
             <button
               onClick={toggleTheme}
+              type="button"
+              aria-label={resolvedTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
               className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
             >
-              {theme === 'dark' ? (
+              {resolvedTheme === 'dark' ? (
                 <Sun className="h-[18px] w-[18px] text-accent" />
               ) : (
                 <Moon className="h-[18px] w-[18px] text-primary" />
@@ -47,7 +52,7 @@ export function AppLayout({ children }) {
           </div>
         </header>
 
-        <main className="relative flex-1 overflow-auto">
+        <main id="main-content" tabIndex={-1} className="relative flex-1 overflow-auto focus:outline-none">
           <div className="absolute inset-0 -z-10 bg-gradient-to-br from-background via-background to-primary/[0.02]" />
           <div className="absolute right-0 top-0 -z-10 h-[600px] w-[600px] rounded-full bg-primary/[0.04] blur-[120px]" />
 

@@ -67,16 +67,16 @@ export function PasswordCard() {
   return (
     <section className="rounded-[24px] border border-border/60 bg-card/82 p-4 shadow-[0_18px_46px_-36px_rgba(15,23,42,0.3)] backdrop-blur-xl">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <KeyRound className="h-4.5 w-4.5" />
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-600/80 dark:text-amber-400/80">Password</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/80">Password</p>
           <h2 className="text-lg font-semibold">Change password</h2>
         </div>
       </div>
 
-      <div className="mt-4 rounded-[20px] border border-amber-500/15 bg-gradient-to-br from-amber-500/[0.06] to-background/90 px-4 py-3">
+      <div className="mt-4 rounded-[20px] border border-primary/15 bg-gradient-to-br from-primary/[0.06] to-background/90 px-4 py-3">
         <p className="text-xs font-medium text-foreground">Use a fresh password you do not reuse elsewhere.</p>
       </div>
 
@@ -106,7 +106,7 @@ export function PasswordCard() {
       </form>
 
       {status && (
-        <div className="mt-4 rounded-2xl border border-border/50 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+        <div role="status" aria-live="polite" className="mt-4 rounded-2xl border border-border/50 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           {status}
         </div>
       )}

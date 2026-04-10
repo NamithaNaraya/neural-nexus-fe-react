@@ -49,7 +49,7 @@ export default function BrowsePage() {
   };
 
   return (
-    <div className="space-y-6 pb-6">
+    <section aria-labelledby="browse-page-title" className="space-y-6 pb-6">
       <BrowseHero
         totalKnownNodes={totalKnownNodes}
         totalTypes={nodeTypes.length}
@@ -78,15 +78,19 @@ export default function BrowsePage() {
       />
 
       {loading ? (
-        <BrowseLoadingState />
+        <div aria-live="polite" aria-busy="true">
+          <BrowseLoadingState />
+        </div>
       ) : nodes.length > 0 ? (
         <>
           {renderView()}
           <BrowsePagination page={page} totalPages={totalPages} setPage={setPage} />
         </>
       ) : (
-        <BrowseEmptyState query={query} error={error} />
+        <div aria-live="polite">
+          <BrowseEmptyState query={query} error={error} />
+        </div>
       )}
-    </div>
+    </section>
   );
 }

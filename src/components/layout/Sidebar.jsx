@@ -92,7 +92,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-6 scrollbar-thin">
+      <nav aria-label="Primary" className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-6 scrollbar-thin">
         {navSections.map((section) => (
           <div key={section.label} className="space-y-1">
             {/* Section label */}
@@ -113,6 +113,7 @@ export function Sidebar() {
                 <NavLink
                   key={item.path}
                   to={item.path}
+                  aria-label={item.label}
                   onMouseEnter={() => handleWarmRoute(item.path)}
                   onFocus={() => handleWarmRoute(item.path)}
                   className={cn(
@@ -168,7 +169,7 @@ export function Sidebar() {
           !expanded && 'justify-center p-2'
         )}>
           {/* Avatar */}
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-teal-500 text-sm font-bold text-white shadow-sm shrink-0">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white shadow-sm shrink-0">
             {user?.email?.[0]?.toUpperCase() || 'U'}
           </div>
 
@@ -183,6 +184,8 @@ export function Sidebar() {
           {expanded && (
             <button
               onClick={logout}
+              type="button"
+              aria-label="Sign out"
               className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-red-400 transition-colors"
               title="Sign out"
             >
@@ -195,6 +198,8 @@ export function Sidebar() {
       {/* Collapse/Expand Toggle */}
       <button
         onClick={toggle}
+        type="button"
+        aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
         className={cn(
           'absolute -right-3 top-20 w-6 h-6 rounded-full border border-border/60 bg-card flex items-center justify-center',
           'text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200',

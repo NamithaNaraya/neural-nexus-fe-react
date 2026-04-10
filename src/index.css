@@ -84,6 +84,7 @@
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    color-scheme: light;
   }
 
   body {
@@ -95,6 +96,27 @@
       radial-gradient(circle at top right, hsl(145 32% 69% / 0.12), transparent 26%),
       radial-gradient(circle at bottom right, hsl(145 32% 69% / 0.08), transparent 24%);
     background-attachment: fixed;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(circle at top left, hsl(145 32% 69% / 0.08), transparent 30%),
+      radial-gradient(circle at top right, hsl(149 66% 28% / 0.12), transparent 26%),
+      radial-gradient(circle at bottom right, hsl(145 24% 58% / 0.08), transparent 22%);
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.2);
+    color: hsl(var(--foreground));
   }
 
   /* Custom scrollbar — works on both themes */
@@ -158,6 +180,15 @@
   .page-enter {
     animation: page-enter 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
+
+  .skip-link {
+    @apply sr-only;
+  }
+
+  .skip-link:focus-visible {
+    @apply not-sr-only fixed left-4 top-4 z-[1000] rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg;
+    outline-offset: 0;
+  }
 }
 
 /* ═══ Animations ═══ */
@@ -204,3 +235,17 @@
 .stagger-4 { animation-delay: 200ms; }
 .stagger-5 { animation-delay: 250ms; }
 .stagger-6 { animation-delay: 300ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -23,9 +23,11 @@ import { useGlobalFolder } from '../contexts/GlobalFolderContext';
 import { TextIngest } from '../components/ingest/TextIngest';
 import { CypherIngest } from '../components/ingest/CypherIngest';
 import { ExcelMapper } from '../components/ingest/ExcelMapper';
+import { useNavigate } from 'react-router-dom';
 
 export default function UploadPage() {
   const { currentFolder, selectedFolderId } = useGlobalFolder();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('pipeline');
   const [files, setFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -104,16 +106,17 @@ export default function UploadPage() {
     { id: 'text', label: 'Paste Text', icon: FileText, color: 'text-cyan-500' },
     { id: 'cypher', label: 'Direct Query', icon: Database, color: 'text-teal-600' },
   ];
+  const activeTabPanelId = `upload-tab-panel-${activeTab}`;
 
   return (
-    <div className="mx-auto w-full max-w-[1360px] min-w-0 space-y-5 overflow-x-hidden px-2">
+    <section aria-labelledby="upload-page-title" className="mx-auto w-full max-w-[1360px] min-w-0 space-y-5 overflow-x-hidden px-2">
       {/* Page Title */}
       <div className="min-w-0 space-y-1">
         <div className="min-w-0 space-y-1">
           <Badge variant="outline" className="border-none bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
             Data Upload
           </Badge>
-          <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">
+          <h1 id="upload-page-title" className="text-2xl font-extrabold tracking-tight md:text-3xl">
             Upload <span className="gradient-text">Workspace Data</span>
           </h1>
           <p className="max-w-2xl text-[13px] font-medium text-muted-foreground">
@@ -124,10 +127,14 @@ export default function UploadPage() {
 
       {/* Modern High-End Tabs */}
       <div className="w-full max-w-full overflow-x-auto pb-1">
-        <div className="flex min-w-[920px] items-stretch gap-2 rounded-3xl border border-border/10 bg-blackAlpha.200 p-1.5 shadow-inner">
+        <div role="tablist" aria-label="Upload methods" className="flex min-w-[920px] items-stretch gap-2 rounded-3xl border border-border/10 bg-blackAlpha.200 p-1.5 shadow-inner">
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              id={`upload-tab-${tab.id}`}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              aria-controls={`upload-tab-panel-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
                 'relative flex min-w-0 flex-1 items-center justify-center gap-2.5 overflow-hidden rounded-2xl px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all duration-300 group sm:px-6',
@@ -136,9 +143,6 @@ export default function UploadPage() {
                   : 'text-muted-foreground hover:text-foreground hover:bg-whiteAlpha.100'
               )}
             >
-              {activeTab === tab.id && (
-                <div className="absolute inset-0 bg-gradient-to-r from-whiteAlpha.200 to-transparent animate-pulse" />
-              )}
               <tab.icon className={cn("w-4 h-4 shrink-0 transition-transform group-hover:scale-110", activeTab === tab.id ? "text-white" : tab.color)} />
               <span className="whitespace-nowrap">{tab.label}</span>
             </button>
@@ -156,7 +160,7 @@ export default function UploadPage() {
               variant="ghost"
               size="sm"
               className="h-9 rounded-xl bg-red-500/10 text-[10px] font-black text-red-500 hover:bg-red-500/20"
-              onClick={() => window.location.href='/folders'}
+              onClick={() => navigate('/folders')}
             >
               OPEN FOLDERS
             </Button>
@@ -166,7 +170,7 @@ export default function UploadPage() {
 
       {/* Main Content Area */}
       <Card className="flex min-h-[600px] w-full min-w-0 max-w-full flex-col overflow-hidden rounded-[32px] border-border/10 bg-card/60 shadow-2xl backdrop-blur-3xl">
-        <CardContent className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
+        <CardContent id={activeTabPanelId} role="tabpanel" aria-labelledby={`upload-tab-${activeTab}`} className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
           {!selectedFolderId ? (
             <div className="h-[500px] flex flex-col items-center justify-center text-center space-y-6">
               <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 animate-pulse">
@@ -179,7 +183,7 @@ export default function UploadPage() {
               <Button 
                 variant="gradient" 
                 className="h-12 rounded-2xl px-8 font-black shadow-lg shadow-emerald-500/20"
-                onClick={() => window.location.href='/folders'}
+                onClick={() => navigate('/folders')}
               >
                 Open Library
               </Button>
@@ -196,10 +200,19 @@ export default function UploadPage() {
 
                     {/* Drag & Drop Zone */}
                     <div
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Upload files by dragging files here or opening the file picker"
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
                       onClick={() => document.getElementById('file-upload').click()}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          document.getElementById('file-upload')?.click();
+                        }
+                      }}
                       className={cn(
                         'relative border-2 border-dashed rounded-[32px] p-20 text-center transition-all duration-500 cursor-pointer group',
                         isDragging
@@ -207,7 +220,7 @@ export default function UploadPage() {
                           : 'border-border/40 hover:border-primary/40 hover:bg-primary/5'
                       )}
                     >
-                      <input id="file-upload" type="file" multiple accept=".pdf,.txt,.csv,.json,.md,.docx" onChange={handleFileSelect} className="hidden" />
+                      <input id="file-upload" aria-label="Choose files to upload" type="file" multiple accept=".pdf,.txt,.csv,.json,.md,.docx" onChange={handleFileSelect} className="hidden" />
                       
                       <div className="space-y-4">
                         <div className={cn(
@@ -253,8 +266,8 @@ export default function UploadPage() {
                           ))}
                         </div>
                         {uploading && (
-                          <div className="w-full bg-whiteAlpha.100 rounded-full h-2 overflow-hidden shadow-inner">
-                            <div className="h-full rounded-full bg-gradient-to-r from-primary to-teal-500 transition-all duration-300 shadow-lg shadow-primary/30" style={{ width: `${uploadProgress}%` }} />
+                          <div className="w-full bg-whiteAlpha.100 rounded-full h-2 overflow-hidden shadow-inner" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={uploadProgress} aria-label="Upload progress">
+                            <div className="h-full rounded-full bg-primary transition-all duration-300 shadow-lg shadow-primary/30" style={{ width: `${uploadProgress}%` }} />
                           </div>
                         )}
                         <Button
@@ -330,6 +343,6 @@ export default function UploadPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </section>
   );
 }
