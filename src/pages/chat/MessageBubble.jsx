@@ -101,7 +101,7 @@ const renderInlineMarkdown = (text, keyPrefix = 'inline') => {
 
     if (match[2] && match[3]) {
       pieces.push(
-        <a key={`${keyPrefix}-${match.index}`} href={match[3]} target="_blank" rel="noopener noreferrer" className="text-emerald-700 dark:text-emerald-300 hover:underline font-medium">
+        <a key={`${keyPrefix}-${match.index}`} href={match[3]} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium dark:text-primary">
           {match[2]}
           <ExternalLink className="ml-1 inline-block h-3 w-3" />
         </a>
@@ -179,7 +179,7 @@ const renderMarkdownContent = (text) => {
         <Tag
           key={`heading-${index}`}
           className={`mt-4 mb-2 font-bold tracking-tight border-l-3 pl-3 ${
-            level === 1 ? 'text-xl border-emerald-500' : level === 2 ? 'text-lg border-emerald-400' : 'text-base border-emerald-300 dark:border-emerald-700'
+            level === 1 ? 'text-xl border-primary' : level === 2 ? 'text-lg border-primary/70' : 'text-base border-primary/40 dark:border-primary/60'
           } text-stone-900 dark:text-stone-100`}
         >
           {renderInlineMarkdown(headingMatch[2], `heading-${index}`)}
@@ -206,7 +206,7 @@ const renderMarkdownContent = (text) => {
       blocks.push(
         <div key={`table-${index}`} className="my-4 overflow-x-auto rounded-xl border border-stone-200/80 shadow-sm dark:border-stone-700/60">
           <table className="min-w-full border-collapse text-left text-sm">
-            <thead className="bg-emerald-50/80 dark:bg-emerald-950/30">
+            <thead className="bg-primary/10 dark:bg-primary/15">
               <tr>
                 {header.map((cell, cellIndex) => (
                   <th key={cellIndex} className="border-b border-stone-200 px-4 py-2.5 font-semibold text-stone-800 dark:border-stone-700 dark:text-stone-100">
@@ -272,7 +272,7 @@ const renderMarkdownContent = (text) => {
 
     if (/^>\s+/.test(trimmed)) {
       blocks.push(
-        <blockquote key={`quote-${index}`} className="my-3 border-l-4 border-emerald-300 bg-emerald-50/70 pl-4 pr-3 py-2 text-stone-700 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-stone-200">
+        <blockquote key={`quote-${index}`} className="my-3 border-l-4 border-primary/35 bg-primary/10 pl-4 pr-3 py-2 text-stone-700 dark:border-primary/60 dark:bg-primary/15 dark:text-stone-200">
           {renderInlineMarkdown(trimmed.replace(/^>\s+/, ''), `quote-${index}`)}
         </blockquote>
       );
@@ -332,11 +332,11 @@ function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
   return (
     <div className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
       {isUser ? (
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-amber-700 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/10 border border-white/10">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0 border border-white/10 shadow-lg shadow-primary/10">
           <User className="w-4 h-4 text-white" />
         </div>
       ) : (
-        <div className={cn('w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0 shadow-sm', message.isStreaming && 'animate-pulse')}>
+        <div className={cn('w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0 shadow-sm', message.isStreaming && 'animate-pulse')}>
           {isStandaloneWebSearch ? <Globe className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
         </div>
       )}
@@ -345,7 +345,7 @@ function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
         'rounded-2xl px-4 py-3 text-sm leading-relaxed transition-all duration-300 hover:shadow-md',
         isUser ? 'max-w-[85%]' : 'max-w-[90%]',
         isUser
-          ? 'rounded-br-md border border-emerald-500/20 bg-emerald-500/5 text-emerald-950 shadow-[0_8px_30px_rgb(16,185,129,0.06)] dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-50'
+          ? 'rounded-br-md border border-primary/20 bg-primary/5 text-foreground shadow-[0_8px_30px_hsl(var(--primary)/0.08)] dark:border-primary/30 dark:bg-primary/15 dark:text-primary-foreground'
           : isError
             ? 'bg-red-50 border border-red-200 text-red-900 rounded-bl-md dark:bg-red-900/20 dark:border-red-800 dark:text-red-100'
             : isStandaloneWebSearch
@@ -360,8 +360,8 @@ function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
           {message.isStreaming && !hasAssistantText && (
             <AnimatedDots />
           )}
-          {message.isStreaming && hasAssistantText && (
-            <span className="inline-block w-2 h-4 ml-0.5 bg-emerald-500 dark:bg-emerald-400 rounded-sm animate-pulse align-text-bottom" />
+              {message.isStreaming && hasAssistantText && (
+            <span className="inline-block w-2 h-4 ml-0.5 bg-primary rounded-sm animate-pulse align-text-bottom" />
           )}
         </div>
 
@@ -452,7 +452,7 @@ function StreamingText({ text }) {
 export const TypingIndicator = React.memo(function TypingIndicator() {
   return (
     <div className="flex gap-3 justify-start">
-      <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0 shadow-sm">
+      <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0 shadow-sm">
         <Bot className="w-4 h-4 text-white" />
       </div>
       <div className="bg-white/80 border border-gray-200 rounded-2xl px-4 py-3 dark:bg-gray-800/80 dark:border-gray-700 backdrop-blur-sm">

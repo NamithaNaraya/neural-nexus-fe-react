@@ -1,9 +1,14 @@
 import { THEME_PALETTE } from "./theme/palette.js";
 
+// Tailwind color aliases intentionally point back to the shared palette.
+// Many existing components still use families like emerald/cyan/amber/slate.
+// Re-mapping them here lets the full app follow the same theme without page-level edits.
 const brandPalette = {
   forest: THEME_PALETTE.brand.primary,
   forestHover: THEME_PALETTE.brand.primaryHover,
   cloud: THEME_PALETTE.neutral.canvas,
+  surface: THEME_PALETTE.neutral.surface,
+  surfaceMuted: THEME_PALETTE.neutral.surfaceMuted,
   grayText: THEME_PALETTE.neutral.text,
   grayDeep: THEME_PALETTE.neutral.textStrong,
   blue: THEME_PALETTE.accent.info,
@@ -33,9 +38,9 @@ export default {
     extend: {
       colors: {
         emerald: {
-          50: "#faf5ff",
-          100: "#f3e8ff",
-          200: "#e9d5ff",
+          50: brandPalette.cloud,
+          100: brandPalette.surfaceMuted,
+          200: "#eadbff",
           300: brandPalette.mint,
           400: brandPalette.moss,
           500: brandPalette.forest,
@@ -45,11 +50,11 @@ export default {
           900: "#3b0764",
         },
         amber: {
-          50: "#fff1f8",
-          100: "#ffe4f1",
-          200: "#fecce7",
-          300: "#f9a8d4",
-          400: "#f472b6",
+          50: brandPalette.cloud,
+          100: "#fff1fb",
+          200: "#ffd8ef",
+          300: "#ffb4e0",
+          400: brandPalette.warm,
           500: brandPalette.warm,
           600: "#db2777",
           700: "#be185d",
@@ -57,9 +62,9 @@ export default {
           900: "#831843",
         },
         teal: {
-          50: "#fdf4ff",
-          100: "#fae8ff",
-          200: "#f5d0fe",
+          50: brandPalette.cloud,
+          100: brandPalette.surfaceMuted,
+          200: "#f1ddff",
           300: brandPalette.mint,
           400: brandPalette.moss,
           500: "#d946ef",
@@ -69,11 +74,11 @@ export default {
           900: "#701a75",
         },
         cyan: {
-          50: "#fdf2f8",
-          100: "#fce7f3",
-          200: "#fbcfe8",
-          300: "#f9a8d4",
-          400: "#f472b6",
+          50: brandPalette.cloud,
+          100: "#fff0f8",
+          200: "#ffd3e9",
+          300: "#ffb0d8",
+          400: "#f58bc4",
           500: brandPalette.blue,
           600: brandPalette.blueHover,
           700: "#be185d",
@@ -81,9 +86,9 @@ export default {
           900: "#831843",
         },
         lime: {
-          50: "#fff7fb",
-          100: "#fdf2f8",
-          200: "#fce7f3",
+          50: brandPalette.cloud,
+          100: brandPalette.surfaceMuted,
+          200: "#f2dfff",
           300: brandPalette.mint,
           400: brandPalette.moss,
           500: "#e879f9",
@@ -106,8 +111,8 @@ export default {
         },
         stone: {
           50: brandPalette.cloud,
-          100: "#f8f4ff",
-          200: "#efe7fb",
+          100: brandPalette.surface,
+          200: "#f1e8ff",
           300: "#ddd6f3",
           400: brandPalette.moss,
           500: "#a78bfa",
@@ -118,9 +123,9 @@ export default {
         },
         zinc: {
           50: brandPalette.cloud,
-          100: "#faf5ff",
-          200: "#f3e8ff",
-          300: "#e9d5ff",
+          100: brandPalette.surfaceMuted,
+          200: "#efe0ff",
+          300: "#e4cbff",
           400: brandPalette.moss,
           500: "#a855f7",
           600: "#9333ea",

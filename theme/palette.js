@@ -1,3 +1,10 @@
+// Global brand palette source for the React v2 app.
+// For normal product-wide color changes, start here.
+// Shared UI theme control is intentionally centered around:
+// 1. theme/palette.js
+// 2. tailwind.config.js
+// 3. src/index.css
+// Exceptions: custom graph 2D/3D/list/visualization rendering can keep their own palettes.
 export const THEME_PALETTE = {
   brand: {
     primary: '#7c3aed',
@@ -7,6 +14,8 @@ export const THEME_PALETTE = {
   },
   neutral: {
     canvas: '#fcfaff',
+    surface: '#ffffff',
+    surfaceMuted: '#f6f0ff',
     text: '#475569',
     textStrong: '#1f2937',
     border: '#d8c7f4',

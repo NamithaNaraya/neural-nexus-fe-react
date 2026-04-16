@@ -4,6 +4,8 @@
 
 @layer base {
   :root {
+    /* Global semantic theme tokens.
+       Change these variables for app-wide light-mode color behavior. */
     --background: 280 36% 98%;
     --foreground: 215 28% 23%;
     --card: 0 0% 100%;
@@ -29,9 +31,13 @@
     --success: 262 83% 58%;
     --warning: 322 84% 67%;
     --info: 330 81% 60%;
+    --bg-glow-primary: 262 83% 58%;
+    --bg-glow-accent: 330 81% 60%;
+    --bg-glow-soft: 292 72% 72%;
   }
 
   .dark {
+    /* Dark-mode counterparts for the same semantic theme system. */
     --background: 272 28% 10%;
     --foreground: 280 20% 90%;
     --card: 274 24% 13%;
@@ -54,6 +60,9 @@
     --success: 276 100% 82%;
     --warning: 322 84% 67%;
     --info: 327 86% 72%;
+    --bg-glow-primary: 276 100% 82%;
+    --bg-glow-accent: 327 86% 72%;
+    --bg-glow-soft: 292 72% 72%;
   }
 }
 
@@ -92,9 +101,9 @@
     font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
     text-rendering: optimizeLegibility;
     background-image:
-      radial-gradient(circle at top left, hsl(262 83% 58% / 0.08), transparent 28%),
-      radial-gradient(circle at top right, hsl(330 81% 60% / 0.1), transparent 26%),
-      radial-gradient(circle at bottom right, hsl(292 72% 72% / 0.08), transparent 24%);
+      radial-gradient(circle at top left, hsl(var(--bg-glow-primary) / 0.08), transparent 28%),
+      radial-gradient(circle at top right, hsl(var(--bg-glow-accent) / 0.1), transparent 26%),
+      radial-gradient(circle at bottom right, hsl(var(--bg-glow-soft) / 0.08), transparent 24%);
     background-attachment: fixed;
   }
 
@@ -104,9 +113,9 @@
 
   .dark body {
     background-image:
-      radial-gradient(circle at top left, hsl(276 100% 82% / 0.08), transparent 30%),
-      radial-gradient(circle at top right, hsl(327 86% 72% / 0.1), transparent 26%),
-      radial-gradient(circle at bottom right, hsl(292 72% 72% / 0.08), transparent 22%);
+      radial-gradient(circle at top left, hsl(var(--bg-glow-primary) / 0.08), transparent 30%),
+      radial-gradient(circle at top right, hsl(var(--bg-glow-accent) / 0.1), transparent 26%),
+      radial-gradient(circle at bottom right, hsl(var(--bg-glow-soft) / 0.08), transparent 22%);
   }
 
   :focus-visible {
