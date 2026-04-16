@@ -13,8 +13,6 @@ import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { ChatHistorySkeleton } from './components/ChatHistorySkeleton';
 import { cn } from '../../utils/cn';
-import { jsPDF } from 'jspdf';
-import { ChatPageSkeleton } from '../../components/skeletons/RoutePageSkeleton';
 import {
   WELCOME_MESSAGE,
   createBlankSession,
@@ -26,9 +24,6 @@ import {
   selectSessionForFolder,
   getSessionTitleFromMessages,
 } from './chatSessionStorage';
-import { exportToText } from './downloads/exportToText';
-import { exportToJson } from './downloads/exportToJson';
-import { exportToPdf } from './downloads/exportToPdf';
 
 const hasStoredChatContent = (messages = []) =>
   Array.isArray(messages) &&
@@ -52,6 +47,7 @@ const hasStoredWebSearchContent = (messages = []) =>
   );
 
 const MAX_WEB_SOURCE_COUNT = 6;
+const CHAT_STARTUP_SYNC_TIMEOUT_MS = 8000;
 const INTERNAL_SOURCE_HOSTS = new Set([
   'vertexaisearch.cloud.google.com',
   'generativelanguage.googleapis.com',
@@ -157,7 +153,7 @@ export default function ChatPage() {
   const [isHistoryOpen, setHistoryOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1280 : false));
   const [isDownloadOpen, setDownloadOpen] = useState(false);
   const [isWebSearchEnabled, setIsWebSearchEnabled] = useState(false);
-  const [isWorkspaceLoading, setWorkspaceLoading] = useState(true);
+  const [isWorkspaceLoading, setWorkspaceLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const downloadMenuRef = useRef(null);
@@ -276,7 +272,8 @@ export default function ChatPage() {
   useEffect(() => {
     setWorkspaceLoading(true);
     hasHydratedWorkspaceRef.current = false;
-    setWorkspace(loadChatWorkspace(userKey));
+    const hydratedWorkspace = loadChatWorkspace(userKey);
+    setWorkspace(hydratedWorkspace);
     queueMicrotask(() => {
       hasHydratedWorkspaceRef.current = true;
       setWorkspaceLoading(false);
@@ -287,10 +284,10 @@ export default function ChatPage() {
   useEffect(() => {
     const syncFromBackend = async () => {
       if (!user?.id) return;
-      setWorkspaceLoading(true);
-      hasHydratedWorkspaceRef.current = false;
       try {
-        const backendWorkspace = await chatService.syncWorkspaceFromBackend();
+        const backendWorkspace = await chatService.syncWorkspaceFromBackend({
+          timeoutMs: CHAT_STARTUP_SYNC_TIMEOUT_MS,
+        });
         if (backendWorkspace) {
           setWorkspace((prev) => {
             const backendSet = new Set(backendWorkspace.sessions.map((session) => session.id));
@@ -315,11 +312,6 @@ export default function ChatPage() {
         }
       } catch (error) {
         console.error('Failed to sync from backend:', error);
-      } finally {
-        queueMicrotask(() => {
-          hasHydratedWorkspaceRef.current = true;
-          setWorkspaceLoading(false);
-        });
       }
     };
 
@@ -809,7 +801,8 @@ export default function ChatPage() {
     inputRef.current?.focus();
   };
 
-  const handleExportText = () => {
+  const handleExportText = async () => {
+    const { exportToText } = await import('./downloads/exportToText');
     exportToText({
       messages,
       folderName: currentFolder?.name,
@@ -817,7 +810,8 @@ export default function ChatPage() {
     });
   };
 
-  const handleExportJson = () => {
+  const handleExportJson = async () => {
+    const { exportToJson } = await import('./downloads/exportToJson');
     exportToJson({
       messages,
       folderName: currentFolder?.name,
@@ -826,7 +820,8 @@ export default function ChatPage() {
     });
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
+    const { exportToPdf } = await import('./downloads/exportToPdf');
     exportToPdf({
       messages,
       folderName: currentFolder?.name,
@@ -892,10 +887,6 @@ export default function ChatPage() {
       }
     }
   };
-
-  if (isWorkspaceLoading) {
-    return <ChatPageSkeleton />;
-  }
 
   return (
     <>

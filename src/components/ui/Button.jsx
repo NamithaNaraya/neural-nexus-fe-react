@@ -1,5 +1,4 @@
-import React from 'react';
-import { Button as ChakraButton } from '@chakra-ui/react';
+import React, { forwardRef } from 'react';
 import { cn } from '../../utils/cn';
 
 const buttonVariants = {
@@ -20,18 +19,21 @@ const buttonVariants = {
   },
 };
 
-export function Button({
-  className,
-  variant = 'default',
-  size = 'default',
-  type = 'button',
-  disabled,
-  children,
-  ...props
-}) {
+export const Button = forwardRef(function Button(
+  {
+    className,
+    variant = 'default',
+    size = 'default',
+    type = 'button',
+    disabled,
+    children,
+    ...props
+  },
+  ref
+) {
   return (
-    <ChakraButton
-      unstyled
+    <button
+      ref={ref}
       type={type}
       className={cn(
         'inline-flex min-h-11 cursor-pointer items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
@@ -43,6 +45,8 @@ export function Button({
       {...props}
     >
       {children}
-    </ChakraButton>
+    </button>
   );
-}
+});
+
+Button.displayName = 'Button';

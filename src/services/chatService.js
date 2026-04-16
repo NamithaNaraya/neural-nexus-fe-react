@@ -5,15 +5,18 @@ import api from './api';
  * Handles loading and managing chat sessions from PostgreSQL
  */
 
+const CHAT_REQUEST_TIMEOUT_MS = 8000;
+
 export const chatService = {
   /**
    * Load all chat sessions for current user from backend (V2 Optimized)
    * @returns {Promise<Array>} Array of session objects with metadata
    */
-  async listSessions() {
+  async listSessions(options = {}) {
+    const timeout = options.timeoutMs ?? CHAT_REQUEST_TIMEOUT_MS;
     try {
       // Use the newly created V2-specific metadata API
-      const response = await api.get('/query/chat/v2/sessions');
+      const response = await api.get('/query/chat/v2/sessions', { timeout });
       return response.data || [];
     } catch (error) {
       console.error('Failed to list chat sessions:', error);
@@ -27,10 +30,12 @@ export const chatService = {
    * @param {number} limit - Max messages to retrieve (default: 200 for full context)
    * @returns {Promise<Array>} Array of message objects
    */
-  async getSessionHistory(sessionId, limit = 200) {
+  async getSessionHistory(sessionId, limit = 200, options = {}) {
+    const timeout = options.timeoutMs ?? CHAT_REQUEST_TIMEOUT_MS;
     try {
       const response = await api.get(`/query/chat/history/${sessionId}`, {
         params: { limit },
+        timeout,
       });
       return response.data?.messages || [];
     } catch (error) {
@@ -61,9 +66,9 @@ export const chatService = {
    *
    * @returns {Promise<Object>} Workspace object with sessions and currentSessionId
    */
-  async syncWorkspaceFromBackend() {
+  async syncWorkspaceFromBackend(options = {}) {
     try {
-      const sessions = await this.listSessions();
+      const sessions = await this.listSessions(options);
 
       if (!sessions || sessions.length === 0) {
         return null;

@@ -1,5 +1,4 @@
 import React, { forwardRef } from 'react';
-import { Button as ChakraButton } from '@chakra-ui/react';
 import { cn } from '../../utils/cn';
 
 const iconButtonVariants = {
@@ -24,9 +23,9 @@ export const IconButton = forwardRef(function IconButton(
   ref
 ) {
   return (
-    <ChakraButton
-      unstyled
+    <button
       ref={ref}
+      type="button"
       className={cn(
         'inline-flex cursor-pointer items-center justify-center rounded-xl transition-all duration-200 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 active:scale-95',
         iconButtonVariants.variant[variant],
@@ -36,7 +35,7 @@ export const IconButton = forwardRef(function IconButton(
       {...props}
     >
       {icon || children}
-    </ChakraButton>
+    </button>
   );
 });
 

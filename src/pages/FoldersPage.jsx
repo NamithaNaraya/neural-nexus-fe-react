@@ -1,9 +1,8 @@
-import React, { Suspense, lazy, useMemo, useRef, useState, useEffect, useCallback } from 'react';
+import React, { Suspense, lazy, useDeferredValue, useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { IconButton } from '../components/ui/IconButton';
-import { Flex } from '@chakra-ui/react';
 import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Input, Label } from '../components/ui/Input';
+import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
 import { Skeleton } from '../components/ui/Skeleton';
 import { AnimatedNumber } from '../components/shared/AnimatedNumber';
@@ -29,10 +28,10 @@ import { cn } from '../utils/cn';
 import { folderService } from '../services/folderService';
 import { browseService } from '../services/browseService';
 import { useGlobalFolder } from '../contexts/GlobalFolderContext';
-import { FolderCrudModal } from '../components/crud';
 
 const FolderNodesPanel = lazy(() => import('./folders/FolderNodesPanel').then((m) => ({ default: m.FolderNodesPanel })));
 const FolderFilesPanel = lazy(() => import('./folders/FolderFilesPanel').then((m) => ({ default: m.FolderFilesPanel })));
+const FolderCrudModal = lazy(() => import('../components/crud/FolderCrudModal').then((m) => ({ default: m.FolderCrudModal })));
 
 const FolderCardSkeleton = ({ mode = 'grid' }) => {
   if (mode === 'list') {
@@ -99,18 +98,13 @@ const DetailPanelSkeleton = () => (
 );
 
 export default function FoldersPage() {
-  const { refreshFolders, selectedFolderId, setSelectedFolderId } = useGlobalFolder();
-  const [folders, setFolders] = useState([]);
+  const { folders, loading, refreshFolders, selectedFolderId, setSelectedFolderId } = useGlobalFolder();
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('folder_view_mode') || 'grid');
 
   useEffect(() => {
     localStorage.setItem('folder_view_mode', viewMode);
   }, [viewMode]);
-  const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const [newFolderDesc, setNewFolderDesc] = useState('');
-  const [creating, setCreating] = useState(false);
   const [folderSearch, setFolderSearch] = useState('');
   const [folderContentSearch, setFolderContentSearch] = useState('');
   const [selectedFolder, setSelectedFolder] = useState(null);
@@ -126,6 +120,7 @@ export default function FoldersPage() {
   const [nodesPage, setNodesPage] = useState(1);
   const [nodesTotalPages, setNodesTotalPages] = useState(0);
   const folderNodesCacheRef = useRef(new Map());
+  const loadedFolderFilesIdRef = useRef('');
   const lastSyncedFolderIdRef = useRef('');
   const pendingFolderSyncRef = useRef('');
 
@@ -134,9 +129,11 @@ export default function FoldersPage() {
   const [editingFolder, setEditingFolder] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+  const deferredFolderSearch = useDeferredValue(folderSearch);
+  const deferredFolderContentSearch = useDeferredValue(folderContentSearch);
 
   const filteredFolders = useMemo(() => {
-    const term = folderSearch.trim().toLowerCase();
+    const term = deferredFolderSearch.trim().toLowerCase();
     if (!term) return folders;
 
     return folders.filter((folder) => {
@@ -145,10 +142,10 @@ export default function FoldersPage() {
       const id = String(folder.id || '').toLowerCase();
       return name.includes(term) || description.includes(term) || id.includes(term);
     });
-  }, [folders, folderSearch]);
+  }, [deferredFolderSearch, folders]);
 
   const filteredFolderNodes = useMemo(() => {
-    const term = folderContentSearch.trim().toLowerCase();
+    const term = deferredFolderContentSearch.trim().toLowerCase();
     if (!term) return folderNodes;
 
     return folderNodes.filter((node) => {
@@ -157,10 +154,10 @@ export default function FoldersPage() {
       const id = String(node.id || '').toLowerCase();
       return name.includes(term) || type.includes(term) || id.includes(term);
     });
-  }, [folderNodes, folderContentSearch]);
+  }, [deferredFolderContentSearch, folderNodes]);
 
   const filteredFolderFiles = useMemo(() => {
-    const term = folderContentSearch.trim().toLowerCase();
+    const term = deferredFolderContentSearch.trim().toLowerCase();
     if (!term) return folderFiles;
 
     return folderFiles.filter((file) => {
@@ -169,7 +166,7 @@ export default function FoldersPage() {
       const status = String(file.status || '').toLowerCase();
       return name.includes(term) || type.includes(term) || status.includes(term);
     });
-  }, [folderFiles, folderContentSearch]);
+  }, [deferredFolderContentSearch, folderFiles]);
 
   const resetFolderSelection = useCallback(() => {
     setSelectedFolder(null);
@@ -183,44 +180,10 @@ export default function FoldersPage() {
     setFolderNodes([]);
     setNodesPage(1);
     setNodesTotalPages(0);
+    loadedFolderFilesIdRef.current = '';
     lastSyncedFolderIdRef.current = '';
     pendingFolderSyncRef.current = '';
   }, [setSelectedFolderId]);
-
-  const fetchFolders = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await folderService.list();
-      setFolders(data);
-    } catch (err) {
-      console.error('Failed to fetch folders:', err);
-    } finally {
-      // Small artificial delay for skeleton feel parity
-      setTimeout(() => setLoading(false), 300);
-    }
-  }, []);
-
-  useEffect(() => { fetchFolders(); }, [fetchFolders]);
-
-  const createFolder = async (e) => {
-    e.preventDefault();
-    if (!newFolderName.trim() || creating) return;
-    setStatusMessage('');
-    setCreating(true);
-    try {
-      const createdFolder = await folderService.create(newFolderName.trim(), newFolderDesc.trim() || null);
-      setNewFolderName('');
-      setNewFolderDesc('');
-      setShowCreate(false);
-      await fetchFolders();
-      await refreshFolders();
-      if (createdFolder?.id) setSelectedFolderId(String(createdFolder.id));
-    } catch (err) {
-      setStatusMessage(err.response?.data?.detail || 'Failed to create folder');
-    } finally {
-      setCreating(false);
-    }
-  };
 
   const deleteFolder = async (folderId) => {
     setDeleting(folderId);
@@ -230,7 +193,6 @@ export default function FoldersPage() {
       if (selectedFolder?.id === folderId) {
         resetFolderSelection();
       }
-      await fetchFolders();
       await refreshFolders();
     } catch (err) {
       setStatusMessage(err.response?.data?.detail || 'Failed to delete folder');
@@ -274,23 +236,35 @@ export default function FoldersPage() {
     }
   }, []);
 
+  const fetchFolderFiles = useCallback(async (folderId) => {
+    if (!folderId || String(loadedFolderFilesIdRef.current) === String(folderId)) return;
+
+    setFilesLoading(true);
+    try {
+      const filesResult = await folderService.listFiles(folderId);
+      setFolderFiles(Array.isArray(filesResult) ? filesResult : []);
+      loadedFolderFilesIdRef.current = String(folderId);
+    } catch (err) {
+      console.error('Failed to fetch folder files:', err);
+      setFolderFiles([]);
+    } finally {
+      setFilesLoading(false);
+    }
+  }, []);
+
   const loadFolderDetails = useCallback(async (folder) => {
     setSelectedFolder(folder);
     lastSyncedFolderIdRef.current = String(folder.id);
     setNodeSearch('');
     setFolderContentSearch('');
-    setFilesLoading(true);
+    setFolderFiles([]);
+    loadedFolderFilesIdRef.current = '';
+    setFilesLoading(false);
     setNodesLoading(true);
     folderNodesCacheRef.current.clear();
 
     try {
-      const [filesResult, nodeTypesResult] = await Promise.all([
-        folderService.listFiles(folder.id),
-        browseService.getNodeTypes(folder.id),
-      ]);
-
-      setFolderFiles(Array.isArray(filesResult) ? filesResult : []);
-
+      const nodeTypesResult = await browseService.getNodeTypes(folder.id);
       const types = Array.isArray(nodeTypesResult?.types) ? nodeTypesResult.types : [];
       setNodeTypes(types);
       const firstType = types.length > 0 ? types[0].type : '';
@@ -310,10 +284,8 @@ export default function FoldersPage() {
       setFolderNodes([]);
       setNodesTotalPages(0);
       setNodesLoading(false);
-    } finally {
-      setFilesLoading(false);
     }
-  }, [fetchFolderNodes, resetFolderSelection]);
+  }, [fetchFolderNodes]);
 
   const activateFolder = useCallback(async (folder) => {
     if (!folder) return;
@@ -343,11 +315,17 @@ export default function FoldersPage() {
     }
 
     if (String(selectedFolder?.id || '') === String(nextFolder.id)) {
+      setSelectedFolder((current) => (current ? { ...current, ...nextFolder } : current));
       return;
     }
 
     void loadFolderDetails(nextFolder);
   }, [folders, loadFolderDetails, resetFolderSelection, selectedFolder?.id, selectedFolderId]);
+
+  useEffect(() => {
+    if (selectedFolderTab !== 'files' || !selectedFolder?.id) return;
+    void fetchFolderFiles(selectedFolder.id);
+  }, [fetchFolderFiles, selectedFolder?.id, selectedFolderTab]);
 
   const formatDate = (isoStr) => {
     if (!isoStr) return '—';
@@ -395,14 +373,14 @@ export default function FoldersPage() {
               className="h-11 pl-11 rounded-2xl border-border/40 focus:ring-primary/20"
             />
           </div>
-          <div className="flex items-center gap-2 p-1.5 bg-whiteAlpha.50 rounded-2xl border border-border/20 backdrop-blur-sm">
+          <div className="flex items-center gap-2 p-1.5 bg-muted/20 rounded-2xl border border-border/20 backdrop-blur-sm">
             <button
               onClick={() => setViewMode('grid')}
               className={cn(
                 "p-2 rounded-xl transition-all duration-200",
                 viewMode === 'grid' 
                   ? "bg-primary text-white shadow-lg shadow-primary/20" 
-                  : "text-muted-foreground hover:bg-whiteAlpha.100 hover:text-foreground"
+                  : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
               )}
               title="Grid View"
             >
@@ -414,7 +392,7 @@ export default function FoldersPage() {
                 "p-2 rounded-xl transition-all duration-200",
                 viewMode === 'list' 
                   ? "bg-primary text-white shadow-lg shadow-primary/20" 
-                  : "text-muted-foreground hover:bg-whiteAlpha.100 hover:text-foreground"
+                  : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
               )}
               title="List View"
             >
@@ -470,7 +448,7 @@ export default function FoldersPage() {
                   role="button"
                   tabIndex={0}
                   className={cn(
-                    'cursor-pointer group backdrop-blur-none bg-card/60 hover:bg-card hover:border-primary/40 hover:shadow-xl transition-all duration-300 border-border/30',
+                    'cursor-pointer group backdrop-blur-none bg-card/60 hover:bg-accent-soft/5 hover:border-primary/40 hover:shadow-xl transition-all duration-300 border-border/30',
                     viewMode === 'list' ? 'rounded-2xl' : 'rounded-3xl',
                     (selectedFolder?.id === folder.id || String(selectedFolderId) === String(folder.id)) && 'border-primary/50 bg-primary/10 ring-1 ring-primary/20'
                   )}
@@ -483,54 +461,60 @@ export default function FoldersPage() {
                   }}
                 >
                   {viewMode === 'grid' ? (
-                    <CardContent className="p-7">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-5 min-w-0">
-                          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                            <FolderOpen className="w-7 h-7 text-primary" />
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="font-bold text-lg truncate text-foreground/90">{folder.name}</h3>
-                            {folder.description && (
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-1 font-medium italic">
-                                {folder.description}
-                              </p>
-                            )}
-                            <div className="flex items-center gap-4 mt-4">
-                              <Badge variant="outline" className="h-6 gap-1.5 px-2.5 text-[10px] font-black border-border/40 text-muted-foreground uppercase tracking-wider">
-                                <FileText className="w-3 h-3" />
-                                {folder.file_count}
-                              </Badge>
-                              <Badge variant="outline" className="h-6 gap-1.5 px-2.5 text-[10px] font-black border-border/40 text-muted-foreground uppercase tracking-wider">
-                                <Network className="w-3 h-3" />
-                                {folder.node_count}
-                              </Badge>
-                            </div>
-                          </div>
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="w-12 h-12 rounded-2xl bg-accent-soft/10 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                          <FolderOpen className="w-6 h-6 text-accent" />
                         </div>
-
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0 -mr-2">
                           <button
                             onClick={(e) => { e.stopPropagation(); setEditingFolder(folder); setShowEdit(true); }}
-                            className="p-2 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-whiteAlpha.200 text-muted-foreground hover:text-primary transition-all duration-200"
+                            className="p-2 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-muted/30 text-muted-foreground hover:text-primary transition-all duration-200"
+                            title="Edit Folder"
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); setDeletePromptFolder(folder); }}
                             className="p-2 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all duration-200"
+                            title="Delete Folder"
                           >
                             {deleting === folder.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                           </button>
                         </div>
+                      </div>
+                      
+                      <div className="space-y-1.5 min-w-0">
+                        <h3 
+                          className="font-bold text-base leading-snug break-words line-clamp-2 text-foreground/90 group-hover:text-primary transition-colors"
+                          title={folder.name}
+                        >
+                          {folder.name}
+                        </h3>
+                        {folder.description && (
+                          <p className="text-[12px] text-muted-foreground line-clamp-1 font-medium italic">
+                            {folder.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 mt-5">
+                        <Badge variant="outline" className="h-6 gap-1.5 px-2.5 text-[9px] font-bold border-border/40 text-muted-foreground uppercase tracking-wider bg-background/40">
+                          <FileText className="w-3 h-3" />
+                          {folder.file_count}
+                        </Badge>
+                        <Badge variant="outline" className="h-6 gap-1.5 px-2.5 text-[9px] font-bold border-border/40 text-muted-foreground uppercase tracking-wider bg-background/40">
+                          <Network className="w-3 h-3" />
+                          {folder.node_count}
+                        </Badge>
                       </div>
                     </CardContent>
                   ) : (
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-4 min-w-0 flex-1">
-                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-all duration-300">
-                            <FolderOpen className="w-6 h-6 text-primary" />
+                          <div className="w-12 h-12 rounded-xl bg-accent-soft/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-all duration-300">
+                            <FolderOpen className="w-6 h-6 text-accent" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-3">
@@ -603,13 +587,13 @@ export default function FoldersPage() {
         {selectedFolder && (
           <div className="h-full min-h-0 overflow-hidden animate-in fade-in slide-in-from-right-4 duration-500">
             <Card variant="branded" className="flex h-full min-h-0 flex-col overflow-hidden backdrop-blur-none bg-card/60 border-border/20 shadow-2xl">
-              <div className="border-b border-border/20 px-6 py-5 bg-whiteAlpha.50">
+              <div className="border-b border-border/20 px-6 py-5 bg-muted/10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4 min-w-0">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-10 w-10 p-0 rounded-2xl bg-whiteAlpha.100 hover:bg-primary/20 hover:text-primary transition-colors"
+                      className="h-10 w-10 p-0 rounded-2xl bg-muted/20 hover:bg-primary/20 hover:text-primary transition-colors"
                       onClick={resetFolderSelection}
                     >
                       <ArrowLeft className="w-5 h-5" />
@@ -639,7 +623,7 @@ export default function FoldersPage() {
                     { label: 'Total Nodes', value: selectedFolder.node_count, icon: Network, color: 'text-primary' },
                     { label: 'Last Sync', value: formatDate(selectedFolder.updated_at), icon: Calendar, color: 'text-muted-foreground', isDate: true }
                   ].map((stat, i) => (
-                    <div key={i} className="bg-whiteAlpha.100 rounded-3xl p-4 border border-border/10 hover:border-primary/20 transition-all group">
+                    <div key={i} className="bg-muted/20 rounded-3xl p-4 border border-border/10 hover:border-accent-warm/30 hover:bg-accent-warm/5 transition-all group">
                       <stat.icon className={cn("w-5 h-5 mb-3 transition-transform group-hover:scale-110", stat.color)} />
                       <p className="text-xl font-black leading-none">
                         {stat.isDate ? stat.value : <AnimatedNumber value={stat.value} />}
@@ -651,7 +635,7 @@ export default function FoldersPage() {
 
                 {/* Tabs & Content Area */}
                 <div className="space-y-5">
-                  <div className="flex bg-blackAlpha.200 p-1.5 rounded-2xl w-max border border-border/10">
+                  <div className="flex bg-muted/30 p-1.5 rounded-2xl w-max border border-border/10">
                     {[
                       { id: 'nodes', label: 'Knowledge Nodes' },
                       { id: 'files', label: 'Source Files' },
@@ -663,7 +647,7 @@ export default function FoldersPage() {
                           'rounded-xl px-5 py-2 text-[12px] font-bold transition-all duration-300',
                           selectedFolderTab === tab.id
                             ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-whiteAlpha.100'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
                         )}
                       >
                         {tab.label}
@@ -672,7 +656,7 @@ export default function FoldersPage() {
                   </div>
 
                   <div className="relative min-h-[400px]">
-                     <Suspense fallback={<Flex align="center" justify="center" h="200px"><Loader2 className="animate-spin text-primary" /></Flex>}>
+                     <Suspense fallback={<div className="flex h-[200px] items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>}>
                         {selectedFolderTab === 'nodes' ? (
                           <FolderNodesPanel
                             active={true}
@@ -706,7 +690,36 @@ export default function FoldersPage() {
         )}
       </div>
 
-      <FolderCrudModal open={showEdit} mode="edit" initialFolder={editingFolder} onClose={() => setShowEdit(false)} onSuccess={() => fetchFolders()} />
+      <Suspense fallback={null}>
+        <FolderCrudModal
+          open={showCreate}
+          mode="create"
+          onClose={() => setShowCreate(false)}
+          onSuccess={async (createdFolder) => {
+            setStatusMessage('');
+            await refreshFolders();
+            if (createdFolder?.id) {
+              setSelectedFolderId(String(createdFolder.id));
+            }
+          }}
+        />
+        <FolderCrudModal
+          open={showEdit}
+          mode="edit"
+          initialFolder={editingFolder}
+          onClose={() => {
+            setShowEdit(false);
+            setEditingFolder(null);
+          }}
+          onSuccess={async (updatedFolder) => {
+            setStatusMessage('');
+            await refreshFolders();
+            if (updatedFolder?.id && String(selectedFolder?.id || '') === String(updatedFolder.id)) {
+              setSelectedFolder((current) => (current ? { ...current, ...updatedFolder } : current));
+            }
+          }}
+        />
+      </Suspense>
     </section>
   );
 }

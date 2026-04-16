@@ -1,12 +1,4 @@
 import React from 'react';
-import {
-  CardRoot as ChakraCardRoot,
-  CardHeader as ChakraCardHeader,
-  CardBody as ChakraCardBody,
-  CardFooter as ChakraCardFooter,
-  CardTitle as ChakraCardTitle,
-  CardDescription as ChakraCardDescription,
-} from '@chakra-ui/react';
 import { cn } from '../../utils/cn';
 
 const cardVariants = {
@@ -16,8 +8,7 @@ const cardVariants = {
 
 export function Card({ className, variant = 'default', children, ...props }) {
   return (
-    <ChakraCardRoot
-      unstyled
+    <div
       className={cn(
         'border backdrop-blur-xl text-card-foreground shadow-sm transition-all duration-300',
         cardVariants[variant],
@@ -26,46 +17,46 @@ export function Card({ className, variant = 'default', children, ...props }) {
       {...props}
     >
       {children}
-    </ChakraCardRoot>
+    </div>
   );
 }
 
 export function CardHeader({ className, children, ...props }) {
   return (
-    <ChakraCardHeader unstyled className={cn('flex flex-col space-y-1.5 p-6', className)} {...props}>
+    <div className={cn('flex flex-col space-y-1.5 p-6', className)} {...props}>
       {children}
-    </ChakraCardHeader>
+    </div>
   );
 }
 
 export function CardTitle({ className, children, ...props }) {
   return (
-    <ChakraCardTitle unstyled className={cn('text-lg font-semibold leading-none tracking-tight', className)} {...props}>
+    <h3 className={cn('text-lg font-semibold leading-none tracking-tight', className)} {...props}>
       {children}
-    </ChakraCardTitle>
+    </h3>
   );
 }
 
 export function CardDescription({ className, children, ...props }) {
   return (
-    <ChakraCardDescription unstyled className={cn('text-sm text-muted-foreground', className)} {...props}>
+    <p className={cn('text-sm text-muted-foreground', className)} {...props}>
       {children}
-    </ChakraCardDescription>
+    </p>
   );
 }
 
 export function CardContent({ className, children, ...props }) {
   return (
-    <ChakraCardBody unstyled className={cn('p-6 pt-0', className)} {...props}>
+    <div className={cn('p-6 pt-0', className)} {...props}>
       {children}
-    </ChakraCardBody>
+    </div>
   );
 }
 
 export function CardFooter({ className, children, ...props }) {
   return (
-    <ChakraCardFooter unstyled className={cn('flex items-center p-6 pt-0', className)} {...props}>
+    <div className={cn('flex items-center p-6 pt-0', className)} {...props}>
       {children}
-    </ChakraCardFooter>
+    </div>
   );
 }

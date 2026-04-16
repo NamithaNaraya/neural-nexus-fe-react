@@ -60,10 +60,10 @@ export function FolderNodesPanel({
                   fetchFolderNodes(selectedFolder.id, nodeType.type, 1, nodeSearch);
                 }}
                 className={cn(
-                  'rounded-xl border px-3 py-1 text-[10px] font-bold transition-all duration-200',
+                  'rounded-xl border px-3 py-1 text-[10px] font-bold transition-all duration-300',
                   isSelected
-                    ? 'text-white shadow-md'
-                    : 'bg-muted/20 text-muted-foreground hover:bg-muted/40'
+                    ? 'text-white shadow-lg shadow-primary/20 scale-105'
+                    : 'bg-accent-soft/10 text-muted-foreground hover:bg-accent-soft/30 hover:text-foreground'
                 )}
                 style={getFolderThemeTone(isSelected)}
               >
@@ -93,11 +93,11 @@ export function FolderNodesPanel({
             </div>
           ) : filteredFolderNodes.length > 0 ? (
             filteredFolderNodes.map((node) => (
-              <div key={node.id} className="rounded-xl border border-border/10 bg-muted/5 px-2.5 py-1.5 transition-all hover:bg-muted/10 group">
-                <div className="truncate text-[12px] font-bold text-foreground/80 group-hover:text-primary transition-colors">{node.name}</div>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                   <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                   <div className="truncate text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">{node.type}</div>
+              <div key={node.id} className="rounded-xl border border-border/10 bg-muted/10 px-3 py-2 transition-all hover:bg-accent-warm/15 hover:border-accent-warm/30 hover:scale-[1.01] group">
+                <div className="truncate text-[12px] font-bold text-foreground/80 group-hover:text-foreground transition-colors">{node.name}</div>
+                <div className="flex items-center gap-1.5 mt-1">
+                   <div className="w-1.5 h-1.5 rounded-full bg-primary/60 group-hover:bg-primary transition-colors" />
+                   <div className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground/60 group-hover:text-muted-foreground/80">{node.type}</div>
                 </div>
               </div>
             ))

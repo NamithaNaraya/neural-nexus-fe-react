@@ -45,16 +45,17 @@ export function FolderCrudModal({
     setError('');
 
     try {
+      let savedFolder = null;
       if (mode === 'create') {
-        await folderService.create(form.name.trim(), form.description.trim() || null);
+        savedFolder = await folderService.create(form.name.trim(), form.description.trim() || null);
       } else if (initialFolder?.id) {
-        await folderService.update(initialFolder.id, {
+        savedFolder = await folderService.update(initialFolder.id, {
           name: form.name.trim(),
           description: form.description.trim() || null,
         });
       }
 
-      onSuccess?.();
+      onSuccess?.(savedFolder);
       onClose?.();
     } catch (err) {
       setError(err?.response?.data?.detail || err?.message || 'Could not save folder.');
@@ -73,7 +74,7 @@ export function FolderCrudModal({
             <h2 className="text-lg font-semibold">{mode === 'create' ? 'Create Folder' : 'Edit Folder'}</h2>
             <p className="text-xs text-muted-foreground">Keep folder names clean and easy to scan.</p>
           </div>
-          <button onClick={onClose} className="rounded-lg p-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground">
+          <button type="button" onClick={onClose} className="rounded-lg p-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         </div>

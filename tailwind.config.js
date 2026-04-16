@@ -1,8 +1,5 @@
 import { THEME_PALETTE } from "./theme/palette.js";
 
-// Tailwind color aliases intentionally point back to the shared palette.
-// Many existing components still use families like emerald/cyan/amber/slate.
-// Re-mapping them here lets the full app follow the same theme without page-level edits.
 const brandPalette = {
   forest: THEME_PALETTE.brand.primary,
   forestHover: THEME_PALETTE.brand.primaryHover,
@@ -37,103 +34,7 @@ export default {
     },
     extend: {
       colors: {
-        emerald: {
-          50: brandPalette.cloud,
-          100: brandPalette.surfaceMuted,
-          200: "#eadbff",
-          300: brandPalette.mint,
-          400: brandPalette.moss,
-          500: brandPalette.forest,
-          600: brandPalette.forestHover,
-          700: "#5b21b6",
-          800: "#4c1d95",
-          900: "#3b0764",
-        },
-        amber: {
-          50: brandPalette.cloud,
-          100: "#fff1fb",
-          200: "#ffd8ef",
-          300: "#ffb4e0",
-          400: brandPalette.warm,
-          500: brandPalette.warm,
-          600: "#db2777",
-          700: "#be185d",
-          800: "#9d174d",
-          900: "#831843",
-        },
-        teal: {
-          50: brandPalette.cloud,
-          100: brandPalette.surfaceMuted,
-          200: "#f1ddff",
-          300: brandPalette.mint,
-          400: brandPalette.moss,
-          500: "#d946ef",
-          600: "#c026d3",
-          700: "#a21caf",
-          800: "#86198f",
-          900: "#701a75",
-        },
-        cyan: {
-          50: brandPalette.cloud,
-          100: "#fff0f8",
-          200: "#ffd3e9",
-          300: "#ffb0d8",
-          400: "#f58bc4",
-          500: brandPalette.blue,
-          600: brandPalette.blueHover,
-          700: "#be185d",
-          800: "#9d174d",
-          900: "#831843",
-        },
-        lime: {
-          50: brandPalette.cloud,
-          100: brandPalette.surfaceMuted,
-          200: "#f2dfff",
-          300: brandPalette.mint,
-          400: brandPalette.moss,
-          500: "#e879f9",
-          600: "#d946ef",
-          700: "#c026d3",
-          800: "#a21caf",
-          900: "#86198f",
-        },
-        slate: {
-          50: brandPalette.cloud,
-          100: "#f1f5f9",
-          200: "#e2e8f0",
-          300: "#cbd5e1",
-          400: "#94a3b8",
-          500: brandPalette.grayText,
-          600: brandPalette.grayDeep,
-          700: "#111827",
-          800: "#0f172a",
-          900: "#020617",
-        },
-        stone: {
-          50: brandPalette.cloud,
-          100: brandPalette.surface,
-          200: "#e7e5e4",
-          300: "#d6d3d1",
-          400: "#a8a29e",
-          500: "#78716c",
-          600: "#57534e",
-          700: "#44403c",
-          800: "#292524",
-          900: "#1c1917",
-        },
-        zinc: {
-          50: brandPalette.cloud,
-          100: brandPalette.surfaceMuted,
-          200: "#e4e4e7",
-          300: "#d4d4d8",
-          400: "#a1a1aa",
-          500: "#71717a",
-          600: "#52525b",
-          700: "#3f3f46",
-          800: "#27272a",
-          900: "#18181b",
-          950: "#09090b",
-        },
+        // Semantic design system tokens
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -158,6 +59,8 @@ export default {
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
+          soft: "hsl(var(--accent-soft))",
+          warm: "hsl(var(--accent-warm))",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -166,6 +69,14 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        
+        // Brand palette aliases for legacy support/shorthand
+        brand: {
+          primary: brandPalette.forest,
+          primaryHover: brandPalette.forestHover,
+          muted: brandPalette.moss,
+          soft: brandPalette.mint,
         },
       },
       borderRadius: {

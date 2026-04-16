@@ -2,18 +2,33 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { folderService } from '../services/folderService';
 
 const GlobalFolderContext = createContext(undefined);
+const FOLDER_CACHE_KEY = 'neural_nexus_folder_cache_v1';
+
+function readCachedFolders() {
+  try {
+    const saved = localStorage.getItem(FOLDER_CACHE_KEY);
+    if (!saved) return [];
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 export function GlobalFolderProvider({ children }) {
-  const [folders, setFolders] = useState([]);
+  const [folders, setFolders] = useState(() => readCachedFolders());
   const [selectedFolderId, setSelectedFolderId] = useState(() => localStorage.getItem('neural_nexus_global_folder_id') || '');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => readCachedFolders().length === 0);
 
-  const refreshFolders = useCallback(async () => {
-    setLoading(true);
+  const refreshFolders = useCallback(async ({ showLoader = folders.length === 0 } = {}) => {
+    if (showLoader) {
+      setLoading(true);
+    }
     try {
       const data = await folderService.list();
       const items = Array.isArray(data) ? data : [];
       setFolders(items);
+      localStorage.setItem(FOLDER_CACHE_KEY, JSON.stringify(items));
 
       setSelectedFolderId((current) => {
         if (!current) return '';
@@ -26,11 +41,15 @@ export function GlobalFolderProvider({ children }) {
       });
     } catch (error) {
       console.error('Failed to load global folders:', error);
-      setFolders([]);
+      if (folders.length === 0) {
+        setFolders([]);
+      }
     } finally {
-      setLoading(false);
+      if (showLoader) {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [folders.length]);
 
   useEffect(() => {
     refreshFolders();

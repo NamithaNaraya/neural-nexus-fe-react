@@ -106,8 +106,7 @@ const renderInlineMarkdown = (text, keyPrefix = 'inline') => {
           href={match[3]}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium hover:underline"
-          style={{ color: 'inherit' }}
+          className="font-medium hover:underline text-primary"
         >
           {match[2]}
           <ExternalLink className="ml-1 inline-block h-3 w-3" />
@@ -115,7 +114,7 @@ const renderInlineMarkdown = (text, keyPrefix = 'inline') => {
       );
     } else if (match[5]) {
       pieces.push(
-        <strong key={`${keyPrefix}-${match.index}`} className="font-semibold text-stone-900 dark:text-stone-100">
+        <strong key={`${keyPrefix}-${match.index}`} className="font-bold text-foreground">
           {match[5]}
         </strong>
       );
@@ -123,14 +122,14 @@ const renderInlineMarkdown = (text, keyPrefix = 'inline') => {
       pieces.push(
         <code
           key={`${keyPrefix}-${match.index}`}
-          className="rounded-md border border-stone-200 bg-stone-100 px-1.5 py-0.5 font-mono text-[0.85em] text-stone-800 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+          className="rounded-md border border-border/40 bg-muted/30 px-1.5 py-0.5 font-mono text-[0.85em] text-foreground"
         >
           {match[7]}
         </code>
       );
     } else if (match[9]) {
       pieces.push(
-        <em key={`${keyPrefix}-${match.index}`} className="italic text-stone-900 dark:text-stone-100">
+        <em key={`${keyPrefix}-${match.index}`} className="italic text-foreground/90">
           {match[9]}
         </em>
       );
@@ -170,9 +169,17 @@ const renderMarkdownContent = (text) => {
       }
       if (index < lines.length) index += 1;
       blocks.push(
-        <pre key={`code-${index}`} className="my-3 overflow-x-auto rounded-xl border border-stone-200 bg-stone-100 p-3 text-sm text-stone-800 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-200">
-          {language && <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">{language}</div>}
-          <code className="whitespace-pre-wrap font-mono">{codeLines.join('\n')}</code>
+        <pre key={`code-${index}`} className="my-4 overflow-x-auto rounded-xl border border-border/30 bg-muted/20 p-4 text-xs font-medium text-foreground/90 backdrop-blur-sm">
+          {language && (
+            <div className="mb-3 flex items-center justify-between border-b border-border/20 pb-2">
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/60">{language}</span>
+              <div className="flex gap-1">
+                <div className="h-2 w-2 rounded-full bg-border/40" />
+                <div className="h-2 w-2 rounded-full bg-border/40" />
+              </div>
+            </div>
+          )}
+          <code className="block whitespace-pre font-mono leading-relaxed">{codeLines.join('\n')}</code>
         </pre>
       );
       continue;
@@ -185,9 +192,10 @@ const renderMarkdownContent = (text) => {
       blocks.push(
         <Tag
           key={`heading-${index}`}
-          className={`mt-4 mb-2 font-bold tracking-tight border-l-3 pl-3 ${
-            level === 1 ? 'text-xl border-primary' : level === 2 ? 'text-lg border-primary/70' : 'text-base border-primary/40 dark:border-primary/60'
-          } text-stone-900 dark:text-stone-100`}
+          className={cn(
+            'mt-6 mb-3 font-bold tracking-tight',
+            level === 1 ? 'text-xl text-foreground' : level === 2 ? 'text-lg text-foreground/90' : 'text-base text-foreground/80'
+          )}
         >
           {renderInlineMarkdown(headingMatch[2], `heading-${index}`)}
         </Tag>
@@ -211,29 +219,31 @@ const renderMarkdownContent = (text) => {
       }
 
       blocks.push(
-        <div key={`table-${index}`} className="my-4 overflow-x-auto rounded-xl border border-stone-200/80 shadow-sm dark:border-stone-700/60">
-          <table className="min-w-full border-collapse text-left text-sm">
-            <thead className="bg-primary/10 dark:bg-primary/15">
-              <tr>
-                {header.map((cell, cellIndex) => (
-                  <th key={cellIndex} className="border-b border-stone-200 px-4 py-2.5 font-semibold text-stone-800 dark:border-stone-700 dark:text-stone-100">
-                    {renderInlineMarkdown(cell, `table-header-${index}-${cellIndex}`)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rowLines.map((row, rowIndex) => (
-                <tr key={rowIndex} className={cn('border-b border-stone-100 last:border-b-0 dark:border-stone-800', rowIndex % 2 === 1 && 'bg-stone-50/50 dark:bg-stone-900/30')}>
-                  {row.map((cell, cellIndex) => (
-                    <td key={cellIndex} className="px-4 py-2 align-top text-stone-700 dark:text-stone-200">
-                      {renderInlineMarkdown(cell, `table-row-${index}-${rowIndex}-${cellIndex}`)}
-                    </td>
+        <div key={`table-${index}`} className="my-5 overflow-hidden rounded-xl border border-border/40 bg-card/40 shadow-sm backdrop-blur-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-xs">
+              <thead>
+                <tr className="bg-muted/30 border-b border-border/30">
+                  {header.map((cell, cellIndex) => (
+                    <th key={cellIndex} className="px-4 py-3 font-bold uppercase tracking-wider text-muted-foreground">
+                      {renderInlineMarkdown(cell, `table-header-${index}-${cellIndex}`)}
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border/20">
+                {rowLines.map((row, rowIndex) => (
+                  <tr key={rowIndex} className="hover:bg-muted/10 transition-colors">
+                    {row.map((cell, cellIndex) => (
+                      <td key={cellIndex} className="px-4 py-3 align-top text-foreground/90 leading-relaxed font-medium">
+                        {renderInlineMarkdown(cell, `table-row-${index}-${rowIndex}-${cellIndex}`)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       );
       continue;
@@ -247,9 +257,10 @@ const renderMarkdownContent = (text) => {
       }
 
       blocks.push(
-        <ul key={`ul-${index}`} className="my-3 list-disc space-y-2 pl-5 text-stone-700 dark:text-stone-200">
+        <ul key={`ul-${index}`} className="my-4 list-none space-y-2.5">
           {items.map((item, itemIndex) => (
-            <li key={itemIndex} className="pl-1 leading-relaxed">
+            <li key={itemIndex} className="relative pl-6 text-sm leading-relaxed text-foreground/90 font-medium">
+              <span className="absolute left-0 top-[0.6em] h-1.5 w-1.5 rounded-full bg-primary/40" />
               {renderInlineMarkdown(item, `ul-${index}-${itemIndex}`)}
             </li>
           ))}
@@ -266,9 +277,10 @@ const renderMarkdownContent = (text) => {
       }
 
       blocks.push(
-        <ol key={`ol-${index}`} className="my-3 list-decimal space-y-2 pl-5 text-stone-700 dark:text-stone-200">
+        <ol key={`ol-${index}`} className="my-4 list-none space-y-2.5">
           {items.map((item, itemIndex) => (
-            <li key={itemIndex} className="pl-1 leading-relaxed">
+            <li key={itemIndex} className="relative pl-7 text-sm leading-relaxed text-foreground/90 font-medium">
+              <span className="absolute left-0 top-0 text-[10px] font-bold text-primary/50">{itemIndex + 1}.</span>
               {renderInlineMarkdown(item, `ol-${index}-${itemIndex}`)}
             </li>
           ))}
@@ -279,7 +291,7 @@ const renderMarkdownContent = (text) => {
 
     if (/^>\s+/.test(trimmed)) {
       blocks.push(
-        <blockquote key={`quote-${index}`} className="my-3 border-l-4 border-primary/35 bg-primary/10 pl-4 pr-3 py-2 text-stone-700 dark:border-primary/60 dark:bg-primary/15 dark:text-stone-200">
+        <blockquote key={`quote-${index}`} className="my-4 border-l-3 border-accent/40 bg-accent/5 px-4 py-3 text-sm text-foreground/80 italic rounded-r-lg">
           {renderInlineMarkdown(trimmed.replace(/^>\s+/, ''), `quote-${index}`)}
         </blockquote>
       );
@@ -299,7 +311,7 @@ const renderMarkdownContent = (text) => {
     }
 
     blocks.push(
-      <p key={`p-${index}`} className="mb-3 last:mb-0 leading-[1.75] text-stone-800 dark:text-stone-100">
+      <p key={`p-${index}`} className="mb-4 last:mb-0 leading-[1.8] text-sm text-foreground/90 font-medium">
         {renderInlineMarkdown(paragraphLines.join(' '), `p-${index}`)}
       </p>
     );
@@ -311,14 +323,14 @@ const renderMarkdownContent = (text) => {
 const AnimatedDots = ({ tone = 'neutral' }) => {
   const dotClassName =
     tone === 'amber'
-      ? 'bg-amber-500 dark:bg-amber-400'
-      : 'bg-gray-400 dark:bg-gray-500';
+      ? 'bg-accent/60'
+      : 'bg-muted-foreground/30';
 
   return (
-    <span className="inline-flex items-center gap-1 align-middle">
-      <span className={cn('h-2 w-2 rounded-full animate-bounce', dotClassName)} />
-      <span className={cn('h-2 w-2 rounded-full animate-bounce', dotClassName)} style={{ animationDelay: '0.1s' }} />
-      <span className={cn('h-2 w-2 rounded-full animate-bounce', dotClassName)} style={{ animationDelay: '0.2s' }} />
+    <span className="inline-flex items-center gap-1.5 align-middle px-1">
+      <span className={cn('h-1.5 w-1.5 rounded-full animate-bounce', dotClassName)} />
+      <span className={cn('h-1.5 w-1.5 rounded-full animate-bounce', dotClassName)} style={{ animationDelay: '0.15s' }} />
+      <span className={cn('h-1.5 w-1.5 rounded-full animate-bounce', dotClassName)} style={{ animationDelay: '0.3s' }} />
     </span>
   );
 };
@@ -337,55 +349,54 @@ function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
   const hasWebSearchText = Boolean(String(cleanedWebSearchAnswer || '').trim());
 
   return (
-    <div className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
-      {isUser ? (
-        <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0 border border-white/10 shadow-lg shadow-accent/10">
-          <User className="w-4 h-4 text-white" />
-        </div>
-      ) : (
-        <div className={cn('w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0 shadow-sm', message.isStreaming && 'animate-pulse')}>
-          {isStandaloneWebSearch ? <Globe className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
+    <div className={cn('flex gap-4 animate-scale-in', isUser ? 'justify-end' : 'justify-start')}>
+      {!isUser && (
+        <div className={cn(
+          'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-primary/20 bg-primary/10 transition-all duration-500', 
+          message.isStreaming ? 'animate-pulse scale-105' : 'hover:scale-110'
+        )}>
+          {isStandaloneWebSearch ? (
+            <Globe className="w-4.5 h-4.5 text-primary" />
+          ) : (
+            <Bot className="w-4.5 h-4.5 text-primary" />
+          )}
         </div>
       )}
 
       <div className={cn(
-        'rounded-2xl px-4 py-3 text-sm leading-relaxed transition-all duration-300 hover:shadow-md',
-        isUser ? 'max-w-[85%]' : 'max-w-[90%]',
+        'group relative rounded-3xl px-6 py-4 text-sm leading-relaxed transition-all duration-300',
+        isUser ? 'max-w-[82%]' : 'max-w-[88%]',
         isUser
-          ? 'rounded-br-md border border-accent/20 bg-card text-stone-800 shadow-[0_8px_30px_hsl(var(--accent)/0.08)] dark:border-accent/30 dark:bg-card dark:text-stone-100'
+          ? 'rounded-tr-none border border-primary/15 bg-primary/8 text-foreground shadow-sm hover:shadow-md'
           : isError
-            ? 'bg-red-50 border border-red-200 text-red-900 rounded-bl-md dark:bg-red-900/20 dark:border-red-800 dark:text-red-100'
+            ? 'bg-destructive/8 border border-destructive/20 text-destructive rounded-tl-none'
             : isStandaloneWebSearch
-              ? 'rounded-bl-md border border-amber-200 bg-amber-50 text-stone-900 shadow-sm shadow-amber-500/10 dark:border-amber-800/70 dark:bg-amber-950/25 dark:text-amber-50'
-              : 'rounded-bl-md border border-border/60 bg-card text-stone-800 shadow-sm dark:bg-card dark:border-border/70 dark:text-stone-100 backdrop-blur-sm'
-      )}
-      style={{ color: 'hsl(var(--foreground))' }}
-      >
-        <div className={cn(
-          'prose prose-sm max-w-none break-words whitespace-normal w-full font-medium text-stone-900 dark:text-stone-100',
-          '[&_*]:!text-stone-900 dark:[&_*]:!text-stone-100',
-          '[&_p]:!text-stone-900 dark:[&_p]:!text-stone-100',
-          '[&_span]:!text-stone-900 dark:[&_span]:!text-stone-100',
-          '[&_div]:!text-stone-900 dark:[&_div]:!text-stone-100',
-          '[&_li]:!text-stone-900 dark:[&_li]:!text-stone-100',
-          '[&_strong]:!text-stone-950 dark:[&_strong]:!text-white',
-          '[&_em]:!text-stone-900 dark:[&_em]:!text-stone-100',
-          '[&_code]:!text-stone-900 dark:[&_code]:!text-stone-100',
-          '[&_a]:!text-stone-900 hover:[&_a]:!text-stone-950 dark:[&_a]:!text-stone-100 dark:hover:[&_a]:!text-white'
-        )}
-        style={{ color: 'hsl(var(--foreground))' }}
-        >
-          {hasAssistantText ? (message.isStreaming ? <StreamingText text={cleanedContent} /> : renderMarkdownContent(cleanedContent)) : null}
+              ? 'rounded-tl-none border border-accent/20 bg-accent/8 text-foreground shadow-sm hover:shadow-md'
+              : 'rounded-tl-none border border-border/50 bg-card/80 text-foreground shadow-sm hover:shadow-md backdrop-blur-md'
+      )}>
+        <div className="prose prose-sm max-w-none break-words whitespace-normal w-full overflow-hidden">
+          {hasAssistantText ? (
+            message.isStreaming ? (
+              <p className="mb-0 whitespace-pre-wrap leading-[1.8] text-foreground font-medium">
+                {cleanedContent}
+                <span className="inline-block w-2 h-4 ml-1.5 bg-primary/50 rounded-sm animate-pulse align-text-bottom" />
+              </p>
+            ) : (
+              renderMarkdownContent(cleanedContent)
+            )
+          ) : null}
+
           {message.isStreaming && !hasAssistantText && (
-            <AnimatedDots />
-          )}
-              {message.isStreaming && hasAssistantText && (
-            <span className="inline-block w-2 h-4 ml-0.5 bg-primary rounded-sm animate-pulse align-text-bottom" />
+            <div className="flex items-center gap-2 py-1">
+              <span className="text-xs font-semibold text-muted-foreground/60 tracking-wider">THINKING</span>
+              <AnimatedDots />
+            </div>
           )}
         </div>
 
+        {/* Web Search Trigger Button (for manual search if suggested) */}
         {!isUser && !isError && !isWelcome && !message.isStreaming && onWebSearch && !message.webSearchAnswer && message.content && (
-          <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/50">
+          <div className="mt-4 pt-4 border-t border-border/20">
             <button
               onClick={() => onWebSearch({
                 question: message.webSearchQuery || message.content,
@@ -394,38 +405,58 @@ function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
               })}
               disabled={webSearchPending}
               className={cn(
-                'flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors text-xs font-medium disabled:opacity-60',
+                'flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-[11px] font-bold uppercase tracking-wider disabled:opacity-50 ring-1 ring-inset',
                 webSearchPending
-                  ? 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-                  : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-300'
+                  ? 'bg-muted/10 ring-border/20 text-muted-foreground'
+                  : 'bg-accent/10 ring-accent/30 text-accent hover:bg-accent/20 hover:scale-105 active:scale-95'
               )}
             >
-              {webSearchPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />}
-              {webSearchPending ? 'Searching...' : 'Search Web'}
+              {webSearchPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Globe className="w-3.5 h-3.5" />
+              )}
+              {webSearchPending ? 'Searching...' : 'Explore Web'}
             </button>
           </div>
         )}
 
+        {/* Integrated Web Search Result Section */}
         {(message.webSearchAnswer || message.isStreamingWebSearch) && (
-          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50/80 p-3 dark:border-amber-800/60 dark:bg-amber-950/20">
-            <div className="mb-3 flex items-center gap-2 text-amber-700 dark:text-amber-300">
-                <Globe className="w-4 h-4" />
-                <span className="text-xs font-semibold uppercase tracking-wide">Web Answer</span>
+          <div className="mt-5 rounded-[1.75rem] border border-accent/25 bg-accent/5 p-5 shadow-inner backdrop-blur-sm animate-fade-up">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5 text-accent">
+                  <div className="p-1.5 rounded-lg bg-accent/15">
+                    <Globe className="w-4 h-4" />
+                  </div>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.14em]">Connected Research</span>
+              </div>
+              {message.isStreamingWebSearch && <div className="h-1.5 w-1.5 rounded-full bg-accent animate-ping" />}
             </div>
-            <div className="prose prose-sm max-w-none break-words whitespace-normal w-full text-stone-800 dark:prose-invert dark:text-stone-100">
-              {hasWebSearchText ? (message.isStreamingWebSearch ? <StreamingText text={cleanedWebSearchAnswer} /> : renderMarkdownContent(cleanedWebSearchAnswer)) : null}
+            
+            <div className="prose prose-sm max-w-none break-words whitespace-normal w-full overflow-hidden">
+              {hasWebSearchText ? (
+                message.isStreamingWebSearch ? (
+                  <p className="mb-0 whitespace-pre-wrap leading-[1.8] text-foreground font-medium">
+                    {cleanedWebSearchAnswer}
+                    <span className="inline-block w-2 h-4 ml-1.5 bg-accent/50 rounded-sm animate-pulse align-text-bottom" />
+                  </p>
+                ) : (
+                  renderMarkdownContent(cleanedWebSearchAnswer)
+                )
+              ) : null}
               {message.isStreamingWebSearch && !hasWebSearchText && (
-                <AnimatedDots tone="amber" />
-              )}
-              {message.isStreamingWebSearch && hasWebSearchText && (
-                <span className="inline-block w-2 h-4 ml-0.5 bg-amber-500 dark:bg-amber-400 rounded-sm animate-pulse align-text-bottom" />
+                <div className="flex items-center gap-2 py-1">
+                  <span className="text-xs font-semibold text-accent/60 tracking-wider uppercase">Searching</span>
+                  <AnimatedDots tone="amber" />
+                </div>
               )}
             </div>
 
             {Array.isArray(message.webSearchSources) && message.webSearchSources.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-amber-200/60 dark:border-amber-800/40">
-                <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-600 dark:text-amber-400">Sources</div>
-                <div className="flex flex-wrap gap-2">
+              <div className="mt-5 pt-4 border-t border-accent/15">
+                <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-accent/50">Verified Sources</div>
+                <div className="flex flex-wrap gap-2.5">
                   {message.webSearchSources.map((source, idx) => {
                     const url = source?.url || source?.uri || '';
                     const title = source?.title || source?.name || (url ? new URL(url).hostname : `Source ${idx + 1}`);
@@ -435,11 +466,11 @@ function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-amber-800 shadow-sm transition-all hover:bg-amber-100 hover:shadow-md dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:bg-amber-900/40"
+                        className="group/source inline-flex items-center gap-2 rounded-xl border border-accent/20 bg-card/60 px-3.5 py-1.5 text-[11px] font-bold text-foreground transition-all hover:bg-accent hover:text-white hover:border-accent hover:shadow-lg dark:bg-card/40 dark:hover:bg-accent dark:hover:text-white"
                         title={title}
                       >
-                        <ExternalLink className="h-3 w-3 shrink-0" />
-                        <span className="max-w-[220px] truncate">{title}</span>
+                        <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-40 group-hover/source:opacity-100 transition-opacity" />
+                        <span className="max-w-[180px] truncate">{title}</span>
                       </a>
                     ) : null;
                   })}
@@ -449,6 +480,12 @@ function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
           </div>
         )}
       </div>
+
+      {isUser && (
+        <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center shrink-0 border border-white/20 shadow-lg shadow-accent/20 transition-transform hover:scale-110">
+          <User className="w-4.5 h-4.5 text-white" />
+        </div>
+      )}
     </div>
   );
 }
@@ -460,24 +497,18 @@ export const MessageBubble = React.memo(
     && prevProps.messageIndex === nextProps.messageIndex
 );
 
-function StreamingText({ text }) {
-  return (
-    <p className="mb-0 whitespace-pre-wrap leading-[1.75] text-stone-800 dark:text-stone-100">
-      {text}
-    </p>
-  );
-}
-
 export const TypingIndicator = React.memo(function TypingIndicator() {
   return (
-    <div className="flex gap-3 justify-start">
-      <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0 shadow-sm">
-        <Bot className="w-4 h-4 text-white" />
+    <div className="flex gap-4 justify-start animate-fade-up">
+      <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-sm animate-pulse">
+        <Bot className="w-4.5 h-4.5 text-primary" />
       </div>
-      <div className="bg-white/80 border border-gray-200 rounded-2xl px-4 py-3 dark:bg-gray-800/80 dark:border-gray-700 backdrop-blur-sm">
-        <AnimatedDots />
+      <div className="bg-card/80 border border-border/50 rounded-3xl rounded-tl-none px-6 py-4 backdrop-blur-md shadow-sm">
+        <div className="flex items-center gap-2">
+           <span className="text-[10px] font-bold text-muted-foreground/50 tracking-widest uppercase">Streaming</span>
+           <AnimatedDots />
+        </div>
       </div>
     </div>
   );
 });
-

@@ -29,7 +29,7 @@ function Select({ id, value, onChange, className = '', children, ...props }) {
       value={value}
       onChange={onChange}
       className={cn(
-        'h-11 w-full rounded-xl border border-border/60 bg-background/70 px-3 text-sm outline-none backdrop-blur-sm transition focus:border-emerald-500/40 focus:ring-2 focus:ring-emerald-500/20',
+        'h-11 w-full rounded-xl border border-border/60 bg-background/70 px-3 text-sm outline-none backdrop-blur-sm transition focus:border-accent/40 focus:ring-2 focus:ring-accent/20',
         className
       )}
       {...props}
@@ -74,8 +74,8 @@ export function BrowseFilters({
                   className={cn(
                     'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition-all duration-300',
                     active
-                      ? 'border-emerald-600 bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'
-                      : 'border-border/60 bg-background/70 text-muted-foreground hover:border-emerald-500/40 hover:text-foreground'
+                      ? 'border-accent bg-accent text-accent-foreground shadow-lg shadow-accent/25'
+                      : 'border-border/60 bg-background/70 text-muted-foreground hover:border-accent/40 hover:text-foreground'
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -91,7 +91,7 @@ export function BrowseFilters({
         <div>
           <Field label="Semantic Search">
             <div className="relative group">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground group-focus-within:text-emerald-500 transition-colors" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground group-focus-within:text-accent transition-colors" />
               <Input
                 id="browse-field-semantic-search"
                 aria-label="Search graph entities"
@@ -117,7 +117,7 @@ export function BrowseFilters({
 
         <Field label="Logical Sort">
           <div className="relative group">
-            <ArrowDownAZ className="pointer-events-none absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground group-focus-within:text-emerald-500 transition-colors" />
+            <ArrowDownAZ className="pointer-events-none absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground group-focus-within:text-accent transition-colors" />
             <Select id="browse-field-logical-sort" aria-label="Sort browse results" value={sortMode} onChange={(event) => setSortMode(event.target.value)} className="pl-11">
               {SORT_OPTIONS.map((option) => (
                 <option key={option.id} value={option.id}>

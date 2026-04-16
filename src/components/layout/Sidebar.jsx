@@ -3,7 +3,6 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '../../utils/cn';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { preloadPageForPath } from '../../pages/pageLoaders';
 import {
   Network,
   MessageSquare,
@@ -58,9 +57,6 @@ export function Sidebar() {
   const { expanded, toggle } = useSidebar();
   const { user, logout } = useAuth();
   const location = useLocation();
-  const handleWarmRoute = (path) => {
-    void preloadPageForPath(path);
-  };
 
   return (
     <aside
@@ -79,7 +75,7 @@ export function Sidebar() {
               'px-3 mb-2 transition-all duration-200',
               expanded ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden mb-0'
             )}>
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40">
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60">
                 {section.label}
               </span>
             </div>
@@ -93,8 +89,6 @@ export function Sidebar() {
                   key={item.path}
                   to={item.path}
                   aria-label={item.label}
-                  onMouseEnter={() => handleWarmRoute(item.path)}
-                  onFocus={() => handleWarmRoute(item.path)}
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative group',
                     isActive
