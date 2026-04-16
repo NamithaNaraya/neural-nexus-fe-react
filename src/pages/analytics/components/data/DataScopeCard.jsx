@@ -78,7 +78,7 @@ export function DataScopeCard({
               <button
                 type="button"
                 onClick={() => setRunFullFolder((current) => !current)}
-                className={cn('relative h-6 w-11 rounded-full transition', runFullFolder ? 'bg-emerald-500' : 'bg-muted')}
+                className={cn('relative h-6 w-11 rounded-full transition', runFullFolder ? 'bg-primary/70' : 'bg-muted')}
               >
                 <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-white transition', runFullFolder ? 'left-[22px]' : 'left-0.5')} />
               </button>

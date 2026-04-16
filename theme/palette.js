@@ -7,24 +7,24 @@
 // Exceptions: custom graph 2D/3D/list/visualization rendering can keep their own palettes.
 export const THEME_PALETTE = {
   brand: {
-    primary: '#7c3aed',
-    primaryHover: '#6d28d9',
-    soft: '#e9d5ff',
-    muted: '#f5b8ff',
+    primary: '#7fa88b',
+    primaryHover: '#6c9478',
+    soft: '#dcebdd',
+    muted: '#d9cdea',
   },
   neutral: {
-    canvas: '#fcfaff',
+    canvas: '#f8fbf8',
     surface: '#ffffff',
-    surfaceMuted: '#f6f0ff',
-    text: '#475569',
-    textStrong: '#1f2937',
-    border: '#d8c7f4',
+    surfaceMuted: '#f2f7f2',
+    text: '#5a6870',
+    textStrong: '#23332d',
+    border: '#d2ddd5',
   },
   accent: {
-    info: '#ec4899',
-    infoHover: '#db2777',
-    secondaryAction: '#a855f7',
-    warning: '#f472b6',
-    danger: '#e11d48',
+    info: '#b89bcf',
+    infoHover: '#a687c0',
+    secondaryAction: '#c7b2dc',
+    warning: '#d7bddf',
+    danger: '#c98395',
   },
 };

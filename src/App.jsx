@@ -12,6 +12,7 @@ import { RoutePageSkeleton } from './components/skeletons/RoutePageSkeleton';
 import { pageLoaders } from './pages/pageLoaders';
 
 const LoginPage = lazy(pageLoaders.login);
+const LandingPage = lazy(pageLoaders.landing);
 const FoldersPage = lazy(pageLoaders.folders);
 const GraphPage = lazy(pageLoaders.graph);
 const ChatPage = lazy(pageLoaders.chat);
@@ -31,8 +32,18 @@ function ProtectedRoute({ children }) {
 
 function PublicRoute({ children }) {
   const { isAuthenticated } = useAuth();
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  if (isAuthenticated) return <Navigate to="/folders" replace />;
   return children;
+}
+
+function HomeRoute() {
+  const { isAuthenticated } = useAuth();
+  if (isAuthenticated) return <Navigate to="/folders" replace />;
+  return (
+    <Suspense fallback={null}>
+      <LandingPage />
+    </Suspense>
+  );
 }
 
 function PageTransition({ children }) {
@@ -77,6 +88,10 @@ function AppContent() {
 
   return (
     <Routes>
+      <Route
+        path="/"
+        element={<HomeRoute />}
+      />
       <Route
         path="/login"
         element={

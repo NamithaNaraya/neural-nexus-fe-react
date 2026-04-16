@@ -1,4 +1,5 @@
 export const pageLoaders = {
+  landing: () => import('./LandingPage'),
   login: () => import('./LoginPage'),
   folders: () => import('./FoldersPage'),
   graph: () => import('./GraphPage'),
@@ -15,6 +16,7 @@ export const pageLoaders = {
 export function preloadPageForPath(pathname = '') {
   const path = String(pathname || '').toLowerCase();
 
+  if (path === '/') return pageLoaders.landing();
   if (path.startsWith('/folders')) return pageLoaders.folders();
   if (path.startsWith('/graph')) return pageLoaders.graph();
   if (path.startsWith('/visualize')) return pageLoaders.visualize();

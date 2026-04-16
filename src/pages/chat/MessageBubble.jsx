@@ -101,7 +101,14 @@ const renderInlineMarkdown = (text, keyPrefix = 'inline') => {
 
     if (match[2] && match[3]) {
       pieces.push(
-        <a key={`${keyPrefix}-${match.index}`} href={match[3]} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium dark:text-primary">
+        <a
+          key={`${keyPrefix}-${match.index}`}
+          href={match[3]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium hover:underline"
+          style={{ color: 'inherit' }}
+        >
           {match[2]}
           <ExternalLink className="ml-1 inline-block h-3 w-3" />
         </a>
@@ -332,7 +339,7 @@ function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
   return (
     <div className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
       {isUser ? (
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0 border border-white/10 shadow-lg shadow-primary/10">
+        <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0 border border-white/10 shadow-lg shadow-accent/10">
           <User className="w-4 h-4 text-white" />
         </div>
       ) : (
@@ -345,17 +352,29 @@ function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
         'rounded-2xl px-4 py-3 text-sm leading-relaxed transition-all duration-300 hover:shadow-md',
         isUser ? 'max-w-[85%]' : 'max-w-[90%]',
         isUser
-          ? 'rounded-br-md border border-primary/20 bg-primary/5 text-foreground shadow-[0_8px_30px_hsl(var(--primary)/0.08)] dark:border-primary/30 dark:bg-primary/15 dark:text-primary-foreground'
+          ? 'rounded-br-md border border-accent/20 bg-card text-stone-800 shadow-[0_8px_30px_hsl(var(--accent)/0.08)] dark:border-accent/30 dark:bg-card dark:text-stone-100'
           : isError
             ? 'bg-red-50 border border-red-200 text-red-900 rounded-bl-md dark:bg-red-900/20 dark:border-red-800 dark:text-red-100'
             : isStandaloneWebSearch
               ? 'rounded-bl-md border border-amber-200 bg-amber-50 text-stone-900 shadow-sm shadow-amber-500/10 dark:border-amber-800/70 dark:bg-amber-950/25 dark:text-amber-50'
-              : 'bg-white/80 border border-gray-200 text-gray-900 rounded-bl-md dark:bg-gray-800/80 dark:border-gray-700 dark:text-gray-100 backdrop-blur-sm'
-      )}>
+              : 'rounded-bl-md border border-border/60 bg-card text-stone-800 shadow-sm dark:bg-card dark:border-border/70 dark:text-stone-100 backdrop-blur-sm'
+      )}
+      style={{ color: 'hsl(var(--foreground))' }}
+      >
         <div className={cn(
-          'prose prose-sm max-w-none break-words whitespace-normal w-full',
-          isUser ? 'prose-stone dark:prose-invert' : 'dark:prose-invert'
-        )}>
+          'prose prose-sm max-w-none break-words whitespace-normal w-full font-medium text-stone-900 dark:text-stone-100',
+          '[&_*]:!text-stone-900 dark:[&_*]:!text-stone-100',
+          '[&_p]:!text-stone-900 dark:[&_p]:!text-stone-100',
+          '[&_span]:!text-stone-900 dark:[&_span]:!text-stone-100',
+          '[&_div]:!text-stone-900 dark:[&_div]:!text-stone-100',
+          '[&_li]:!text-stone-900 dark:[&_li]:!text-stone-100',
+          '[&_strong]:!text-stone-950 dark:[&_strong]:!text-white',
+          '[&_em]:!text-stone-900 dark:[&_em]:!text-stone-100',
+          '[&_code]:!text-stone-900 dark:[&_code]:!text-stone-100',
+          '[&_a]:!text-stone-900 hover:[&_a]:!text-stone-950 dark:[&_a]:!text-stone-100 dark:hover:[&_a]:!text-white'
+        )}
+        style={{ color: 'hsl(var(--foreground))' }}
+        >
           {hasAssistantText ? (message.isStreaming ? <StreamingText text={cleanedContent} /> : renderMarkdownContent(cleanedContent)) : null}
           {message.isStreaming && !hasAssistantText && (
             <AnimatedDots />

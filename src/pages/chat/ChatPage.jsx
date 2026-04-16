@@ -156,6 +156,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [isHistoryOpen, setHistoryOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1280 : false));
   const [isDownloadOpen, setDownloadOpen] = useState(false);
+  const [isWebSearchEnabled, setIsWebSearchEnabled] = useState(false);
   const [isWorkspaceLoading, setWorkspaceLoading] = useState(true);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -628,6 +629,7 @@ export default function ChatPage() {
           folder_id: selectedFolderId || null,
           session_id: workspace.currentSessionId || null,
           history: activeMessages.slice(-10),
+          web_search: isWebSearchEnabled,
         }),
       });
 
@@ -645,6 +647,7 @@ export default function ChatPage() {
       let streamedAlgorithm = null;
       let streamedResults = null;
       let suggestWebSearch = true;
+      let webSearchResultData = null;
       let accumulatedContent = '';
       let lastUpdateTimestamp = Date.now();
 
@@ -680,7 +683,7 @@ export default function ChatPage() {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
+        const lines = buffer.split('\r\n');
         buffer = lines.pop() || '';
 
         for (const line of lines) {
@@ -708,6 +711,10 @@ export default function ChatPage() {
               case 'web_search_suggestion':
                 suggestWebSearch = chunk.data ?? true;
                 break;
+
+              case 'web_search_result':
+                webSearchResultData = chunk.data || null;
+                break;
             }
           } catch { /* Silent skip */ }
         }
@@ -730,6 +737,11 @@ export default function ChatPage() {
             results: streamedResults,
             webSearchSuggested: suggestWebSearch,
             webSearchQuery: userMessage,
+            ...(webSearchResultData ? {
+              isWebSearch: true,
+              webSearchAnswer: webSearchResultData.answer || '',
+              webSearchSources: webSearchResultData.sources || [],
+            } : {}),
           };
         }
         const nextWorkspace = {
@@ -899,7 +911,7 @@ export default function ChatPage() {
                     ? (
                       <>
                         Ask about{' '}
-                        <span className="font-semibold text-emerald-700 dark:text-emerald-300">
+                        <span className="font-semibold text-foreground">
                           {currentFolder.name}
                         </span>
                         , inspect answers, and open web sources when needed.
@@ -915,7 +927,7 @@ export default function ChatPage() {
                 variant="ghost" 
                 size="sm" 
                 onClick={startNewChat} 
-                className="gap-2 rounded-xl text-xs font-bold uppercase tracking-wider text-muted-foreground transition-all hover:bg-emerald-500/10 hover:text-emerald-500 border border-transparent hover:border-emerald-500/20 shadow-sm"
+                className="gap-2 rounded-xl text-xs font-bold uppercase tracking-wider text-muted-foreground transition-all hover:bg-primary/10 hover:text-foreground border border-transparent hover:border-primary/20 shadow-sm"
               >
                 <SquarePen className="h-4 w-4" />
                 New chat
@@ -926,8 +938,8 @@ export default function ChatPage() {
                 className={cn(
                   "gap-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border shadow-sm",
                   isHistoryOpen 
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 shadow-emerald-500/10" 
-                    : "border-transparent text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500 hover:border-emerald-500/20"
+                    ? "border-primary/24 bg-primary/12 text-foreground shadow-primary/10" 
+                    : "border-transparent text-muted-foreground hover:bg-primary/10 hover:text-foreground hover:border-primary/20"
                 )}
                 onClick={() => setHistoryOpen((v) => !v)}
                 aria-expanded={isHistoryOpen}
@@ -949,7 +961,7 @@ export default function ChatPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="gap-2 rounded-xl text-xs font-bold uppercase tracking-wider text-muted-foreground transition-all hover:bg-emerald-500/10 hover:text-emerald-500 border border-transparent hover:border-emerald-500/20 shadow-sm"
+                  className="gap-2 rounded-xl text-xs font-bold uppercase tracking-wider text-muted-foreground transition-all hover:bg-primary/10 hover:text-foreground border border-transparent hover:border-primary/20 shadow-sm"
                   onClick={() => setDownloadOpen(true)}
                   aria-expanded={isDownloadOpen}
                 >
@@ -1013,6 +1025,8 @@ export default function ChatPage() {
             }
             loading={loading}
             inputRef={inputRef}
+            isWebSearchEnabled={isWebSearchEnabled}
+            setIsWebSearchEnabled={setIsWebSearchEnabled}
           />
           </div>
 

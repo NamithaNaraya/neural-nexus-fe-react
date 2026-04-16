@@ -448,7 +448,7 @@ export default function GraphPage() {
               >
                 {editMode === 'add-node' ? 'Place Node...' : 'Add Node'}
               </button>
-              <button
+              {/* <button
                 type="button"
                 onClick={() => setEditMode(editMode === 'add-link' ? 'view' : 'add-link')}
                 className={[
@@ -459,7 +459,7 @@ export default function GraphPage() {
                 ].join(' ')}
               >
                 {editMode === 'add-link' ? 'Select Nodes...' : 'Add Relation'}
-              </button>
+              </button> */}
               <div className="hidden h-10 items-center gap-2 rounded-full border border-border/40 bg-background/60 px-3 text-xs text-muted-foreground md:flex">
                 <span>{Number(graphStats.nodes || 0).toLocaleString()} nodes</span>
                 <span className="text-border">•</span>

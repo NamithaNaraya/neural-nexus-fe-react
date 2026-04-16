@@ -6,63 +6,63 @@
   :root {
     /* Global semantic theme tokens.
        Change these variables for app-wide light-mode color behavior. */
-    --background: 280 36% 98%;
-    --foreground: 215 28% 23%;
+    --background: 120 24% 98%;
+    --foreground: 162 18% 24%;
     --card: 0 0% 100%;
-    --card-foreground: 215 28% 23%;
+    --card-foreground: 162 18% 24%;
     --popover: 0 0% 100%;
-    --popover-foreground: 215 28% 23%;
-    --primary: 262 83% 58%;
+    --popover-foreground: 162 18% 24%;
+    --primary: 132 21% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 280 55% 92%;
-    --secondary-foreground: 215 28% 23%;
-    --muted: 292 40% 96%;
-    --muted-foreground: 215 16% 42%;
-    --accent: 330 81% 60%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 343 78% 50%;
+    --secondary: 126 26% 93%;
+    --secondary-foreground: 162 18% 24%;
+    --muted: 128 20% 95%;
+    --muted-foreground: 210 12% 44%;
+    --accent: 273 34% 71%;
+    --accent-foreground: 270 20% 24%;
+    --destructive: 344 39% 66%;
     --destructive-foreground: 0 0% 100%;
-    --border: 272 42% 84%;
-    --input: 272 42% 84%;
-    --ring: 330 81% 60%;
+    --border: 132 18% 84%;
+    --input: 132 18% 84%;
+    --ring: 273 34% 71%;
     --radius: 1rem;
     --sidebar-width: 16rem;
     --sidebar-collapsed: 4.5rem;
-    --success: 262 83% 58%;
-    --warning: 322 84% 67%;
-    --info: 330 81% 60%;
-    --bg-glow-primary: 262 83% 58%;
-    --bg-glow-accent: 330 81% 60%;
-    --bg-glow-soft: 292 72% 72%;
+    --success: 132 21% 58%;
+    --warning: 286 30% 77%;
+    --info: 273 34% 71%;
+    --bg-glow-primary: 132 21% 58%;
+    --bg-glow-accent: 273 34% 71%;
+    --bg-glow-soft: 284 28% 82%;
   }
 
   .dark {
     /* Dark-mode counterparts for the same semantic theme system. */
-    --background: 272 28% 10%;
-    --foreground: 280 20% 90%;
-    --card: 274 24% 13%;
-    --card-foreground: 280 20% 90%;
-    --popover: 274 24% 13%;
-    --popover-foreground: 280 20% 90%;
-    --primary: 276 100% 82%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 282 22% 19%;
-    --secondary-foreground: 280 20% 90%;
-    --muted: 278 18% 17%;
-    --muted-foreground: 278 12% 72%;
-    --accent: 327 86% 72%;
-    --accent-foreground: 300 25% 18%;
-    --destructive: 343 62% 38%;
+    --background: 152 22% 11%;
+    --foreground: 120 18% 91%;
+    --card: 154 18% 14%;
+    --card-foreground: 120 18% 91%;
+    --popover: 154 18% 14%;
+    --popover-foreground: 120 18% 91%;
+    --primary: 132 25% 70%;
+    --primary-foreground: 154 28% 14%;
+    --secondary: 154 16% 19%;
+    --secondary-foreground: 120 18% 91%;
+    --muted: 156 14% 17%;
+    --muted-foreground: 138 10% 73%;
+    --accent: 272 33% 76%;
+    --accent-foreground: 270 20% 18%;
+    --destructive: 343 32% 47%;
     --destructive-foreground: 210 40% 98%;
-    --border: 278 18% 28%;
-    --input: 278 18% 28%;
-    --ring: 327 86% 72%;
-    --success: 276 100% 82%;
-    --warning: 322 84% 67%;
-    --info: 327 86% 72%;
-    --bg-glow-primary: 276 100% 82%;
-    --bg-glow-accent: 327 86% 72%;
-    --bg-glow-soft: 292 72% 72%;
+    --border: 150 14% 28%;
+    --input: 150 14% 28%;
+    --ring: 272 33% 76%;
+    --success: 132 25% 70%;
+    --warning: 286 28% 70%;
+    --info: 272 33% 76%;
+    --bg-glow-primary: 132 25% 70%;
+    --bg-glow-accent: 272 33% 76%;
+    --bg-glow-soft: 286 24% 68%;
   }
 }
 
@@ -98,7 +98,9 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.01em;
     text-rendering: optimizeLegibility;
     background-image:
       radial-gradient(circle at top left, hsl(var(--bg-glow-primary) / 0.08), transparent 28%),
@@ -126,6 +128,12 @@
   ::selection {
     background: hsl(var(--primary) / 0.2);
     color: hsl(var(--foreground));
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.025em;
   }
 
   /* Custom scrollbar — works on both themes */

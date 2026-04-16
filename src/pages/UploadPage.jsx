@@ -102,9 +102,9 @@ export default function UploadPage() {
 
   const tabs = [
     { id: 'pipeline', label: 'File Upload', icon: Brain, color: 'text-primary' },
-    { id: 'excel', label: 'Excel/CSV Mapper', icon: FileSpreadsheet, color: 'text-teal-500' },
-    { id: 'text', label: 'Paste Text', icon: FileText, color: 'text-cyan-500' },
-    { id: 'cypher', label: 'Direct Query', icon: Database, color: 'text-teal-600' },
+    { id: 'excel', label: 'Excel/CSV Mapper', icon: FileSpreadsheet, color: 'text-accent' },
+    { id: 'text', label: 'Paste Text', icon: FileText, color: 'text-accent' },
+    { id: 'cypher', label: 'Direct Query', icon: Database, color: 'text-primary' },
   ];
   const activeTabPanelId = `upload-tab-panel-${activeTab}`;
 
@@ -139,11 +139,11 @@ export default function UploadPage() {
               className={cn(
                 'relative flex min-w-0 flex-1 items-center justify-center gap-2.5 overflow-hidden rounded-2xl px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all duration-300 group sm:px-6',
                 activeTab === tab.id
-                  ? 'bg-primary text-white shadow-xl shadow-primary/20'
+                  ? 'border border-primary/20 bg-primary/16 text-foreground shadow-md shadow-primary/10'
                   : 'text-muted-foreground hover:text-foreground hover:bg-whiteAlpha.100'
               )}
             >
-              <tab.icon className={cn("w-4 h-4 shrink-0 transition-transform group-hover:scale-110", activeTab === tab.id ? "text-white" : tab.color)} />
+              <tab.icon className={cn("w-4 h-4 shrink-0 transition-transform group-hover:scale-110", activeTab === tab.id ? "text-primary" : tab.color)} />
               <span className="whitespace-nowrap">{tab.label}</span>
             </button>
           ))}

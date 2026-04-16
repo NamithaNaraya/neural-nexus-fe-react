@@ -14,7 +14,7 @@ export function GraphViewsNavigation({ sections, basePath = '/graph', toolsButto
                 key={path}
                 to={`${basePath}/${path}`}
                 className={({ isActive }) =>
-                  `inline-flex h-10 items-center rounded-full border px-4 text-sm font-medium transition ${isActive ? 'border-primary bg-primary text-white shadow-sm' : 'border-border bg-muted/10 text-muted-foreground hover:bg-muted/20'}`
+                  `inline-flex h-10 items-center rounded-full border px-4 text-sm font-medium transition ${isActive ? 'border-primary/25 bg-primary/16 text-foreground shadow-sm shadow-primary/10' : 'border-border bg-muted/10 text-muted-foreground hover:bg-muted/20'}`
                 }
               >
                 <Icon className="mr-1.5 h-4 w-4" />

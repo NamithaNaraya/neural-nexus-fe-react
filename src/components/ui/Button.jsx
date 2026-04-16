@@ -4,13 +4,13 @@ import { cn } from '../../utils/cn';
 
 const buttonVariants = {
   variant: {
-    default: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20',
+    default: 'bg-primary/18 text-foreground hover:bg-primary/24 border border-primary/18 shadow-sm shadow-primary/10',
     destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
     outline: 'border border-input bg-transparent hover:bg-accent hover:text-accent-foreground',
     secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
     ghost: 'hover:bg-accent hover:text-accent-foreground',
     link: 'text-primary underline-offset-4 hover:underline',
-    gradient: 'bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/25',
+    gradient: 'border border-primary/20 bg-primary/18 text-foreground hover:bg-primary/24 shadow-md shadow-primary/12',
   },
   size: {
     default: 'h-10 px-4 py-2',

@@ -96,7 +96,7 @@ export function CypherIngest({ folderId, onSuccess }) {
             <Label className="text-[10px] font-black uppercase tracking-widest text-accent/80">Cypher Logic</Label>
             <textarea
               placeholder="CREATE (n:Entity {id: randomUUID(), name: '...'})"
-              className="flex min-h-[350px] w-full rounded-3xl border border-border/40 bg-zinc-950 px-5 py-4 font-mono text-xs leading-relaxed text-accent transition-all focus:outline-none focus:ring-2 focus:ring-accent/30 custom-scrollbar selection:bg-accent/20"
+              className="flex min-h-[350px] w-full rounded-3xl border border-border/40 bg-card px-5 py-4 font-mono text-xs leading-relaxed text-stone-800 transition-all focus:outline-none focus:ring-2 focus:ring-accent/20 dark:bg-card dark:text-stone-100 custom-scrollbar selection:bg-accent/20"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -175,7 +175,7 @@ export function CypherIngest({ folderId, onSuccess }) {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                      <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 text-foreground">
                         <p className="text-[13px] leading-relaxed font-medium">{preview.message || 'Syntax analyzed successfully.'}</p>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
@@ -200,7 +200,7 @@ export function CypherIngest({ folderId, onSuccess }) {
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-8 animate-in slide-in-from-top-4 duration-500">
                   <div className={cn(
                     "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl",
-                    result.success ? "bg-emerald-500/20 text-emerald-500 shadow-emerald-500/20" : "bg-red-500/20 text-red-500 shadow-red-500/20"
+                    result.success ? "bg-primary/20 text-primary shadow-primary/20" : "bg-red-500/20 text-red-500 shadow-red-500/20"
                   )}>
                     {result.success ? <CheckCircle2 className="w-8 h-8" /> : <AlertCircle className="w-8 h-8" />}
                   </div>

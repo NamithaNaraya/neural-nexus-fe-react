@@ -299,7 +299,7 @@ export function ExcelMapper({ folderId, onSuccess }) {
         {/* Step 1: Upload */}
         {step === 1 && (
           <div className="space-y-6 flex flex-col items-center justify-center py-12 animate-in slide-in-from-bottom-8">
-            <div className="w-24 h-24 rounded-3xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+            <div className="w-24 h-24 rounded-3xl bg-accent/14 flex items-center justify-center text-accent">
               <Upload className="w-10 h-10" />
             </div>
             <div className="text-center space-y-2">
@@ -308,10 +308,10 @@ export function ExcelMapper({ folderId, onSuccess }) {
             </div>
             <Button 
               variant="outline" 
-              className="h-14 rounded-2xl px-10 gap-3 border-emerald-500/30 text-emerald-500 font-black relative overflow-hidden group"
+              className="h-14 rounded-2xl px-10 gap-3 border-primary/25 text-foreground font-black relative overflow-hidden group"
               onClick={() => document.getElementById('excel-input').click()}
             >
-              <div className="absolute inset-0 bg-emerald-500/5 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+              <div className="absolute inset-0 bg-primary/8 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
               <FileSpreadsheet className="w-5 h-5" />
               Choose Structured File
               <input 
