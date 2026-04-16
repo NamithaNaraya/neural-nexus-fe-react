@@ -352,7 +352,7 @@ export default function FoldersPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-1.5">
-          <Badge variant="secondary" className="px-3 py-1 text-[10px] bg-primary/10 text-primary border-none uppercase tracking-widest font-black">
+          <Badge variant="secondary" className="px-4 py-2 text-xs bg-primary/10 text-primary border-none uppercase tracking-widest font-black">
             Personal Workspace
           </Badge>
           <div className="space-y-1">
@@ -412,8 +412,8 @@ export default function FoldersPage() {
 
       {/* Main Grid — Dynamic Response */}
       <div className={cn(
-        "grid flex-1 min-h-0 items-start gap-8 overflow-hidden transition-all duration-500",
-        selectedFolder ? "grid-cols-1 lg:grid-cols-[minmax(18rem,1fr)_minmax(0,2.2fr)]" : "grid-cols-1"
+        "grid flex-1 min-h-0 items-start gap-4 overflow-hidden transition-all duration-500",
+        selectedFolder ? "grid-cols-1 lg:grid-cols-[minmax(18rem,30%)_minmax(0,70%)]" : "grid-cols-1"
       )}>
         
         {/* Folder List — Small & Neat */}
@@ -486,7 +486,7 @@ export default function FoldersPage() {
                       
                       <div className="space-y-1.5 min-w-0">
                         <h3 
-                          className="font-bold text-base leading-snug break-words line-clamp-2 text-foreground/90 group-hover:text-primary transition-colors"
+                          className="font-bold text-lg leading-snug break-words line-clamp-2 text-foreground/90 group-hover:text-primary transition-colors"
                           title={folder.name}
                         >
                           {folder.name}
@@ -518,7 +518,7 @@ export default function FoldersPage() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-3">
-                              <h3 className="font-bold text-base truncate text-foreground/90">{folder.name}</h3>
+                              <h3 className="font-bold text-lg truncate text-foreground/90">{folder.name}</h3>
                               <div className="flex items-center gap-2 shrink-0">
                                 <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[10px] font-bold border-border/30 text-muted-foreground/70">
                                   <FileText className="w-3 h-3" />
@@ -615,9 +615,9 @@ export default function FoldersPage() {
                 </div>
               </div>
 
-              <CardContent className="flex flex-1 min-h-0 flex-col gap-6 p-6 overflow-y-auto custom-scrollbar">
+              <CardContent className="flex flex-1 min-h-0 flex-col gap-5 p-5 overflow-y-auto custom-scrollbar">
                 {/* Stats Section */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-3">
                   {[
                     { label: 'Files', value: selectedFolder.file_count, icon: FileText, color: 'text-primary' },
                     { label: 'Total Nodes', value: selectedFolder.node_count, icon: Network, color: 'text-primary' },
