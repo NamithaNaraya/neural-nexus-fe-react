@@ -516,7 +516,7 @@ export default function GraphForcePage({
             }
         }
 
-        const showDetails = t.k > 0.8;
+        const showDetails = t.k > 0.35;
         const showLabels = showDetails && showRelationshipLabels;
 
         // 1. Draw Links
@@ -689,7 +689,7 @@ export default function GraphForcePage({
           ctx.stroke();
 
           // Labels
-          if ((showNodeLabels && t.k > 0.6) || isSelected || isHighlighted) {
+          if ((showNodeLabels && t.k > 0.25) || isSelected || isHighlighted) {
             ctx.font = `600 ${Math.max(10, 11/t.k)}px Inter, sans-serif`;
             ctx.fillStyle = '#1e293b';
             ctx.textAlign = 'center';
