@@ -23,22 +23,13 @@ export function traverseToNode(currentPath, nodeId, fullGraph) {
     // REVERSE: clicked a node already in path → truncate back to it
     newPath = newPath.slice(0, pathIndex + 1);
   } else {
-    // Check if new node is neighbor of current tip
-    const tip = newPath.length > 0 ? newPath[newPath.length - 1] : null;
-    const isNeighbor = tip ? isDirectNeighbor(tip, nodeId, fullGraph.links) : false;
-
-    if (isNeighbor) {
-      // FORWARD: extend path with this neighbor
-      newPath.push(nodeId);
-    } else {
-      // NEW ROOT: start fresh path with this node
-      newPath = [nodeId];
-    }
+    // FORWARD: add node as a new layer connection
+    newPath.push(nodeId);
   }
 
-  // Build visible nodes: path + tip's neighbors + orphans in path
+  // Build visible nodes: all path nodes + all their immediate neighbors
   const visibleNodeIds = buildVisibleNodes(newPath, fullGraph);
-  const visibleLinkIds = buildVisibleLinks(visibleNodeIds, fullGraph);
+  const visibleLinkIds = buildVisibleLinks(visibleNodeIds, fullGraph, newPath);
 
   return {
     path: newPath,
@@ -63,19 +54,23 @@ function isDirectNeighbor(nodeId1, nodeId2, links) {
  * Rule: path nodes + immediate neighbors of the current tip
  */
 function buildVisibleNodes(path, fullGraph) {
-  const visible = new Set(path); // Path nodes always visible
+  const visible = new Set();
   
-  if (path.length === 0) return visible;
+  if (path.length === 0) {
+    return new Set(fullGraph.nodes.map(n => String(n.id)));
+  }
 
-  const tip = path[path.length - 1];
+  path.forEach(id => visible.add(String(id)));
   
-  // Add all neighbors of the current tip
+  // Add all neighbors of ALL nodes in the path (Layer Dive)
   fullGraph.links.forEach((link) => {
-    const s = typeof link.source === 'object' ? link.source.id : link.source;
-    const t = typeof link.target === 'object' ? link.target.id : link.target;
+    const s = String(typeof link.source === 'object' ? link.source.id : link.source);
+    const t = String(typeof link.target === 'object' ? link.target.id : link.target);
     
-    if (s === tip) visible.add(t);
-    if (t === tip) visible.add(s);
+    if (path.includes(s) || path.includes(t)) {
+      visible.add(s);
+      visible.add(t);
+    }
   });
 
   return visible;
@@ -84,12 +79,16 @@ function buildVisibleNodes(path, fullGraph) {
 /**
  * Build set of visible link IDs (edges between visible nodes)
  */
-function buildVisibleLinks(visibleNodeIds, fullGraph) {
+function buildVisibleLinks(visibleNodeIds, fullGraph, path = []) {
+  if (path.length === 0) {
+    return new Set(fullGraph.links.map((_, idx) => idx));
+  }
+
   const visible = new Set();
 
   fullGraph.links.forEach((link, idx) => {
-    const s = typeof link.source === 'object' ? link.source.id : link.source;
-    const t = typeof link.target === 'object' ? link.target.id : link.target;
+    const s = String(typeof link.source === 'object' ? link.source.id : link.source);
+    const t = String(typeof link.target === 'object' ? link.target.id : link.target);
 
     // Only show links where both endpoints are visible
     if (visibleNodeIds.has(s) && visibleNodeIds.has(t)) {
@@ -115,7 +114,7 @@ export function traverseBack(currentPath, fullGraph) {
 
   const newPath = currentPath.slice(0, -1);
   const visibleNodeIds = buildVisibleNodes(newPath, fullGraph);
-  const visibleLinkIds = buildVisibleLinks(visibleNodeIds, fullGraph);
+  const visibleLinkIds = buildVisibleLinks(visibleNodeIds, fullGraph, newPath);
 
   return {
     path: newPath,
@@ -142,9 +141,16 @@ export function resetTraversal() {
  * @param {Set} visibleLinkIds - Link indices to show
  * @returns {Object} Filtered graph { nodes, links }
  */
-export function filterGraphForTraversal(fullGraph, visibleNodeIds, visibleLinkIds) {
+export function filterGraphForTraversal(fullGraph, visibleNodeIds, visibleLinkIds, isPathEmpty = false) {
+  if (isPathEmpty) {
+    return {
+      nodes: fullGraph.nodes || [],
+      links: fullGraph.links || [],
+    };
+  }
+
   const filteredNodes = fullGraph.nodes.filter((node) =>
-    visibleNodeIds.has(node.id)
+    visibleNodeIds.has(String(node.id))
   );
 
   const filteredLinks = fullGraph.links.filter((link, idx) =>

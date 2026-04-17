@@ -174,8 +174,8 @@ export default function GraphPage() {
     + (!showOrphans ? 1 : 0);
 
   const traversalGraphData = useMemo(
-    () => filterGraphForTraversal(graphDataWithPredictions, traversalVisibleNodeIds, traversalVisibleLinkIds),
-    [graphDataWithPredictions, traversalVisibleNodeIds, traversalVisibleLinkIds]
+    () => filterGraphForTraversal(graphDataWithPredictions, traversalVisibleNodeIds, traversalVisibleLinkIds, traversalPath.length === 0),
+    [graphDataWithPredictions, traversalVisibleNodeIds, traversalVisibleLinkIds, traversalPath.length]
   );
 
   const explorerGraphData = useMemo(
@@ -474,15 +474,19 @@ export default function GraphPage() {
                 {toolOptions.map((tool) => {
                   const Icon = tool.icon;
                   const isExplorer = tool.id === 'explorer';
-                  const active = isExplorer ? explorerModeActive : (activePanel === tool.id && sidebarOpen);
+                  const isTraversal = tool.id === 'traversal';
+                  const active = isExplorer ? explorerModeActive : isTraversal ? traversalModeActive : (activePanel === tool.id && sidebarOpen);
                   return (
                     <button
                       key={tool.id}
                       type="button"
-                      title={isExplorer ? "Only immediate neighbors are shown when clicked" : undefined}
+                      title={isExplorer ? "Only immediate neighbors are shown when clicked" : isTraversal ? "Layers dive" : undefined}
                       onClick={() => {
                         if (isExplorer) {
                           handleExplorerToggle();
+                          setSidebarOpen(false);
+                        } else if (isTraversal) {
+                          handleTraversalToggle();
                           setSidebarOpen(false);
                         } else {
                           handleOpenToolPanel(tool.id);
@@ -560,8 +564,8 @@ export default function GraphPage() {
       </div>
 
       {traversalModeActive ? (
-        <div className="pointer-events-none absolute left-1/2 top-[92px] z-20 -translate-x-1/2">
-          <div className="pointer-events-auto flex items-center gap-1.5 rounded-2xl border border-border/60 bg-card/92 px-2 py-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.1)] backdrop-blur-xl">
+        <div className="pointer-events-none absolute left-1/2 bottom-10 z-20 -translate-x-1/2">
+          <div className="pointer-events-auto flex items-center gap-1.5 rounded-2xl border border-border/60 bg-card/92 px-3 py-2 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-4 duration-500">
             <button
               type="button"
               onClick={handleTraversalBack}
