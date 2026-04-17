@@ -15,10 +15,8 @@
  * @returns {Set} New set of expanded node IDs
  */
 export function toggleNodeExpansion(expandedIds, nodeId) {
-  const next = new Set(expandedIds);
-  if (next.has(nodeId)) {
-    next.delete(nodeId);
-  } else {
+  const next = new Set();
+  if (!expandedIds.has(nodeId)) {
     next.add(nodeId);
   }
   return next;
@@ -36,10 +34,10 @@ export function filterGraphForExpansion(fullGraph, expandedIds) {
 
   if (expandedIds.size === 0) {
     return {
-      nodes: [],
-      links: [],
-      visibleNodeIds,
-      visibleLinkIds
+      nodes: fullGraph.nodes || [],
+      links: fullGraph.links || [],
+      visibleNodeIds: new Set((fullGraph.nodes || []).map(n => String(n.id))),
+      visibleLinkIds: new Set((fullGraph.links || []).map((_, idx) => idx))
     };
   }
 

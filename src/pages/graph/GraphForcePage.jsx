@@ -400,6 +400,9 @@ export default function GraphForcePage({
         event.subject.fx = (px - transform.x) / transform.k;
         event.subject.fy = (py - transform.y) / transform.k;
         
+        event.subject.__startDragX = px;
+        event.subject.__startDragY = py;
+        
         setDraggingNode(event.subject);
         canvas.style.cursor = 'grabbing';
       })
@@ -438,8 +441,9 @@ export default function GraphForcePage({
         canvas.style.cursor = 'default';
         
         // Click detection
-        const dx = event.x - event.startX;
-        const dy = event.y - event.startY;
+        const [px, py] = d3Pointer(event.sourceEvent, canvas);
+        const dx = px - (event.subject.__startDragX ?? px);
+        const dy = py - (event.subject.__startDragY ?? py);
         if (Math.sqrt(dx * dx + dy * dy) < 5) {
           handleNodeClick(event.subject);
         }

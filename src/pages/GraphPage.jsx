@@ -473,12 +473,21 @@ export default function GraphPage() {
               <div className="flex flex-wrap items-center gap-2">
                 {toolOptions.map((tool) => {
                   const Icon = tool.icon;
-                  const active = activePanel === tool.id && sidebarOpen;
+                  const isExplorer = tool.id === 'explorer';
+                  const active = isExplorer ? explorerModeActive : (activePanel === tool.id && sidebarOpen);
                   return (
                     <button
                       key={tool.id}
                       type="button"
-                      onClick={() => handleOpenToolPanel(tool.id)}
+                      title={isExplorer ? "Only immediate neighbors are shown when clicked" : undefined}
+                      onClick={() => {
+                        if (isExplorer) {
+                          handleExplorerToggle();
+                          setSidebarOpen(false);
+                        } else {
+                          handleOpenToolPanel(tool.id);
+                        }
+                      }}
                     className={[
                         'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition',
                         active
@@ -591,27 +600,7 @@ export default function GraphPage() {
         </div>
       ) : null}
 
-      {explorerModeActive ? (
-        <div className="pointer-events-none absolute left-1/2 top-[92px] z-20 -translate-x-1/2">
-          <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-border/60 bg-card/92 px-4 py-2 shadow-2xl backdrop-blur-xl animate-in slide-in-from-top-4 duration-500">
-             <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-500" />
-                <span className="text-xs font-black uppercase tracking-widest text-foreground">Explorer Mode</span>
-             </div>
-             <div className="h-4 w-px bg-border/40" />
-             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
-                Click nodes to expand or collapse layers
-             </p>
-             <button
-              type="button"
-              onClick={handleExplorerToggle}
-              className="ml-2 rounded-xl bg-destructive/10 px-3 py-1 text-[10px] font-black uppercase text-destructive transition hover:bg-destructive/20"
-            >
-              Exit Explorer
-            </button>
-          </div>
-        </div>
-      ) : null}
+
 
       <div className="relative mx-4 mb-3 mt-2 min-h-0 flex-1 overflow-hidden rounded-[28px] border border-border/60 bg-card shadow-[0_16px_38px_rgba(15,23,42,0.08)]">
         <Routes>
