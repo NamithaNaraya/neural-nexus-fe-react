@@ -86,6 +86,10 @@ const sanitizeAssistantAnswer = (text) => {
     }
     if (paragraphLines.length > 0) {
       result.push(paragraphLines.join(' '));
+    } else if (i < cleanedLines.length) {
+      // Fallback for lines that match no pattern (e.g. malformed table rows)
+      result.push(cleanedLines[i].trim());
+      i++;
     }
   }
 

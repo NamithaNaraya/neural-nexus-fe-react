@@ -168,7 +168,6 @@ export default function ChatPage() {
     [workspace.currentSessionId, workspace.sessions]
   );
   const messages = activeSession?.messages?.length ? activeSession.messages : [WELCOME_MESSAGE];
-  const deferredMessages = useDeferredValue(messages);
   const activeSessionMessageCount = activeSession?.messages?.length ?? 0;
   const chatHistory = useMemo(() => {
     const rawSessions = Array.isArray(workspace?.sessions) ? workspace.sessions : [];
@@ -190,14 +189,14 @@ export default function ChatPage() {
   const hasPendingWebSearchMessage = messages.some((message) => message?.webSearchPending);
   const hasActiveStream = messages.some((message) => message?.isStreaming || message?.isStreamingWebSearch || message?.webSearchPending);
   const virtualItems = useMemo(() => {
-    const baseItems = deferredMessages.map((message, index) => ({
+    const baseItems = messages.map((message, index) => ({
       type: 'message',
       key: `message-${index}`,
       message,
       index,
     }));
 
-    const lastMsg = deferredMessages[deferredMessages.length - 1];
+    const lastMsg = messages[messages.length - 1];
     const isWaitingForFirstToken = !lastMsg || lastMsg.role !== 'assistant' || !lastMsg.content;
     const shouldShowTyping = loading && !lastMsg?.isStreaming && !hasPendingWebSearchMessage && isWaitingForFirstToken;
 
@@ -206,7 +205,7 @@ export default function ChatPage() {
     }
 
     return baseItems;
-  }, [deferredMessages, hasPendingWebSearchMessage, loading]);
+  }, [messages, hasPendingWebSearchMessage, loading]);
 
   const normalizeBackendMessages = useCallback((rawMessages = []) => {
     if (!Array.isArray(rawMessages)) return [];
@@ -682,22 +681,20 @@ export default function ChatPage() {
         accumulatedContent = '';
         if (!chunkToApply) return;
 
-        startTransition(() => {
-          setWorkspace((prev) => {
-            const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
-            if (!session) return prev;
-            const msgs = [...session.messages];
-            const lastMsg = msgs[msgs.length - 1];
-            if (lastMsg?.role === 'assistant') {
-              msgs[msgs.length - 1] = { ...lastMsg, content: lastMsg.content + chunkToApply };
-            }
-            return {
-              ...prev,
-              sessions: prev.sessions.map((s) =>
-                s.id === prev.currentSessionId ? { ...s, messages: msgs } : s
-              ),
-            };
-          });
+        setWorkspace((prev) => {
+          const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
+          if (!session) return prev;
+          const msgs = [...session.messages];
+          const lastMsg = msgs[msgs.length - 1];
+          if (lastMsg?.role === 'assistant') {
+            msgs[msgs.length - 1] = { ...lastMsg, content: lastMsg.content + chunkToApply };
+          }
+          return {
+            ...prev,
+            sessions: prev.sessions.map((s) =>
+              s.id === prev.currentSessionId ? { ...s, messages: msgs } : s
+            ),
+          };
         });
       };
 
@@ -706,7 +703,7 @@ export default function ChatPage() {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\r\n');
+        const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
         for (const line of lines) {
