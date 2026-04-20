@@ -182,27 +182,37 @@ const serializeWorkspace = (workspace, options = {}) => {
     .slice(0, MAX_SESSION_COUNT)
     .map((session) => {
       const isCurrent = session.id === currentSessionId;
-      // LAZY PERSISTENCE: Only store full history for the active session.
-      // For background sessions, we only store the metadata to keep localStorage "thin".
-      // This prevents the "Page Unresponsive" error during JSON.stringify.
+      // LAZY PERSISTENCE: Keep localStorage "thin" to prevent "Page Unresponsive" errors.
+      // 1. For active session, keep the most recent 100 messages.
+      // 2. For background sessions, keep only the first and last message for sidebar previews.
+      let messagesToSerialize = [WELCOME_MESSAGE];
+      const rawMessages = Array.isArray(session?.messages) ? session.messages : [];
+      
+      if (isCurrent) {
+        // Keep last 100 messages for the current session to ensure quick re-entry but avoid bloat
+        messagesToSerialize = rawMessages.slice(-100);
+      } else {
+        const nonWelcome = rawMessages.filter(m => !m.isWelcome);
+        if (nonWelcome.length > 0) {
+          // Keep first non-welcome (for title/preview) and the very last message
+          messagesToSerialize = [nonWelcome[0], nonWelcome[nonWelcome.length - 1]].filter((m, i, arr) => m && (i === 0 || m !== arr[0]));
+        }
+      }
+
       return {
-        id: String(session?.id || createChatSession().id),
+        id: String(session?.id || generateId()),
         folderId: session?.folderId ? String(session.folderId) : '',
         folderName: session?.folderName || '',
         title: session?.title || getDefaultSessionTitle(session?.folderName || 'New Chat'),
         createdAt: Number(session?.createdAt || Date.now()),
         updatedAt: Number(session?.updatedAt || session?.createdAt || Date.now()),
-        messages: isCurrent
-          ? (Array.isArray(session?.messages) ? session.messages.map((message) => serializeMessage(message, options)) : [WELCOME_MESSAGE])
-          : (Array.isArray(session?.messages) && session.messages.some(m => !m.isWelcome) 
-              ? [session.messages.find(m => !m.isWelcome), ...session.messages.slice(-1)].filter(Boolean).map(m => serializeMessage(m, { ...options, aggressive: true }))
-              : [WELCOME_MESSAGE]),
+        messages: messagesToSerialize.map((message) => serializeMessage(message, isCurrent ? options : { ...options, aggressive: true })),
       };
     });
 
   const finalCurrentId = sessions.some((session) => session.id === currentSessionId)
     ? currentSessionId
-    : sessions[0]?.id || createChatSession().id;
+    : sessions[0]?.id || '';
 
   return {
     currentSessionId: finalCurrentId,

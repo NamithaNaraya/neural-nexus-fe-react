@@ -147,13 +147,13 @@ export default function ChatPage() {
   const { user } = useAuth();
   const userKey = user?.id || user?.email || user?.username || 'anonymous';
   const storageKey = useMemo(() => getChatStorageKey(userKey), [userKey]);
-  const [workspace, setWorkspace] = useState(() => loadChatWorkspace(userKey));
+  const [workspace, setWorkspace] = useState({ currentSessionId: null, sessions: [] });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isHistoryOpen, setHistoryOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1280 : false));
   const [isDownloadOpen, setDownloadOpen] = useState(false);
   const [isWebSearchEnabled, setIsWebSearchEnabled] = useState(false);
-  const [isWorkspaceLoading, setWorkspaceLoading] = useState(false);
+  const [isWorkspaceLoading, setWorkspaceLoading] = useState(true);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const downloadMenuRef = useRef(null);
@@ -161,6 +161,7 @@ export default function ChatPage() {
   const backendHydrationRef = useRef('');
   const hasHydratedWorkspaceRef = useRef(false);
   const lastFolderIdRef = useRef(selectedFolderId || '');
+  const attemptedSessionsHydrationRef = useRef(new Set());
 
   const activeSession = useMemo(
     () => workspace.sessions.find((session) => session.id === workspace.currentSessionId) || null,
@@ -169,16 +170,23 @@ export default function ChatPage() {
   const messages = activeSession?.messages?.length ? activeSession.messages : [WELCOME_MESSAGE];
   const deferredMessages = useDeferredValue(messages);
   const activeSessionMessageCount = activeSession?.messages?.length ?? 0;
-  const chatHistory = useMemo(
-    () => (Array.isArray(workspace?.sessions) ? workspace.sessions : [])
+  const chatHistory = useMemo(() => {
+    const rawSessions = Array.isArray(workspace?.sessions) ? workspace.sessions : [];
+    // Only map/sort metadata that the sidebar actually needs
+    return rawSessions
       .filter(Boolean)
-      .map((session) => ({
-        ...session,
-        messages: Array.isArray(session?.messages) ? session.messages : [],
+      .map((s) => ({
+        id: s.id,
+        title: s.title,
+        folderName: s.folderName,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+        messageCount: s.messages?.length || 0,
+        // We only need a tiny slice of messages to find the preview
+        messages: s.messages?.length > 1 ? [s.messages.find(m => !m.isWelcome), s.messages[s.messages.length - 1]].filter(Boolean) : (s.messages || [])
       }))
-      .sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0)),
-    [workspace.sessions]
-  );
+      .sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+  }, [workspace.sessions]);
   const hasPendingWebSearchMessage = messages.some((message) => message?.webSearchPending);
   const hasActiveStream = messages.some((message) => message?.isStreaming || message?.isStreamingWebSearch || message?.webSearchPending);
   const virtualItems = useMemo(() => {
@@ -270,20 +278,40 @@ export default function ChatPage() {
   }, [isDownloadOpen]);
 
   useEffect(() => {
+    if (!userKey) return;
+    
     setWorkspaceLoading(true);
     hasHydratedWorkspaceRef.current = false;
-    const hydratedWorkspace = loadChatWorkspace(userKey);
-    setWorkspace(hydratedWorkspace);
-    queueMicrotask(() => {
-      hasHydratedWorkspaceRef.current = true;
-      setWorkspaceLoading(false);
-    });
-  }, [storageKey]);
+    
+    // We use a small delay to let the browser paint the initial app state/skeletons.
+    const timer = setTimeout(() => {
+      try {
+        const hydratedWorkspace = loadChatWorkspace(userKey);
+        // Direct update is safer here than transition because loadChatWorkspace is the blocker.
+        setWorkspace(hydratedWorkspace);
+        hasHydratedWorkspaceRef.current = true;
+      } catch (err) {
+        console.error('Hydration failed:', err);
+      } finally {
+        // Ensure skeletons are cleared no matter what.
+        setWorkspaceLoading(false);
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [userKey]);
 
   // 1. Initial workspace sync when user changes
   useEffect(() => {
     const syncFromBackend = async () => {
       if (!user?.id) return;
+      // Wait for local hydration to finish so we don't overwrite it with empty state
+      let attempts = 0;
+      while (!hasHydratedWorkspaceRef.current && attempts < 20) {
+        await new Promise(r => setTimeout(r, 100));
+        attempts++;
+      }
+
       try {
         const backendWorkspace = await chatService.syncWorkspaceFromBackend({
           timeoutMs: CHAT_STARTUP_SYNC_TIMEOUT_MS,
@@ -342,30 +370,33 @@ export default function ChatPage() {
     }
 
     const currentSession = workspace.sessions.find((s) => s.id === workspace.currentSessionId);
-    // Only hydrate if we have no messages (except welcome) AND it's not a brand new local session
-    const needsHydration = currentSession && (!currentSession.messages || currentSession.messages.length <= 1) && !currentSession.isLocalOnly;
+    if (!currentSession) return;
     
-    if (!needsHydration) return;
+    const needsHydration = (!currentSession.messages || currentSession.messages.length <= 1) && !currentSession.isLocalOnly;
+    const sessionKey = `${user.id}:${workspace.currentSessionId}`;
+    
+    if (!needsHydration || attemptedSessionsHydrationRef.current.has(sessionKey)) {
+      return;
+    }
 
-    const hydrationKey = `lazy:${user.id}:${workspace.currentSessionId}`;
-    if (backendHydrationRef.current === hydrationKey) return;
-    backendHydrationRef.current = hydrationKey;
+    attemptedSessionsHydrationRef.current.add(sessionKey);
 
     let cancelled = false;
     const loadActiveSessionHistory = async () => {
       try {
         const backendMessages = await chatService.getSessionHistory(workspace.currentSessionId, 200);
-        if (cancelled || !Array.isArray(backendMessages) || backendMessages.length === 0) return;
+        if (cancelled) return;
 
-        const normalized = normalizeBackendMessages(backendMessages);
+        const normalized = normalizeBackendMessages(backendMessages || []);
         setWorkspace((prev) => {
           const session = prev.sessions.find((s) => s.id === workspace.currentSessionId);
           if (!session) return prev;
-
+          const messagesToSet = normalized.length > 0 ? normalized : [WELCOME_MESSAGE];
+          
           return {
             ...prev,
             sessions: prev.sessions.map((s) =>
-              s.id === workspace.currentSessionId ? { ...s, messages: normalized, updatedAt: Date.now() } : s
+              s.id === prev.currentSessionId ? { ...s, messages: messagesToSet, updatedAt: Date.now() } : s
             ),
           };
         });
@@ -376,7 +407,7 @@ export default function ChatPage() {
 
     loadActiveSessionHistory();
     return () => { cancelled = true; };
-  }, [activeSessionMessageCount, isWorkspaceLoading, user?.id, workspace.currentSessionId, normalizeBackendMessages]);
+  }, [workspace.currentSessionId, isWorkspaceLoading, user?.id, normalizeBackendMessages]);
 
   useEffect(() => {
     if (!hasHydratedWorkspaceRef.current) return;
@@ -395,9 +426,9 @@ export default function ChatPage() {
     };
 
     if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
-      saveTimeoutRef.current = window.requestIdleCallback(persistWorkspaceIdle, { timeout: 1200 });
+      saveTimeoutRef.current = window.requestIdleCallback(persistWorkspaceIdle, { timeout: 3000 });
     } else {
-      saveTimeoutRef.current = setTimeout(persistWorkspaceIdle, 260);
+      saveTimeoutRef.current = setTimeout(persistWorkspaceIdle, 800);
     }
 
     return () => {

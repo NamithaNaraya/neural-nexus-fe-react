@@ -9,6 +9,8 @@ import { GRAPH_FETCH_STEPS, GRAPH_RENDER_LIMITS, sanitizeGraphForRender } from '
 import { GraphFocusDrawer } from './GraphFocusDrawer';
 import { buildNodeFocusGraph, buildRelationshipFocusGraph } from './graphFocusUtils';
 
+const spriteMaterialCache = new Map();
+
 export default function GraphForceGraph3DPage({
   folderId,
   graphData = null,
@@ -414,34 +416,47 @@ export default function GraphForceGraph3DPage({
     domElement.style.cursor = 'pointer';
   }, [draggingNodeId, renderedGraph.nodes.length]);
 
-  const createTextSprite = (text, color = '#334155') => {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    if (!context) return null;
+  const createTextSprite = (text, color = '#1e293b', bgColor = 'rgba(255, 255, 255, 0.9)') => {
+    if (!text) return null;
+    const cacheKey = `${text}_${color}_${bgColor}`;
 
-    const fontSize = 44;
-    context.font = `600 ${fontSize}px Inter, ui-sans-serif, system-ui, sans-serif`;
-    const paddingX = 20;
-    const paddingY = 12;
-    const metrics = context.measureText(text);
-    canvas.width = Math.ceil(metrics.width + paddingX * 2);
-    canvas.height = Math.ceil(fontSize + paddingY * 2);
+    if (!spriteMaterialCache.has(cacheKey)) {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) return null;
 
-    context.font = `600 ${fontSize}px Inter, ui-sans-serif, system-ui, sans-serif`;
-    context.fillStyle = color;
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.fillText(text, canvas.width / 2, canvas.height / 2 + 2);
+      const fontSize = 40;
+      context.font = `600 ${fontSize}px Inter, ui-sans-serif, system-ui, sans-serif`;
+      const paddingX = 20;
+      const paddingY = 12;
+      const metrics = context.measureText(text);
+      canvas.width = Math.ceil(metrics.width + paddingX * 2);
+      canvas.height = Math.ceil(fontSize + paddingY * 2);
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.needsUpdate = true;
-    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+      // Draw background pill
+      context.fillStyle = bgColor;
+      context.beginPath();
+      context.roundRect(0, 0, canvas.width, canvas.height, 20);
+      context.fill();
+
+      context.font = `600 ${fontSize}px Inter, ui-sans-serif, system-ui, sans-serif`;
+      context.fillStyle = color;
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText(text, canvas.width / 2, canvas.height / 2 + 2);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+      texture.needsUpdate = true;
+      const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+      
+      spriteMaterialCache.set(cacheKey, { material, aspectRatio: canvas.width / canvas.height });
+    }
+
+    const { material, aspectRatio } = spriteMaterialCache.get(cacheKey);
     const sprite = new THREE.Sprite(material);
-    const scale = Math.max(18, text.length * 1.6);
-    sprite.scale.set(canvas.width / 28, canvas.height / 28, 1);
-    sprite.userData = { texture, canvas };
+    sprite.scale.set(aspectRatio, 1, 1); // Base scale 1 unit high, maintaining precise pixel ratio
     sprite.center.set(0.5, 0.5);
-    sprite.scale.multiplyScalar(scale / 18);
     return sprite;
   };
 
@@ -481,8 +496,11 @@ export default function GraphForceGraph3DPage({
                   if (!showNodeLabels) return undefined;
                   const sprite = createTextSprite(node.name || node.id, '#334155');
                   if (sprite) {
-                    sprite.scale.setScalar(Math.max(4, Number(node.size || node.degree || 1) * 0.25));
-                    sprite.position.set(0, -8, 0);
+                    const scaleFactor = Math.max(5, Number(node.size || node.degree || 1) * 0.4);
+                    const bw = sprite.scale.x;
+                    const bh = sprite.scale.y;
+                    sprite.scale.set(bw * scaleFactor, bh * scaleFactor, 1);
+                    sprite.position.set(0, -10, 0);
                   }
                   return sprite || undefined;
                 }}
@@ -512,6 +530,12 @@ export default function GraphForceGraph3DPage({
                 linkThreeObject={(link) => {
                   if (!showRelationshipLabels) return undefined;
                   const sprite = createTextSprite(link.type || '', '#475569');
+                  if (sprite) {
+                    const scaleFactor = 3.5;
+                    const bw = sprite.scale.x;
+                    const bh = sprite.scale.y;
+                    sprite.scale.set(bw * scaleFactor, bh * scaleFactor, 1);
+                  }
                   return sprite || undefined;
                 }}
                 linkThreeObjectExtend={showRelationshipLabels}

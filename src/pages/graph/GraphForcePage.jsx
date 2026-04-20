@@ -595,7 +595,8 @@ export default function GraphForcePage({
               ctx.save();
               ctx.translate(placement.x, placement.y);
               ctx.rotate(placement.angle);
-              ctx.font = '6.5px Inter, sans-serif';
+              const fontSize = Math.max(6.5, 7.5/t.k);
+              ctx.font = `600 ${fontSize}px Inter, sans-serif`;
               ctx.fillStyle = '#475569';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
@@ -605,7 +606,9 @@ export default function GraphForcePage({
               const tw = ctx.measureText(label).width;
               ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
               ctx.beginPath();
-              ctx.roundRect(-tw/2 - 3, -5, tw + 6, 10, 4);
+              const padX = fontSize * 0.4;
+              const padY = fontSize * 0.3;
+              ctx.roundRect(-tw/2 - padX, -fontSize/2 - padY, tw + padX * 2, fontSize + padY * 2, fontSize * 0.4);
               ctx.fill();
               
               ctx.fillStyle = '#1e293b';
@@ -690,11 +693,24 @@ export default function GraphForcePage({
 
           // Labels
           if ((showNodeLabels && t.k > 0.25) || isSelected || isHighlighted) {
-            ctx.font = `600 ${Math.max(10, 11/t.k)}px Inter, sans-serif`;
+            const fontSize = Math.max(10, 11/t.k);
+            ctx.font = `600 ${fontSize}px Inter, sans-serif`;
+            const text = node.name || node.id;
+            const tw = ctx.measureText(text).width;
+            
+            // Draw background pill
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.beginPath();
+            const padX = fontSize * 0.4;
+            const padY = fontSize * 0.2;
+            const textY = node.y + radius + 6;
+            ctx.roundRect(node.x - tw/2 - padX, textY - padY, tw + padX * 2, fontSize + padY * 2, fontSize * 0.3);
+            ctx.fill();
+
             ctx.fillStyle = '#1e293b';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            ctx.fillText(node.name || node.id, node.x, node.y + radius + 8);
+            ctx.fillText(text, node.x, textY);
           }
         });
 

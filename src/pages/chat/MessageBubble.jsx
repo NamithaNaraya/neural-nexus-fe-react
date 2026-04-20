@@ -12,9 +12,14 @@ const splitTableRow = (line) =>
     .split('|')
     .map((cell) => cell.trim());
 
-const isTableDivider = (line) => /^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$/.test(line);
-
 const looksLikeTableRow = (line) => /\|/.test(line);
+
+const isTableDivider = (line) => {
+  const trimmed = line.trim();
+  if (trimmed.length < 3 || !trimmed.includes('-')) return false;
+  // A table divider must only contain | , : and - characters, and must have at least one --- sequence
+  return /^[:|\-\s]+$/.test(trimmed) && trimmed.split('|').some(part => part.includes('-'));
+};
 
 const sanitizeAssistantAnswer = (text) => {
   const safeText = String(text || '').replace(/\r\n/g, '\n');

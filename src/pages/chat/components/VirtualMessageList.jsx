@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 const DEFAULT_ROW_HEIGHT = 148;
 const OVERSCAN = 6;
@@ -96,6 +96,17 @@ export function VirtualMessageList({
     return () => container.removeEventListener('scroll', onScroll);
   }, []);
 
+  const handleRowHeight = useCallback((index, height) => {
+    const previous = sizeMapRef.current.get(index);
+    if (previous === height) return;
+    sizeMapRef.current.set(index, height);
+    // Use a small delay or requestAnimationFrame to batch height updates
+    // and avoid "ResizeObserver loop limit exceeded" or infinite render loops
+    requestAnimationFrame(() => {
+      setViewportHeight(containerRef.current?.clientHeight || 0);
+    });
+  }, []);
+
   const visibleItems = [];
   for (let index = visibleRange.start; index <= visibleRange.end; index += 1) {
     const item = items[index];
@@ -105,12 +116,7 @@ export function VirtualMessageList({
         key={item.key ?? index}
         index={index}
         top={measurements.offsets[index]}
-        onHeight={(height) => {
-          const previous = sizeMapRef.current.get(index);
-          if (previous === height) return;
-          sizeMapRef.current.set(index, height);
-          setViewportHeight((value) => value);
-        }}
+        onHeight={handleRowHeight}
       >
         {renderItem(item, index)}
       </MeasuredRow>
