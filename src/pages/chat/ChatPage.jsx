@@ -320,11 +320,24 @@ export default function ChatPage() {
             const backendSet = new Set(backendWorkspace.sessions.map((session) => session.id));
             const localSessionMap = new Map(prev.sessions.map((s) => [s.id, s]));
             
+            // Deduplication: Map backend sessions by folderId to detect "logic" duplicates
+            const folderSessionMap = new Map();
+            prev.sessions.forEach(s => {
+              if (s.folderId) folderSessionMap.set(s.folderId, s);
+            });
+
             const mergedSessions = [
               ...backendWorkspace.sessions.map((backendSession) => {
-                const local = localSessionMap.get(backendSession.id);
-                // Keep local messages if they exist (they might be fresher/full)
-                if (local && (local.messages?.length > 1 || local.folderId)) return local;
+                const localById = localSessionMap.get(backendSession.id);
+                if (localById && (localById.messages?.length > 1 || localById.folderId)) return localById;
+                
+                // If we have a local session for the same folder that was just created, merge them
+                const localByFolder = backendSession.folderId ? folderSessionMap.get(backendSession.folderId) : null;
+                if (localByFolder && localByFolder.messages?.length <= 1) {
+                   // Prefer backend version of the same folder-session
+                   return { ...backendSession, id: localByFolder.id || backendSession.id };
+                }
+
                 return backendSession;
               }),
               ...prev.sessions.filter((session) => !backendSet.has(session.id)),
@@ -347,17 +360,24 @@ export default function ChatPage() {
 
   // 2. Folder Context Sync: Switch/create session when folder selection changes
   useEffect(() => {
-    if (!selectedFolderId || !hasHydratedWorkspaceRef.current || isWorkspaceLoading) {
+    // 1. Wait for hydration to finish so we don't overwrite local data
+    if (isWorkspaceLoading || !hasHydratedWorkspaceRef.current) {
       return;
     }
 
-    const folderIdStr = String(selectedFolderId);
-    if (lastFolderIdRef.current === folderIdStr) return;
-    lastFolderIdRef.current = folderIdStr;
-
+    const folderIdStr = selectedFolderId ? String(selectedFolderId) : '';
+    
     setWorkspace((prev) => {
+      // 2. If we already have an active session for this folder, do nothing
+      if (prev.currentSessionId) {
+        const session = prev.sessions.find(s => s.id === prev.currentSessionId);
+        if (session && String(session.folderId || '') === folderIdStr) {
+          return prev;
+        }
+      }
+
+      // 3. Select existing or create new session for this folder
       const nextWorkspace = selectSessionForFolder(prev, folderIdStr, currentFolder?.name || '');
-      // If a new session was created (wasn't original workspace), save it via effect hook
       return nextWorkspace;
     });
   }, [selectedFolderId, isWorkspaceLoading, currentFolder?.name]);
@@ -902,17 +922,25 @@ export default function ChatPage() {
     }
   };
 
-  const deleteSession = (id) => {
+  const deleteSession = async (id) => {
+    // 1. Immediate local update for UI responsiveness
     const nextWorkspace = removeSession(workspace, id);
-    persistWorkspace(nextWorkspace);
+    setWorkspace(nextWorkspace);
+    saveChatWorkspace(userKey, nextWorkspace);
+
+    // 2. Handle session switching if the active one was deleted
     if (nextWorkspace.currentSessionId !== workspace.currentSessionId) {
       const nextSession = nextWorkspace.sessions.find((session) => session.id === nextWorkspace.currentSessionId);
-      if (nextSession) {
-        if (nextSession.folderId) {
-          setSelectedFolderId(String(nextSession.folderId));
-        }
-        setHistoryOpen(false);
+      if (nextSession?.folderId) {
+        setSelectedFolderId(String(nextSession.folderId));
       }
+    }
+
+    // 3. Persistent backend deletion
+    try {
+      await chatService.deleteSession(id);
+    } catch (error) {
+      console.error('Failed to delete session from server:', error);
     }
   };
 
