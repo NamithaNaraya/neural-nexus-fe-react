@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, GitBranch, Link2, Pencil, RefreshCw, Save, Sparkles, Target, X } from 'lucide-react';
+import { ArrowRight, GitBranch, Link2, Pencil, Plus, RefreshCw, Save, Sparkles, Target, X } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -82,6 +82,7 @@ export function GraphFocusDrawer({
   onExpandNode,
   expandLoading = false,
   onSuccess,
+  onAddRelated,
 }) {
   const [nodeForm, setNodeForm] = useState({
     name: '',
@@ -296,12 +297,25 @@ export function GraphFocusDrawer({
                       {activeNode.isPhantom ? 'Configure your new graph node before saving.' : 'This node is driving the current focused graph view.'}
                     </p>
                   </div>
-                  {onEdit ? (
-                    <Button variant="outline" size="sm" className="gap-2" type="button" onClick={onEdit}>
-                      <Pencil className="h-4 w-4" />
-                      Edit
-                    </Button>
-                  ) : null}
+                  <div className="flex items-center gap-2">
+                    {onAddRelated && !activeNode.isPhantom && (
+                      <Button 
+                        variant="gradient" 
+                        size="sm" 
+                        className="gap-2 shadow-[0_8px_20px_rgba(var(--primary-rgb),0.3)] hover:scale-105 active:scale-95 transition-all bg-primary text-white font-bold px-4 ring-2 ring-primary/20 animate-in fade-in zoom-in duration-500" 
+                        onClick={onAddRelated}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Related
+                      </Button>
+                    )}
+                    {onEdit ? (
+                      <Button variant="outline" size="sm" className="gap-2" type="button" onClick={onEdit}>
+                        <Pencil className="h-4 w-4" />
+                        Edit
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">

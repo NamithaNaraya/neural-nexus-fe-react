@@ -11,6 +11,7 @@ import {
   pointer as d3Pointer,
 } from 'd3';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { graphService } from '../../services/graphService';
 import { GraphNodeCrudModal } from '../../components/crud';
 import { filterGraphData } from './filterGraphData';
@@ -19,6 +20,7 @@ import { getNodeTypeColor, getRelationshipTypeColor, withAlpha } from './colorSy
 import { GraphFocusDrawer } from './GraphFocusDrawer';
 import { buildNodeFocusGraph, buildRelationshipFocusGraph } from './graphFocusUtils';
 import { getLinkLabelPlacement } from './rendering/linkLabelLayout';
+import { GraphInlineInput } from './GraphInlineInput';
 
 function getNodeRadius(node) {
   const base = Math.max(1, Number(node?.size || node?.degree || 1));
@@ -106,6 +108,17 @@ export default function GraphForcePage({
   const [expandRelationshipTypes, setExpandRelationshipTypes] = useState([]);
   const [draggingNode, setDraggingNode] = useState(null);
   const [hydrating, setHydrating] = useState(false);
+
+  // Quick CRUD State
+  const [inlineCreate, setInlineCreate] = useState(null); // { sourceNode, name, relType }
+  const [savingInline, setSavingInline] = useState(false);
+  const [transformState, setTransformState] = useState({ x: 0, y: 0, k: 1 });
+  const phantomNodeRef = useRef(null);
+  const phantomLinkRef = useRef(null);
+  useEffect(() => {
+    phantomNodeRef.current = phantomNode;
+    phantomLinkRef.current = phantomLink;
+  }, [phantomNode, phantomLink]);
 
   // Sync with folderId
   useEffect(() => {
@@ -288,18 +301,136 @@ export default function GraphForcePage({
   const handleNodeClick = async (node) => {
     if (explorerModeActive && onExplorerNodeClick) {
       onExplorerNodeClick(node);
-      return;
     }
     if (traversalModeActive && onTraversalNodeClick) {
       onTraversalNodeClick(node);
-      return;
     }
+
     setActiveNode(node);
     setActiveRelationship(null);
     setFocusType('node');
     setFocusLabel(node.name || node.id);
-    setInspectorOpen(true);
-    await refreshNodeFocus(node);
+    
+    // Only open inspector if not already in a special mode
+    if (!inlineCreate) {
+       setInspectorOpen(true);
+       await refreshNodeFocus(node);
+    }
+  };
+
+  const handleAddRelated = () => {
+    // Use activeNode as the source if available
+    const sourceNode = activeNode || quickMenuNode; // fallback
+    if (!sourceNode) return;
+    
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 120; // Slightly more distance for clarity
+    
+    // Batch updates to ensure simultaneous appearance
+    const newPhantom = {
+      id: 'phantom-new',
+      x: sourceNode.x + Math.cos(angle) * dist,
+      y: sourceNode.y + Math.sin(angle) * dist,
+      isPhantom: true
+    };
+    const newLink = { source: sourceNode.id, target: 'phantom-new', isPhantom: true };
+    
+    // Set Refs instantly for the render loop
+    phantomNodeRef.current = newPhantom;
+    phantomLinkRef.current = newLink;
+    
+    setPhantomNode(newPhantom);
+    setPhantomLink(newLink);
+    setInlineCreate({
+      sourceNode: sourceNode,
+      name: '',
+      relType: 'RELATIONSHIP'
+    });
+    
+    const t = zoomTransformRef.current;
+    setTransformState({ x: t.x, y: t.y, k: t.k });
+    
+    setInspectorOpen(false);
+  };
+
+  const handleGlobalAddNode = () => {
+    const transform = zoomTransformRef.current;
+    if (!containerRef.current) return;
+    const width = containerRef.current.clientWidth;
+    const height = containerRef.current.clientHeight;
+    
+    // Center of screen in simulation coordinates
+    const nx = (width / 2 - transform.x) / transform.k;
+    const ny = (height / 2 - transform.y) / transform.k;
+    
+    const newPhantom = {
+      id: 'phantom-new',
+      x: nx,
+      y: ny,
+      isPhantom: true
+    };
+    
+    // Instant sync for render loop
+    phantomNodeRef.current = newPhantom;
+    phantomLinkRef.current = null;
+    
+    setInlineCreate({ sourceNode: null, name: '', relType: '' });
+    setPhantomNode(newPhantom);
+    setPhantomLink(null);
+    
+    // Tell parent we've handled the signal
+    if (editMode === 'add-node') setEditMode?.('view'); 
+  };
+
+  // Listen for global Add Node signal from parent components
+  useEffect(() => {
+    if (editMode === 'add-node' && !inlineCreate) {
+      handleGlobalAddNode();
+    }
+  }, [editMode, inlineCreate]);
+
+  const handleConfirmInlineCreate = async () => {
+    if (!inlineCreate || !inlineCreate.name.trim()) return;
+    setSavingInline(true);
+    try {
+      // 1. Create the node
+      const nodeResult = await graphService.createNode({
+        name: inlineCreate.name.trim(),
+        type: 'Entity', // Default type
+        folder_id: folderId,
+        properties: { 
+          is_manual: true,
+          x: phantomNode.x,
+          y: phantomNode.y
+        }
+      });
+
+      if (nodeResult?.node?.id && inlineCreate.sourceNode) {
+        // 2. Create the relationship
+        await graphService.createRelationship({
+          source_id: inlineCreate.sourceNode.id,
+          target_id: nodeResult.node.id,
+          type: inlineCreate.relType || 'RELATIONSHIP',
+          folder_id: folderId
+        });
+      }
+
+      // Success: Clear phantom and refresh
+      setInlineCreate(null);
+      setPhantomNode(null);
+      setPhantomLink(null);
+      // Graph will refresh via the CustomEvent emitted by graphService
+    } catch (err) {
+      console.error('Failed to create related node inline:', err);
+    } finally {
+      setSavingInline(false);
+    }
+  };
+
+  const handleCancelInlineCreate = () => {
+    setInlineCreate(null);
+    setPhantomNode(null);
+    setPhantomLink(null);
   };
 
   const handleRelationshipClick = (link) => {
@@ -317,6 +448,15 @@ export default function GraphForcePage({
     const transform = zoomTransformRef.current;
     const x = (mouseX - transform.x) / transform.k;
     const y = (mouseY - transform.y) / transform.k;
+    
+    // Check phantom node first (highest priority)
+    if (phantomNode) {
+      const dx = phantomNode.x - x;
+      const dy = phantomNode.y - y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 30) return phantomNode;
+    }
+
     let closest = null;
     let minDistance = 22; 
     for (const node of allSimulationNodes) {
@@ -382,6 +522,7 @@ export default function GraphForcePage({
       })
       .on('zoom', (event) => {
         zoomTransformRef.current = event.transform;
+        setTransformState({ x: event.transform.x, y: event.transform.y, k: event.transform.k });
         requestRender();
       });
 
@@ -389,16 +530,30 @@ export default function GraphForcePage({
 
     const dragBehavior = d3Drag()
       .container(canvas)
-      .subject((event) => findNodeAt(event.x, event.y))
+      .subject((event) => {
+        const [px, py] = d3Pointer(event.sourceEvent, canvas);
+        return findNodeAt(px, py);
+      })
       .on('start', (event) => {
-        if (!event.subject) return;
+        if (!event.subject) {
+          // Clicked background - clear quick menu
+          setQuickMenuNode(null);
+          setQuickMenuPos(null);
+          return;
+        }
         if (!event.active) simulation.alphaTarget(0.7).restart();
         
         // Use initial pointer to set fx/fy to ensure no jump
         const [px, py] = d3Pointer(event.sourceEvent, canvas);
         const transform = zoomTransformRef.current;
-        event.subject.fx = (px - transform.x) / transform.k;
-        event.subject.fy = (py - transform.y) / transform.k;
+        
+        if (event.subject.isPhantom) {
+          event.subject.x = (px - transform.x) / transform.k;
+          event.subject.y = (py - transform.y) / transform.k;
+        } else {
+          event.subject.fx = (px - transform.x) / transform.k;
+          event.subject.fy = (py - transform.y) / transform.k;
+        }
         
         event.subject.__startDragX = px;
         event.subject.__startDragY = py;
@@ -411,8 +566,17 @@ export default function GraphForcePage({
         const transform = zoomTransformRef.current;
         const [px, py] = d3Pointer(event.sourceEvent, canvas);
         
-        event.subject.fx = (px - transform.x) / transform.k;
-        event.subject.fy = (py - transform.y) / transform.k;
+        if (event.subject.isPhantom) {
+          // Manual position update for phantom
+          const nx = (px - transform.x) / transform.k;
+          const ny = (py - transform.y) / transform.k;
+          
+          phantomNodeRef.current = { ...phantomNodeRef.current, x: nx, y: ny };
+          setPhantomNode(prev => prev ? ({ ...prev, x: nx, y: ny }) : null);
+        } else {
+          event.subject.fx = (px - transform.x) / transform.k;
+          event.subject.fy = (py - transform.y) / transform.k;
+        }
         
         canvas.style.cursor = 'grabbing';
       })
@@ -469,46 +633,36 @@ export default function GraphForcePage({
         ctx.scale(t.k, t.k);
 
         // 0. Draw Phantom Items (Preview)
-        if (phantomNode) {
+        const pNode = phantomNodeRef.current;
+        if (pNode) {
           ctx.save();
-          ctx.globalAlpha = 0.5;
+          ctx.globalAlpha = 0.95; // Higher visibility
           ctx.beginPath();
-          ctx.arc(phantomNode.x, phantomNode.y, getNodeRadius({ size: 1 }), 0, 2 * Math.PI);
-          ctx.fillStyle = '#10b981';
+          const pRadius = getNodeRadius({ size: 3.5 }); 
+          ctx.arc(pNode.x, pNode.y, pRadius, 0, 2 * Math.PI);
+          ctx.fillStyle = '#334155'; // Dark Slate/Grey
           ctx.fill();
-          ctx.strokeStyle = '#059669';
-          ctx.setLineDash([5, 5]);
+          ctx.strokeStyle = '#64748b'; // Slate border
+          ctx.lineWidth = 2;
+          ctx.setLineDash([]); 
           ctx.stroke();
           ctx.restore();
         }
 
-        if (editMode === 'add-link' && phantomLink && !phantomLink.isPhantom) {
-           // Drawing the "rubber band" link from source to cursor
-           const sourceNode = phantomLink.sourceNode;
-           if (sourceNode) {
-              const [mx, my] = d3.pointer(lastMousePos.current, canvas);
-              const tx = (mx - t.x) / t.k;
-              const ty = (my - t.y) / t.k;
-              ctx.save();
-              ctx.beginPath();
-              ctx.setLineDash([5, 5]);
-              ctx.strokeStyle = '#6366f1';
-              ctx.moveTo(sourceNode.x, sourceNode.y);
-              ctx.lineTo(tx, ty);
-              ctx.stroke();
-              ctx.restore();
-           }
-        }
+        // Draw Phantom Link Label is now handled by HTML overlay to allow typing
+        const pLink = phantomLinkRef.current;
 
-        if (phantomLink && phantomLink.isPhantom && phantomLink.source && phantomLink.target) {
-            // Draw the pending link
-            const s = allSimulationNodes.find(n => n.id === phantomLink.source);
-            const tNode = allSimulationNodes.find(n => n.id === phantomLink.target);
+        if (pLink && pLink.source && pLink.target) {
+            const s = allSimulationNodes.find(n => n.id === pLink.source) || (pNode && pNode.id === pLink.source ? pNode : null);
+            const tNode = allSimulationNodes.find(n => n.id === pLink.target) || (pNode && pNode.id === pLink.target ? pNode : null);
+            
             if (s && tNode) {
               ctx.save();
+              ctx.globalAlpha = 0.6;
               ctx.beginPath();
-              ctx.strokeStyle = '#6366f1';
-              ctx.setLineDash([5, 5]);
+              ctx.strokeStyle = '#475569'; // Dark Slate
+              ctx.lineWidth = 1.5;
+              ctx.setLineDash([2, 3]); // DOTTED look
               ctx.moveTo(s.x, s.y);
               ctx.lineTo(tNode.x, tNode.y);
               ctx.stroke();
@@ -855,6 +1009,7 @@ export default function GraphForcePage({
           onExpandNode={() => refreshNodeFocus(activeNode)}
           expandLoading={focusLoading}
           onSelectLink={handleRelationshipClick}
+          onAddRelated={handleAddRelated}
         />
       )}
 
@@ -875,6 +1030,34 @@ export default function GraphForcePage({
           }}
         />
       )}
+
+      {/* Quick CRUD UI */}
+      <AnimatePresence>
+        {inlineCreate && phantomNode && (
+          <GraphInlineInput
+            value={inlineCreate.name}
+            onChange={(val) => setInlineCreate(prev => ({ ...prev, name: val }))}
+            subValue={inlineCreate.relType}
+            onSubChange={(val) => setInlineCreate(prev => ({ ...prev, relType: val }))}
+            onConfirm={handleConfirmInlineCreate}
+            onCancel={handleCancelInlineCreate}
+            nodeAnchorPos={{
+                x: phantomNode.x * transformState.k + transformState.x,
+                y: phantomNode.y * transformState.k + transformState.y
+            }}
+            linkAnchorPos={(function() {
+              const s = inlineCreate.sourceNode;
+              if (!s) return null;
+              const midX = (s.x + phantomNode.x) / 2;
+              const midY = (s.y + phantomNode.y) / 2;
+              return {
+                x: midX * transformState.k + transformState.x,
+                y: midY * transformState.k + transformState.y
+              };
+            })()}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
