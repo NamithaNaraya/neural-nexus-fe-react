@@ -445,17 +445,20 @@ export default function GraphForceGraph3DPage({
       context.textBaseline = 'middle';
       context.fillText(text, canvas.width / 2, canvas.height / 2 + 2);
 
-      const texture = new THREE.CanvasTexture(canvas);
-      texture.minFilter = THREE.LinearFilter;
-      texture.needsUpdate = true;
-      const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+      const material = new THREE.SpriteMaterial({ 
+        map: texture, 
+        transparent: true, 
+        depthWrite: true, // Enable depth write to prevent z-fighting "blinking"
+        depthTest: true 
+      });
       
       spriteMaterialCache.set(cacheKey, { material, aspectRatio: canvas.width / canvas.height });
     }
 
     const { material, aspectRatio } = spriteMaterialCache.get(cacheKey);
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(aspectRatio, 1, 1); // Base scale 1 unit high, maintaining precise pixel ratio
+    // Base scale for better visibility at a distance
+    sprite.scale.set(aspectRatio * 14, 14, 1); 
     sprite.center.set(0.5, 0.5);
     return sprite;
   };
@@ -496,11 +499,12 @@ export default function GraphForceGraph3DPage({
                   if (!showNodeLabels) return undefined;
                   const sprite = createTextSprite(node.name || node.id, '#334155');
                   if (sprite) {
-                    const scaleFactor = Math.max(5, Number(node.size || node.degree || 1) * 0.4);
-                    const bw = sprite.scale.x;
-                    const bh = sprite.scale.y;
-                    sprite.scale.set(bw * scaleFactor, bh * scaleFactor, 1);
-                    sprite.position.set(0, -10, 0);
+                    // Constant scale + small degree boost for better visibility
+                    const scaleFactor = 1.0 + Math.log2(Number(node.size || node.degree || 1) + 1) * 0.15;
+                    sprite.scale.multiplyScalar(scaleFactor);
+                    // Position label slightly above the node
+                    const radius = Math.max(2, Number(node.size || node.degree || 1) * 1.6);
+                    sprite.position.set(0, radius + 14, 0);
                   }
                   return sprite || undefined;
                 }}
@@ -529,12 +533,9 @@ export default function GraphForceGraph3DPage({
                 linkDirectionalArrowColor={(link) => link.properties?.isPredicted ? '#ec4899' : (link.color || '#64748B')}
                 linkThreeObject={(link) => {
                   if (!showRelationshipLabels) return undefined;
-                  const sprite = createTextSprite(link.type || '', '#475569');
+                  const sprite = createTextSprite(link.type || '', '#475569', 'rgba(255, 255, 255, 0.82)');
                   if (sprite) {
-                    const scaleFactor = 3.5;
-                    const bw = sprite.scale.x;
-                    const bh = sprite.scale.y;
-                    sprite.scale.set(bw * scaleFactor, bh * scaleFactor, 1);
+                    sprite.scale.multiplyScalar(0.7); // Relationship labels slightly smaller than node labels
                   }
                   return sprite || undefined;
                 }}

@@ -692,7 +692,7 @@ export default function GraphForcePage({
           ctx.stroke();
 
           // Labels
-          if ((showNodeLabels && t.k > 0.25) || isSelected || isHighlighted) {
+          if ((showNodeLabels && t.k > 0.14) || isSelected || isHighlighted) {
             const fontSize = Math.max(10, 11/t.k);
             ctx.font = `600 ${fontSize}px Inter, sans-serif`;
             const text = node.name || node.id;

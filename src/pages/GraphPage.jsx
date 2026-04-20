@@ -78,8 +78,8 @@ export default function GraphPage() {
   const toolOptions = useMemo(
     () => [
       { id: 'filters', label: 'Node Filter', icon: SlidersHorizontal },
-      { id: 'explorer', label: 'Explorer', icon: Sparkles },
-      { id: 'traversal', label: 'Path Traversal', icon: Waypoints },
+      { id: 'explorer', label: 'Cluster Expand', icon: Sparkles },
+      { id: 'traversal', label: 'Path Discovery', icon: Waypoints },
       { id: 'hop', label: 'Hop Finder', icon: Radar },
       { id: 'distance', label: 'Distance Finder', icon: MoveRight },
       { id: 'quality', label: 'Quality', icon: Sparkles },
@@ -480,7 +480,7 @@ export default function GraphPage() {
                     <button
                       key={tool.id}
                       type="button"
-                      title={isExplorer ? "Only immediate neighbors are shown when clicked" : isTraversal ? "Layers dive" : undefined}
+                      title={isExplorer ? "Progressive Cluster Expansion (Additive)" : isTraversal ? "Sequential Path Discovery" : undefined}
                       onClick={() => {
                         if (isExplorer) {
                           handleExplorerToggle();

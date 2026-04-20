@@ -15,8 +15,10 @@
  * @returns {Set} New set of expanded node IDs
  */
 export function toggleNodeExpansion(expandedIds, nodeId) {
-  const next = new Set();
-  if (!expandedIds.has(nodeId)) {
+  const next = new Set(expandedIds);
+  if (next.has(nodeId)) {
+    next.delete(nodeId);
+  } else {
     next.add(nodeId);
   }
   return next;
