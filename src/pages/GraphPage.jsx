@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useSearchParams } from 'react-router-dom';
 import { ChevronRight, Compass, MoveRight, Radar, RotateCcw, SlidersHorizontal, Sparkles, Spline, Waypoints, Layout } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
@@ -135,6 +135,27 @@ export default function GraphPage() {
     setHighlightedNodeIds(new Set());
     setHighlightedLinkIds(new Set());
   }, [folderId]);
+  
+  // Handle Deep Link Exploration
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const exploreId = searchParams.get('exploreId');
+    if (exploreId && graphData.nodes?.length > 0) {
+      // Find the node to ensure it exists in the current graph
+      const targetNode = graphData.nodes.find(n => String(n.id) === String(exploreId));
+      if (targetNode) {
+        setExplorerModeActive(true);
+        setExpandedNodeIds(new Set([String(exploreId)]));
+        setToolsOpen(true);
+        setShowNodeLabels(true);
+        handleJumpToNode(targetNode);
+        
+        // Clear param so it doesn't re-trigger on refresh
+        searchParams.delete('exploreId');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, graphData.nodes, setSearchParams]);
 
   const graphDataWithPredictions = useMemo(
     () => mergePredictedLinks(graphData, predictedLinks),

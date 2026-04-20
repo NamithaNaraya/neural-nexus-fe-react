@@ -80,6 +80,21 @@ export default function GraphForcePage({
   const zoomTransformRef = useRef({ x: 0, y: 0, k: 1 });
   const masterNodesRef = useRef(new Map()); // Stores persistent node objects with x,y,vx,vy
   const lastMousePos = useRef([0, 0]);
+  const requestRenderRef = useRef(() => {}); // Persistent ref to the drawing function
+  
+  // Refs for visual toggles to avoid stale closures in d3 render loop
+  const showNodeLabelsRef = useRef(showNodeLabels);
+  const showRelationshipLabelsRef = useRef(showRelationshipLabels);
+  const lockDraggedNodesRef = useRef(lockDraggedNodes);
+  const explorerModeActiveRef = useRef(explorerModeActive);
+  
+  useEffect(() => {
+    showNodeLabelsRef.current = showNodeLabels;
+    showRelationshipLabelsRef.current = showRelationshipLabels;
+    lockDraggedNodesRef.current = lockDraggedNodes;
+    explorerModeActiveRef.current = explorerModeActive;
+    requestRenderRef.current();
+  }, [showNodeLabels, showRelationshipLabels, lockDraggedNodes, explorerModeActive]);
 
   // Sync cursor position for rubber-band link
   useEffect(() => {
@@ -185,7 +200,9 @@ export default function GraphForcePage({
 
   // Filtering & Capping
   const processedGraph = useMemo(() => {
-    const rawData = (traversalModeActive || explorerModeActive) ? displayGraphData || graphDataProp || fullGraphData : fullGraphData;
+    const rawData = (traversalModeActive || explorerModeActive) 
+      ? (displayGraphData || { nodes: [], links: [] }) 
+      : fullGraphData;
     const filtered = filterGraphData(rawData, {
       nodeTypeFilters,
       relationshipTypeFilters,
@@ -670,8 +687,8 @@ export default function GraphForcePage({
             }
         }
 
-        const showDetails = t.k > 0.35;
-        const showLabels = showDetails && showRelationshipLabels;
+        const showDetails = t.k > 0.15 || explorerModeActiveRef.current;
+        const showLabels = showDetails && showRelationshipLabelsRef.current;
 
         // 1. Draw Links
         allSimulationLinks.forEach(link => {
@@ -846,7 +863,7 @@ export default function GraphForcePage({
           ctx.stroke();
 
           // Labels
-          if ((showNodeLabels && t.k > 0.14) || isSelected || isHighlighted) {
+          if (showNodeLabelsRef.current || isSelected || isHighlighted) {
             const fontSize = Math.max(10, 11/t.k);
             ctx.font = `600 ${fontSize}px Inter, sans-serif`;
             const text = node.name || node.id;
@@ -872,6 +889,8 @@ export default function GraphForcePage({
       });
     };
 
+    requestRenderRef.current = requestRender;
+    
     simulation.on('tick', requestRender);
 
     // Initial render and recurring loop for particles

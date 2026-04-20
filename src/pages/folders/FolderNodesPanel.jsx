@@ -1,5 +1,6 @@
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Loader2, Network, Search, ArrowUpRight } from 'lucide-react';
 import { Input } from '../../components/ui/Input';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { cn } from '../../utils/cn';
@@ -18,6 +19,13 @@ export function FolderNodesPanel({
   nodesLoading,
   filteredFolderNodes,
 }) {
+  const navigate = useNavigate();
+  
+  const handleNodeClick = (node) => {
+    if (!node?.id) return;
+    // Deep link to graph 2D view with explorer flag
+    navigate(`/graph/2d?exploreId=${node.id}`);
+  };
   const getFolderThemeTone = (active) => ({
     backgroundColor: active ? 'hsl(var(--primary))' : 'hsl(var(--secondary))',
     borderColor: active ? 'hsl(var(--primary))' : 'hsl(var(--border))',
@@ -93,12 +101,26 @@ export function FolderNodesPanel({
             </div>
           ) : filteredFolderNodes.length > 0 ? (
             filteredFolderNodes.map((node) => (
-              <div key={node.id} className="rounded-xl border border-border/10 bg-muted/10 px-3 py-2 transition-all hover:bg-accent-warm/15 hover:border-accent-warm/30 hover:scale-[1.01] group">
-                <div className="truncate text-[12px] font-bold text-foreground/80 group-hover:text-foreground transition-colors">{node.name}</div>
-                <div className="flex items-center gap-1.5 mt-1">
-                   <div className="w-1.5 h-1.5 rounded-full bg-primary/60 group-hover:bg-primary transition-colors" />
-                   <div className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground/60 group-hover:text-muted-foreground/80">{node.type}</div>
+              <div 
+                key={node.id} 
+                className="group relative flex items-center justify-between rounded-xl border border-border/10 bg-muted/10 px-3 py-2 transition-all hover:bg-accent-soft/15 hover:border-accent-soft/30 hover:scale-[1.01]"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[12px] font-bold text-foreground/80 group-hover:text-foreground transition-colors">{node.name}</div>
+                  <div className="flex items-center gap-1.5 mt-1">
+                     <div className="w-1.5 h-1.5 rounded-full bg-primary/60 group-hover:bg-primary transition-colors" />
+                     <div className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground/60 group-hover:text-muted-foreground/80">{node.type}</div>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleNodeClick(node)}
+                  className="ml-2 flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary opacity-0 group-hover:opacity-100 transition-all hover:bg-primary hover:text-white"
+                  title="View in Graph"
+                >
+                  <ArrowUpRight className="h-4 w-4" />
+                </button>
               </div>
             ))
           ) : (

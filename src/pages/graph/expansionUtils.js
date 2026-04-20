@@ -36,10 +36,10 @@ export function filterGraphForExpansion(fullGraph, expandedIds) {
 
   if (expandedIds.size === 0) {
     return {
-      nodes: fullGraph.nodes || [],
-      links: fullGraph.links || [],
-      visibleNodeIds: new Set((fullGraph.nodes || []).map(n => String(n.id))),
-      visibleLinkIds: new Set((fullGraph.links || []).map((_, idx) => idx))
+      nodes: [],
+      links: [],
+      visibleNodeIds: new Set(),
+      visibleLinkIds: new Set()
     };
   }
 
