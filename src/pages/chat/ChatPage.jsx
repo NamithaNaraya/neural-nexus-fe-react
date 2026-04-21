@@ -1,9 +1,11 @@
 import React, { Suspense, startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { Button } from '../../components/ui/Button';
-import { RotateCcw, PanelRightClose, Download, ChevronDown, FileText, FileJson, SquarePen } from 'lucide-react';
+import { RotateCcw, PanelRightClose, Download, ChevronDown, SquarePen } from 'lucide-react';
 import { MessageBubble, TypingIndicator } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { VirtualMessageList } from './components/VirtualMessageList';
+import { ChatDownloadModal } from './components/ChatDownloadModal';
 const ChatHistoryPanel = React.lazy(() =>
   import('./ChatHistoryPanel').then((m) => ({ default: m.ChatHistoryPanel }))
 );
@@ -259,17 +261,7 @@ export default function ChatPage() {
   }, [messages]);
 
   useEffect(() => {
-    const handlePointerDown = (event) => {
-      if (!downloadMenuRef.current?.contains(event.target)) {
-        setDownloadOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handlePointerDown);
-    return () => document.removeEventListener('mousedown', handlePointerDown);
-  }, []);
-
-  useEffect(() => {
-    if (!isDownloadOpen || !downloadMenuRef.current) return;
+    if (!isDownloadOpen) return undefined;
 
     const handleScroll = () => setDownloadOpen(false);
     window.addEventListener('scroll', handleScroll, true);
@@ -841,40 +833,12 @@ export default function ChatPage() {
   const clearChat = () => {
     updateCurrentSession((session) => ({
       ...session,
-      title: getDefaultSessionTitle(currentFolder?.name || session.folderName || 'New Chat'),
+      title: 'New Chat',
       messages: [WELCOME_MESSAGE],
       updatedAt: Date.now(),
     }));
     setInput('');
     inputRef.current?.focus();
-  };
-
-  const handleExportText = async () => {
-    const { exportToText } = await import('./downloads/exportToText');
-    exportToText({
-      messages,
-      folderName: currentFolder?.name,
-      chatMode: 'research'
-    });
-  };
-
-  const handleExportJson = async () => {
-    const { exportToJson } = await import('./downloads/exportToJson');
-    exportToJson({
-      messages,
-      folderName: currentFolder?.name,
-      sessionId: workspace.currentSessionId,
-      activeSessionTitle: activeSession?.title
-    });
-  };
-
-  const handleExportPdf = async () => {
-    const { exportToPdf } = await import('./downloads/exportToPdf');
-    exportToPdf({
-      messages,
-      folderName: currentFolder?.name,
-      sessionTitle: activeSession?.title
-    });
   };
 
   const restoreSession = async (id) => {
@@ -948,7 +912,9 @@ export default function ChatPage() {
     <>
     <section aria-labelledby="chat-page-title" className="-mx-6 -my-5 flex h-[calc(100vh-theme(spacing.16))] w-[calc(100%+theme(spacing.12))] flex-col bg-gradient-to-br from-background via-background to-muted/20">
       <div className="px-6 pt-4">
-        <section className="rounded-[28px] border border-border/50 bg-card/75 px-5 py-3.5 shadow-[0_18px_50px_-36px_hsl(var(--primary)/0.22)] backdrop-blur-xl">
+        <section 
+          className="rounded-[28px] border border-border/50 bg-card/75 px-5 py-3.5 shadow-[0_18px_50px_-36px_hsl(var(--primary)/0.22)] backdrop-blur-xl"
+        >
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0 space-y-1.5">
               <div className="space-y-1">
@@ -1075,9 +1041,9 @@ export default function ChatPage() {
             isWebSearchEnabled={isWebSearchEnabled}
             setIsWebSearchEnabled={setIsWebSearchEnabled}
           />
-          </div>
+        </div>
 
-          <aside
+        <aside
             id="chat-history-drawer"
             aria-label="Chat history"
             className={cn(
@@ -1099,10 +1065,10 @@ export default function ChatPage() {
               </Suspense>
             </div>
           </aside>
-        </div>
+      </div>
 
-        <div
-          className={cn(
+      <div
+        className={cn(
             'absolute inset-0 z-10 bg-stone-950/10 backdrop-blur-[1px] transition-opacity lg:hidden',
             isHistoryOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
           )}
@@ -1130,81 +1096,14 @@ export default function ChatPage() {
         </aside>
       </div>
     </section>
-    {isDownloadOpen && (
-      <div
-        className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/55 backdrop-blur-sm px-4"
-        onClick={() => setDownloadOpen(false)}
-      >
-        <div
-          className="w-full max-w-sm rounded-[32px] border border-border/70 bg-card/97 p-8 shadow-[0_32px_100px_-32px_rgba(0,0,0,0.5)]"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between pb-6">
-            <div className="space-y-1">
-              <h3 className="text-xl font-bold tracking-tight text-foreground">Download session</h3>
-              <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">Choose format</p>
-            </div>
-            <button
-              aria-label="Close download"
-              onClick={() => setDownloadOpen(false)}
-              className="h-10 w-10 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted/40 transition-colors"
-            >
-              <RotateCcw className="h-5 w-5 rotate-45" />
-            </button>
-          </div>
-          <div className="space-y-4">
-            <button
-              type="button"
-              onClick={() => {
-                handleExportText();
-                setDownloadOpen(false);
-              }}
-              className="group flex w-full items-center gap-4 rounded-2xl bg-muted/20 px-5 py-4 text-left transition-all hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30">
-                <FileText className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-foreground">As Plain Text</p>
-                <p className="text-xs text-muted-foreground">Best for quick reading (.txt)</p>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                handleExportJson();
-                setDownloadOpen(false);
-              }}
-              className="group flex w-full items-center gap-4 rounded-2xl bg-muted/20 px-5 py-4 text-left transition-all hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30">
-                <FileJson className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-foreground">As JSON Data</p>
-                <p className="text-xs text-muted-foreground">Best for portability (.json)</p>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                handleExportPdf();
-                setDownloadOpen(false);
-              }}
-              className="group flex w-full items-center gap-4 rounded-2xl bg-muted/20 px-5 py-4 text-left transition-all hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30">
-                <Download className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-foreground">As PDF Document</p>
-                <p className="text-xs text-muted-foreground">Best for sharing (.pdf)</p>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
+    <ChatDownloadModal
+      isOpen={isDownloadOpen}
+      onClose={() => setDownloadOpen(false)}
+      messages={messages}
+      currentFolder={currentFolder}
+      workspace={workspace}
+      activeSession={activeSession}
+    />
     </>
   );
 }
