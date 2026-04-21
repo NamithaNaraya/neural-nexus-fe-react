@@ -6,6 +6,7 @@ import { MessageBubble, TypingIndicator } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { VirtualMessageList } from './components/VirtualMessageList';
 import { ChatDownloadModal } from './components/ChatDownloadModal';
+import { ChatAnswerDetailsDrawer } from './components/ChatAnswerDetailsDrawer';
 const ChatHistoryPanel = React.lazy(() =>
   import('./ChatHistoryPanel').then((m) => ({ default: m.ChatHistoryPanel }))
 );
@@ -154,6 +155,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [isHistoryOpen, setHistoryOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1280 : false));
   const [isDownloadOpen, setDownloadOpen] = useState(false);
+  const [detailsMessageIndex, setDetailsMessageIndex] = useState(null);
   const [isWebSearchEnabled, setIsWebSearchEnabled] = useState(false);
   const [isWorkspaceLoading, setWorkspaceLoading] = useState(true);
   const messagesEndRef = useRef(null);
@@ -170,6 +172,7 @@ export default function ChatPage() {
     [workspace.currentSessionId, workspace.sessions]
   );
   const messages = activeSession?.messages?.length ? activeSession.messages : [WELCOME_MESSAGE];
+  const detailsMessage = typeof detailsMessageIndex === 'number' ? messages[detailsMessageIndex] || null : null;
   const activeSessionMessageCount = activeSession?.messages?.length ?? 0;
   const deferredMessages = useDeferredValue(messages);
   const chatHistory = useMemo(() => {
@@ -254,6 +257,22 @@ export default function ChatPage() {
   const scrollToBottom = (behavior = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
   };
+
+  const openMessageDetails = useCallback((messageIndex) => {
+    setDetailsMessageIndex(messageIndex);
+    setHistoryOpen(false);
+  }, []);
+
+  useEffect(() => {
+    setDetailsMessageIndex(null);
+  }, [workspace.currentSessionId]);
+
+  useEffect(() => {
+    if (detailsMessageIndex == null) return;
+    if (!detailsMessage || detailsMessage.role !== 'assistant') {
+      setDetailsMessageIndex(null);
+    }
+  }, [detailsMessage, detailsMessageIndex]);
 
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
@@ -1031,7 +1050,12 @@ export default function ChatPage() {
 
               return (
                 <div className="pb-2">
-                  <MessageBubble message={item.message} onWebSearch={performWebSearch} messageIndex={item.index} />
+                  <MessageBubble
+                    message={item.message}
+                    onWebSearch={performWebSearch}
+                    onOpenDetails={openMessageDetails}
+                    messageIndex={item.index}
+                  />
                 </div>
               );
             }}
@@ -1107,6 +1131,12 @@ export default function ChatPage() {
             />
           </Suspense>
         </aside>
+
+        <ChatAnswerDetailsDrawer
+          isOpen={detailsMessageIndex != null && Boolean(detailsMessage)}
+          message={detailsMessage}
+          onClose={() => setDetailsMessageIndex(null)}
+        />
       </div>
     </section>
     <ChatDownloadModal

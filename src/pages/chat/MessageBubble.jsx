@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Bot, Globe, ExternalLink, Loader2, User } from 'lucide-react';
+import { Bot, Globe, ExternalLink, Loader2, User, BrainCircuit } from 'lucide-react';
 
 const MD_INLINE_REGEX = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(\*\*([^*]+)\*\*)|(`([^`]+)`)|(\*([^*\n]+)\*)/g;
 
@@ -23,6 +23,13 @@ const isTableDivider = (line) => {
 
 const isInternalPatternLabel = (line) =>
   /^\s*(?:\*\*)?\s*pattern\s+[a-z0-9]+(?:\s*[:\-])?/i.test(String(line || '').trim());
+
+const stripInlineAnalyticsScores = (text) =>
+  String(text || '')
+    .replace(/\s*\(score:\s*-?\d+(?:\.\d+)?\)/gi, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/[ \t]+,/g, ',')
+    .trim();
 
 const sanitizeAssistantAnswer = (text) => {
   const safeText = String(text || '').replace(/\r\n/g, '\n');
@@ -348,14 +355,17 @@ const AnimatedDots = ({ tone = 'neutral' }) => {
   );
 };
 
-function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
+function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIndex }) {
   const isUser = message.role === 'user';
   const isError = message.isError;
   const isWebSearch = message.isWebSearch;
   const webSearchPending = message.webSearchPending;
-  const webSearchSuggested = message.webSearchSuggested;
   const isWelcome = message.isWelcome;
-  const cleanedContent = !isUser ? sanitizeAssistantAnswer(message.content) || message.content : message.content;
+  const hasAnalysisDetails = !isUser && (Boolean(message.algorithm) || (Array.isArray(message.results) && message.results.length > 0));
+  const cleanedAssistantAnswer = !isUser ? sanitizeAssistantAnswer(message.content) || message.content : message.content;
+  const cleanedContent = !isUser && hasAnalysisDetails
+    ? stripInlineAnalyticsScores(cleanedAssistantAnswer)
+    : cleanedAssistantAnswer;
   const cleanedWebSearchAnswer = sanitizeAssistantAnswer(message.webSearchAnswer) || message.webSearchAnswer;
   const isStandaloneWebSearch = isWebSearch && !message.content && !message.webSearchAnswer;
   const hasAssistantText = Boolean(String(cleanedContent || '').trim());
@@ -408,29 +418,41 @@ function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
         </div>
 
         {/* Web Search Trigger Button (for manual search if suggested) */}
-        {!isUser && !isError && !isWelcome && !message.isStreaming && onWebSearch && !message.webSearchAnswer && message.content && (
-          <div className="mt-4 pt-4 border-t border-border/20">
-            <button
-              onClick={() => onWebSearch({
-                question: message.webSearchQuery || message.content,
-                contextHint: message.content,
-                messageIndex,
-              })}
-              disabled={webSearchPending}
-              className={cn(
-                'flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-[11px] font-bold uppercase tracking-wider disabled:opacity-50 ring-1 ring-inset',
-                webSearchPending
-                  ? 'bg-muted/10 ring-border/20 text-muted-foreground'
-                  : 'bg-accent/10 ring-accent/30 text-accent hover:bg-accent/20 hover:scale-105 active:scale-95'
-              )}
-            >
-              {webSearchPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Globe className="w-3.5 h-3.5" />
-              )}
-              {webSearchPending ? 'Searching...' : 'Explore Web'}
-            </button>
+        {!isUser && !isError && !isWelcome && !message.isStreaming && ((onWebSearch && !message.webSearchAnswer && message.content) || hasAnalysisDetails) && (
+          <div className="mt-4 flex flex-wrap gap-2.5 border-t border-border/20 pt-4">
+            {onWebSearch && !message.webSearchAnswer && message.content ? (
+              <button
+                onClick={() => onWebSearch({
+                  question: message.webSearchQuery || message.content,
+                  contextHint: message.content,
+                  messageIndex,
+                })}
+                disabled={webSearchPending}
+                className={cn(
+                  'flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all disabled:opacity-50 ring-1 ring-inset',
+                  webSearchPending
+                    ? 'bg-muted/10 ring-border/20 text-muted-foreground'
+                    : 'bg-accent/10 ring-accent/30 text-accent hover:bg-accent/20 hover:scale-105 active:scale-95'
+                )}
+              >
+                {webSearchPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Globe className="w-3.5 h-3.5" />
+                )}
+                {webSearchPending ? 'Searching...' : 'Explore Web'}
+              </button>
+            ) : null}
+
+            {hasAnalysisDetails && onOpenDetails ? (
+              <button
+                onClick={() => onOpenDetails(messageIndex)}
+                className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-primary transition-all hover:bg-primary/14 hover:scale-105 active:scale-95"
+              >
+                <BrainCircuit className="h-3.5 w-3.5" />
+                View Details
+              </button>
+            ) : null}
           </div>
         )}
 
@@ -508,6 +530,7 @@ export const MessageBubble = React.memo(
   (prevProps, nextProps) =>
     prevProps.message === nextProps.message
     && prevProps.messageIndex === nextProps.messageIndex
+    && prevProps.onOpenDetails === nextProps.onOpenDetails
 );
 
 export const TypingIndicator = React.memo(function TypingIndicator() {
