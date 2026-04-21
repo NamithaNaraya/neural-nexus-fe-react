@@ -171,6 +171,7 @@ export default function ChatPage() {
   );
   const messages = activeSession?.messages?.length ? activeSession.messages : [WELCOME_MESSAGE];
   const activeSessionMessageCount = activeSession?.messages?.length ?? 0;
+  const deferredMessages = useDeferredValue(messages);
   const chatHistory = useMemo(() => {
     const rawSessions = Array.isArray(workspace?.sessions) ? workspace.sessions : [];
     // Only map/sort metadata that the sidebar actually needs
@@ -191,14 +192,14 @@ export default function ChatPage() {
   const hasPendingWebSearchMessage = messages.some((message) => message?.webSearchPending);
   const hasActiveStream = messages.some((message) => message?.isStreaming || message?.isStreamingWebSearch || message?.webSearchPending);
   const virtualItems = useMemo(() => {
-    const baseItems = messages.map((message, index) => ({
+    const baseItems = deferredMessages.map((message, index) => ({
       type: 'message',
       key: `message-${index}`,
       message,
       index,
     }));
 
-    const lastMsg = messages[messages.length - 1];
+    const lastMsg = deferredMessages[deferredMessages.length - 1];
     const isWaitingForFirstToken = !lastMsg || lastMsg.role !== 'assistant' || !lastMsg.content;
     const shouldShowTyping = loading && !lastMsg?.isStreaming && !hasPendingWebSearchMessage && isWaitingForFirstToken;
 
@@ -207,7 +208,7 @@ export default function ChatPage() {
     }
 
     return baseItems;
-  }, [messages, hasPendingWebSearchMessage, loading]);
+  }, [deferredMessages, hasPendingWebSearchMessage, loading]);
 
   const normalizeBackendMessages = useCallback((rawMessages = []) => {
     if (!Array.isArray(rawMessages)) return [];
@@ -399,17 +400,19 @@ export default function ChatPage() {
         if (cancelled) return;
 
         const normalized = normalizeBackendMessages(backendMessages || []);
-        setWorkspace((prev) => {
-          const session = prev.sessions.find((s) => s.id === workspace.currentSessionId);
-          if (!session) return prev;
-          const messagesToSet = normalized.length > 0 ? normalized : [WELCOME_MESSAGE];
-          
-          return {
-            ...prev,
-            sessions: prev.sessions.map((s) =>
-              s.id === prev.currentSessionId ? { ...s, messages: messagesToSet, updatedAt: Date.now() } : s
-            ),
-          };
+        startTransition(() => {
+          setWorkspace((prev) => {
+            const session = prev.sessions.find((s) => s.id === workspace.currentSessionId);
+            if (!session) return prev;
+            const messagesToSet = normalized.length > 0 ? normalized : [WELCOME_MESSAGE];
+
+            return {
+              ...prev,
+              sessions: prev.sessions.map((s) =>
+                s.id === prev.currentSessionId ? { ...s, messages: messagesToSet, updatedAt: Date.now() } : s
+              ),
+            };
+          });
         });
       } catch (error) {
         console.error('Lazy hydration failed:', error);
@@ -476,15 +479,17 @@ export default function ChatPage() {
   }, [userKey]);
 
   const updateCurrentSession = useCallback((updater) => {
-    setWorkspace((prev) => {
-      const current = prev.sessions.find((session) => session.id === prev.currentSessionId);
-      if (!current) return prev;
-      const nextSession = updater(current);
-      // Update in-place — do NOT reorder sessions
-      const sessions = prev.sessions.map((session) =>
-        session.id === nextSession.id ? nextSession : session
-      );
-      return { currentSessionId: nextSession.id, sessions };
+    startTransition(() => {
+      setWorkspace((prev) => {
+        const current = prev.sessions.find((session) => session.id === prev.currentSessionId);
+        if (!current) return prev;
+        const nextSession = updater(current);
+        // Update in-place — do NOT reorder sessions
+        const sessions = prev.sessions.map((session) =>
+          session.id === nextSession.id ? nextSession : session
+        );
+        return { currentSessionId: nextSession.id, sessions };
+      });
     });
   }, []);
 
@@ -693,20 +698,22 @@ export default function ChatPage() {
         accumulatedContent = '';
         if (!chunkToApply) return;
 
-        setWorkspace((prev) => {
-          const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
-          if (!session) return prev;
-          const msgs = [...session.messages];
-          const lastMsg = msgs[msgs.length - 1];
-          if (lastMsg?.role === 'assistant') {
-            msgs[msgs.length - 1] = { ...lastMsg, content: lastMsg.content + chunkToApply };
-          }
-          return {
-            ...prev,
-            sessions: prev.sessions.map((s) =>
-              s.id === prev.currentSessionId ? { ...s, messages: msgs } : s
-            ),
-          };
+        startTransition(() => {
+          setWorkspace((prev) => {
+            const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
+            if (!session) return prev;
+            const msgs = [...session.messages];
+            const lastMsg = msgs[msgs.length - 1];
+            if (lastMsg?.role === 'assistant') {
+              msgs[msgs.length - 1] = { ...lastMsg, content: lastMsg.content + chunkToApply };
+            }
+            return {
+              ...prev,
+              sessions: prev.sessions.map((s) =>
+                s.id === prev.currentSessionId ? { ...s, messages: msgs } : s
+              ),
+            };
+          });
         });
       };
 
@@ -755,59 +762,63 @@ export default function ChatPage() {
       // 5. Finalize the assistant message: remove streaming flag, add metadata
       flushStreamingUpdate(true); // Final flush
 
-      setWorkspace((prev) => {
-        const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
-        if (!session) return prev;
-        const msgs = [...session.messages];
-        const lastMsg = msgs[msgs.length - 1];
-        if (lastMsg?.role === 'assistant') {
-          msgs[msgs.length - 1] = {
-            ...lastMsg,
-            isStreaming: false,
-            intent: streamedIntent,
-            algorithm: streamedAlgorithm,
-            results: streamedResults,
-            webSearchSuggested: suggestWebSearch,
-            webSearchQuery: userMessage,
-            ...(webSearchResultData ? {
-              isWebSearch: true,
-              webSearchAnswer: webSearchResultData.answer || '',
-              webSearchSources: webSearchResultData.sources || [],
-            } : {}),
+      startTransition(() => {
+        setWorkspace((prev) => {
+          const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
+          if (!session) return prev;
+          const msgs = [...session.messages];
+          const lastMsg = msgs[msgs.length - 1];
+          if (lastMsg?.role === 'assistant') {
+            msgs[msgs.length - 1] = {
+              ...lastMsg,
+              isStreaming: false,
+              intent: streamedIntent,
+              algorithm: streamedAlgorithm,
+              results: streamedResults,
+              webSearchSuggested: suggestWebSearch,
+              webSearchQuery: userMessage,
+              ...(webSearchResultData ? {
+                isWebSearch: true,
+                webSearchAnswer: webSearchResultData.answer || '',
+                webSearchSources: webSearchResultData.sources || [],
+              } : {}),
+            };
+          }
+          const nextWorkspace = {
+            ...prev,
+            sessions: prev.sessions.map((s) =>
+              s.id === prev.currentSessionId ? { ...s, messages: msgs, updatedAt: Date.now(), isLocalOnly: false } : s
+            ),
           };
-        }
-        const nextWorkspace = {
-          ...prev,
-          sessions: prev.sessions.map((s) =>
-            s.id === prev.currentSessionId ? { ...s, messages: msgs, updatedAt: Date.now(), isLocalOnly: false } : s
-          ),
-        };
-        saveChatWorkspace(userKey, nextWorkspace);
-        return nextWorkspace;
+          saveChatWorkspace(userKey, nextWorkspace);
+          return nextWorkspace;
+        });
       });
 
     } catch (error) {
       console.error('Chat error', error);
       // Update the placeholder message with error
-      setWorkspace((prev) => {
-        const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
-        if (!session) return prev;
-        const msgs = [...session.messages];
-        const lastMsg = msgs[msgs.length - 1];
-        if (lastMsg?.role === 'assistant') {
-          msgs[msgs.length - 1] = {
-            ...lastMsg,
-            content: 'Sorry, I encountered an error. Please make sure the backend is running and try again.',
-            isError: true,
-            isStreaming: false,
+      startTransition(() => {
+        setWorkspace((prev) => {
+          const session = prev.sessions.find((s) => s.id === prev.currentSessionId);
+          if (!session) return prev;
+          const msgs = [...session.messages];
+          const lastMsg = msgs[msgs.length - 1];
+          if (lastMsg?.role === 'assistant') {
+            msgs[msgs.length - 1] = {
+              ...lastMsg,
+              content: 'Sorry, I encountered an error. Please make sure the backend is running and try again.',
+              isError: true,
+              isStreaming: false,
+            };
+          }
+          return {
+            ...prev,
+            sessions: prev.sessions.map((s) =>
+              s.id === prev.currentSessionId ? { ...s, messages: msgs, updatedAt: Date.now() } : s
+            ),
           };
-        }
-        return {
-          ...prev,
-          sessions: prev.sessions.map((s) =>
-            s.id === prev.currentSessionId ? { ...s, messages: msgs, updatedAt: Date.now() } : s
-          ),
-        };
+        });
       });
     } finally {
       setLoading(false);
@@ -857,12 +868,13 @@ export default function ChatPage() {
       }
 
       // Use functional update to avoid stale closure
-      setWorkspace((prev) => {
-        const nextWorkspace = {
-          ...prev,
-          currentSessionId: id,
-          sessions: prev.sessions.map((entry) =>
-            entry.id === id
+      startTransition(() => {
+        setWorkspace((prev) => {
+          const nextWorkspace = {
+            ...prev,
+            currentSessionId: id,
+            sessions: prev.sessions.map((entry) =>
+              entry.id === id
               ? {
                   ...entry,
                   messages: sessionMessages.length > 0 ? sessionMessages : entry.messages,
@@ -871,11 +883,12 @@ export default function ChatPage() {
                 }
               : entry
           ),
-        };
-        // Reset hydration ref so the lazy loader picks up the new selection
-        backendHydrationRef.current = ''; 
-        saveChatWorkspace(userKey, nextWorkspace);
-        return nextWorkspace;
+          };
+          // Reset hydration ref so the lazy loader picks up the new selection
+          backendHydrationRef.current = ''; 
+          saveChatWorkspace(userKey, nextWorkspace);
+          return nextWorkspace;
+        });
       });
 
       if (session.folderId) {
@@ -1006,18 +1019,18 @@ export default function ChatPage() {
             items={virtualItems}
             bottomRef={messagesEndRef}
             className="flex-1 overflow-y-auto px-4 py-5 lg:px-6"
-            innerClassName="min-h-full"
+            innerClassName="flex min-h-full flex-col gap-1"
             renderItem={(item) => {
               if (item.type === 'typing') {
                 return (
-                  <div className="pb-4">
+                  <div className="pb-2">
                     <TypingIndicator />
                   </div>
                 );
               }
 
               return (
-                <div className="pb-4">
+                <div className="pb-2">
                   <MessageBubble message={item.message} onWebSearch={performWebSearch} messageIndex={item.index} />
                 </div>
               );

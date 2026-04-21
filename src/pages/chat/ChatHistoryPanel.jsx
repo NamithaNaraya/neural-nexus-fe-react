@@ -33,7 +33,7 @@ export const ChatHistoryPanel = React.memo(function ChatHistoryPanel({ chatHisto
         ) : null}
       </div>
 
-      <ul className="flex-1 space-y-2 overflow-y-auto p-4">
+      <ul className="flex-1 space-y-3 overflow-y-auto p-4">
         {isLoading && safeHistory.length === 0 ? (
           <div className="space-y-4">
             <SkeletonText lines={2} className="rounded-xl border border-border/20 p-4" />
@@ -67,16 +67,16 @@ export const ChatHistoryPanel = React.memo(function ChatHistoryPanel({ chatHisto
                   : 'border-border/30 bg-background/80'
               }`}
             >
-              <div className="flex items-stretch">
+              <div className="flex items-stretch overflow-hidden">
                 <button
                   type="button"
                   onClick={() => session?.id && onRestore(session.id)}
-                  className="min-w-0 flex-1 rounded-l-2xl px-3 py-3 text-left transition-colors hover:bg-emerald-50/70 dark:hover:bg-emerald-950/20"
+                  className="min-w-0 flex-1 rounded-l-2xl px-4 py-3.5 text-left transition-colors hover:bg-emerald-50/70 dark:hover:bg-emerald-950/20"
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="truncate text-sm font-semibold text-foreground">{session?.title || 'New Chat'}</div>
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{session?.title || 'New Chat'}</div>
                     {isActive ? (
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                      <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                         Active
                       </span>
                     ) : null}
@@ -89,21 +89,21 @@ export const ChatHistoryPanel = React.memo(function ChatHistoryPanel({ chatHisto
                   ) : null}
 
                   {previewSingleLine ? (
-                    <div className="mt-2 line-clamp-1 text-xs leading-relaxed text-muted-foreground overflow-hidden text-ellipsis">
+                    <div className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                       {previewSingleLine}
                     </div>
                   ) : null}
 
-                          <div className="mt-2 text-xs text-muted-foreground">
+                  <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
                     <div className="flex items-center gap-2">
-                      <Clock className="h-3 w-3" />
-                      <span>{createdAtLabel}</span>
+                      <Clock className="h-3 w-3 shrink-0" />
+                      <span className="line-clamp-1">{createdAtLabel}</span>
                     </div>
-                    <div className="mt-1 text-xs text-foreground/80">{sessionMessages.length} messages</div>
+                    <div className="text-xs font-medium text-foreground/80">{sessionMessages.length} messages</div>
                   </div>
                 </button>
 
-                <div className="flex flex-col justify-center gap-1 border-l border-border/40 px-2">
+                <div className="flex w-12 flex-col justify-center gap-1 border-l border-border/40 px-2">
                   <Button
                     size="icon"
                     variant="ghost"

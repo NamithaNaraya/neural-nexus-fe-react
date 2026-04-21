@@ -21,6 +21,9 @@ const isTableDivider = (line) => {
   return /^[:|\-\s]+$/.test(trimmed) && trimmed.split('|').some(part => part.includes('-'));
 };
 
+const isInternalPatternLabel = (line) =>
+  /^\s*(?:\*\*)?\s*pattern\s+[a-z0-9]+(?:\s*[:\-])?/i.test(String(line || '').trim());
+
 const sanitizeAssistantAnswer = (text) => {
   const safeText = String(text || '').replace(/\r\n/g, '\n');
   const lines = safeText.split('\n');
@@ -42,6 +45,7 @@ const sanitizeAssistantAnswer = (text) => {
 
     // Skip lines referencing search methods
     if (/\b(semantic search|structural search)\b/i.test(trimmedLine)) continue;
+    if (isInternalPatternLabel(trimmedLine)) continue;
 
     cleanedLines.push(currentLine);
   }
@@ -358,10 +362,10 @@ function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
   const hasWebSearchText = Boolean(String(cleanedWebSearchAnswer || '').trim());
 
   return (
-    <div className={cn('flex gap-4 animate-scale-in', isUser ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex w-full items-start gap-4 py-1.5 animate-scale-in', isUser ? 'justify-end' : 'justify-start')}>
       {!isUser && (
         <div className={cn(
-          'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-primary/20 bg-primary/10 transition-all duration-500', 
+          'mt-1 h-9 w-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-primary/20 bg-primary/10 transition-all duration-500',
           message.isStreaming ? 'animate-pulse scale-105' : 'hover:scale-110'
         )}>
           {isStandaloneWebSearch ? (
@@ -373,8 +377,8 @@ function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
       )}
 
       <div className={cn(
-        'group relative rounded-3xl px-6 py-4 text-sm leading-relaxed transition-all duration-300',
-        isUser ? 'max-w-[82%]' : 'max-w-[88%]',
+        'group relative min-w-0 rounded-3xl px-5 py-4 text-sm leading-relaxed transition-all duration-300',
+        isUser ? 'max-w-[min(78%,34rem)]' : 'max-w-[min(100%,56rem)]',
         isUser
           ? 'rounded-tr-none border border-primary/15 bg-primary/8 text-foreground shadow-sm hover:shadow-md'
           : isError
@@ -491,7 +495,7 @@ function MessageBubbleComponent({ message, onWebSearch, messageIndex }) {
       </div>
 
       {isUser && (
-        <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center shrink-0 border border-white/20 shadow-lg shadow-accent/20 transition-transform hover:scale-110">
+        <div className="mt-1 h-9 w-9 rounded-xl bg-accent flex items-center justify-center shrink-0 border border-white/20 shadow-lg shadow-accent/20 transition-transform hover:scale-110">
           <User className="w-4.5 h-4.5 text-white" />
         </div>
       )}
