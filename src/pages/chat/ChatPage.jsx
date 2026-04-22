@@ -176,6 +176,8 @@ export default function ChatPage() {
   const wsRef = useRef(null);
   const wsStateRef = useRef({ status: 'idle' });
   const wsRequestIdRef = useRef(null);
+  const wsChunkCountRef = useRef(0);
+  const wsLastErrorRef = useRef('');
   const backendHydrationRef = useRef('');
   const hasHydratedWorkspaceRef = useRef(false);
   const lastFolderIdRef = useRef(selectedFolderId || '');
@@ -536,35 +538,7 @@ export default function ChatPage() {
       const token = localStorage.getItem('neural_nexus_token');
       const ws = wsRef.current;
       const canUseWs = ws && ws.readyState === WebSocket.OPEN;
-
-      if (canUseWs) {
-        const requestId =
-          typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-            ? crypto.randomUUID()
-            : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-        wsRequestIdRef.current = requestId;
-        ws.send(
-          JSON.stringify({
-            type: 'chat_stream',
-            request_id: requestId,
-            question: userMessage,
-            folder_id: selectedFolderId || null,
-            session_id: workspace.currentSessionId || null,
-            history: activeMessages.slice(-CHAT_HISTORY_SEND_WINDOW),
-            web_search: isWebSearchEnabled,
-          })
-        );
-
-        // Wait until ws handler marks this request as done/error.
-        const startedAt = Date.now();
-        while (wsRequestIdRef.current === requestId) {
-          await new Promise((r) => setTimeout(r, 40));
-          // Safety: avoid hanging if server doesn't reply.
-          if (Date.now() - startedAt > 180000) {
-            throw new Error('WebSocket stream timeout');
-          }
-        }
-      } else {
+      const streamViaHttp = async () => {
         const response = await fetch('/api/v1/combined-chat/stream-answer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -595,6 +569,42 @@ export default function ChatPage() {
             } catch { /* parse fail */ }
           }
         }
+      };
+
+      if (canUseWs) {
+        const requestId =
+          typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        wsChunkCountRef.current = 0;
+        wsLastErrorRef.current = '';
+        wsRequestIdRef.current = requestId;
+        ws.send(
+          JSON.stringify({
+            type: 'chat_stream',
+            request_id: requestId,
+            question: userMessage,
+            folder_id: selectedFolderId || null,
+            session_id: workspace.currentSessionId || null,
+            history: activeMessages.slice(-CHAT_HISTORY_SEND_WINDOW),
+            web_search: isWebSearchEnabled,
+          })
+        );
+
+        // Wait until ws handler marks this request as done/error.
+        const startedAt = Date.now();
+        while (wsRequestIdRef.current === requestId) {
+          await new Promise((r) => setTimeout(r, 40));
+          // Safety: avoid hanging if server doesn't reply.
+          if (Date.now() - startedAt > 180000) {
+            throw new Error('WebSocket stream timeout');
+          }
+        }
+        if (wsLastErrorRef.current || wsChunkCountRef.current === 0) {
+          await streamViaHttp();
+        }
+      } else {
+        await streamViaHttp();
       }
       if (streamFlushTimerRef.current) {
         clearTimeout(streamFlushTimerRef.current);
@@ -675,10 +685,18 @@ export default function ChatPage() {
     };
     ws.onclose = () => {
       wsStateRef.current = { status: 'closed' };
+      if (wsRequestIdRef.current) {
+        wsLastErrorRef.current = 'socket_closed';
+        wsRequestIdRef.current = null;
+      }
       if (wsRef.current === ws) wsRef.current = null;
     };
     ws.onerror = () => {
       wsStateRef.current = { status: 'error' };
+      if (wsRequestIdRef.current) {
+        wsLastErrorRef.current = 'socket_error';
+        wsRequestIdRef.current = null;
+      }
     };
     ws.onmessage = (event) => {
       try {
@@ -690,12 +708,17 @@ export default function ChatPage() {
         if (msg?.type === 'chat_chunk') {
           const payload = msg?.data || {};
           if (payload?.type === 'content' && typeof payload?.data === 'string') {
+            wsChunkCountRef.current += 1;
             streamBufferRef.current += payload.data;
             scheduleStreamFlush();
           }
         } else if (msg?.type === 'chat_done') {
           wsRequestIdRef.current = null;
         } else if (msg?.type === 'chat_error') {
+          wsLastErrorRef.current = String(msg?.message || 'chat_error');
+          wsRequestIdRef.current = null;
+        } else if (msg?.type === 'error') {
+          wsLastErrorRef.current = String(msg?.message || 'error');
           wsRequestIdRef.current = null;
         }
       } catch {
