@@ -12,6 +12,26 @@ const EMPTY_FORM = {
   propertiesText: '',
 };
 
+const INTERNAL_FIELDS = [
+  'embedding', 'embeddings', 'vector', 'fastrp_embedding',
+  'chunk_id', 'node_id', 'id', 'uuid', 
+  'created_at', 'updated_at', 'created_by', 
+  'file_id', 'file_ids', 'folder_id', 'folderId',
+  'is_manual', 'properties_cleared', 'conflicts',
+  'elementId', 'identity', '_nc_type_id'
+];
+
+function filterInternalProperties(properties) {
+  if (!properties) return {};
+  const filtered = {};
+  Object.entries(properties).forEach(([key, value]) => {
+    if (!INTERNAL_FIELDS.includes(key)) {
+      filtered[key] = value;
+    }
+  });
+  return filtered;
+}
+
 function safeParseProperties(text) {
   if (!text.trim()) return {};
   try {
@@ -44,12 +64,13 @@ export function GraphNodeCrudModal({
   useEffect(() => {
     if (!open) return;
 
+    const displayProperties = initialNode ? filterInternalProperties(initialNode.properties) : {};
     const nextForm = initialNode
       ? {
           name: initialNode.name || '',
           type: initialNode.type || '',
           description: initialNode.description || '',
-          propertiesText: JSON.stringify(initialNode.properties || {}, null, 2),
+          propertiesText: JSON.stringify(displayProperties, null, 2),
         }
       : EMPTY_FORM;
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, GitBranch, Link2, Pencil, Plus, RefreshCw, Save, Sparkles, Target, Trash2, X } from 'lucide-react';
+import { ArrowRight, GitBranch, Link2, Plus, RefreshCw, Save, Sparkles, Target, Trash2, X } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -9,10 +9,34 @@ import { GraphFocusConnections } from './GraphFocusConnections';
 
 function resolveValue(value) {
   if (value === null || value === undefined || value === '') return '-';
+  if (Array.isArray(value)) {
+    if (value.length > 5 && typeof value[0] === 'number') return `[Vector ${value.length}]`;
+    return value.map(v => resolveValue(v)).join(', ');
+  }
   if (typeof value === 'object') {
     return value.name || value.label || value.id || value.type || JSON.stringify(value);
   }
   return String(value);
+}
+
+const INTERNAL_FIELDS = [
+  'embedding', 'embeddings', 'vector', 'fastrp_embedding',
+  'chunk_id', 'node_id', 'id', 'uuid', 
+  'created_at', 'updated_at', 'created_by', 
+  'file_id', 'file_ids', 'folder_id', 'folderId',
+  'is_manual', 'properties_cleared', 'conflicts',
+  'elementId', 'identity', '_nc_type_id'
+];
+
+function filterInternalProperties(properties) {
+  if (!properties) return {};
+  const filtered = {};
+  Object.entries(properties).forEach(([key, value]) => {
+    if (!INTERNAL_FIELDS.includes(key)) {
+      filtered[key] = value;
+    }
+  });
+  return filtered;
 }
 
 function parseProperties(text) {
@@ -31,8 +55,9 @@ function parseProperties(text) {
   }
 }
 
-function formatEntries(entries, limit = 8) {
-  return Object.entries(entries || {})
+function formatEntries(entries, limit = 12) {
+  const filtered = filterInternalProperties(entries);
+  return Object.entries(filtered)
     .filter(([, value]) => value !== undefined && value !== null && value !== '')
     .slice(0, limit);
 }
@@ -103,6 +128,7 @@ export function GraphFocusDrawer({
 
   useEffect(() => {
     if (!activeNode) return;
+    const displayProperties = filterInternalProperties(activeNode.properties);
     setNodeForm({
       name: activeNode.name || '',
       type: activeNode.type || '',
@@ -110,23 +136,22 @@ export function GraphFocusDrawer({
       notes: activeNode.properties?.notes || activeNode.properties?.user_notes || '',
       color: activeNode.color || '',
       size: activeNode.size ?? '',
-      propertiesText: JSON.stringify(activeNode.properties || {}, null, 2),
+      propertiesText: JSON.stringify(displayProperties, null, 2),
     });
     setError('');
   }, [activeNode]);
 
   useEffect(() => {
     if (!activeRelationship) return;
+    const displayProperties = filterInternalProperties(activeRelationship.properties);
     setRelationshipForm({
       type: activeRelationship.type || '',
       strength: activeRelationship.strength ?? '',
-      propertiesText: JSON.stringify(activeRelationship.properties || {}, null, 2),
+      propertiesText: JSON.stringify(displayProperties, null, 2),
     });
     setError('');
   }, [activeRelationship]);
 
-  const nodeProperties = useMemo(() => formatEntries(activeNode?.properties), [activeNode]);
-  const relationshipProperties = useMemo(() => formatEntries(activeRelationship?.properties), [activeRelationship]);
   const relationSummary = activeRelationship
     ? `${resolveValue(activeRelationship.source)} -> ${resolveValue(activeRelationship.target)}`
     : '';
@@ -253,20 +278,27 @@ export function GraphFocusDrawer({
       ].join(' ')}
     >
       <div className="flex h-full min-h-0 flex-col">
-        <div className="flex items-center justify-between border-b border-slate-200/80 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-slate-200/80 bg-slate-50/50 px-5 py-5 backdrop-blur-sm">
           <div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-slate-200 bg-slate-50 text-[10px] uppercase tracking-[0.18em] text-slate-600">
-                Inspector
-              </Badge>
-              <span className="text-sm font-semibold text-slate-900">Focused details</span>
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-sm">
+                <Target className="h-3.5 w-3.5" />
+              </div>
+              <span className="text-sm font-bold tracking-tight text-slate-900">Entity Intelligence</span>
             </div>
-            <p className="mt-1 max-w-[240px] text-xs leading-5 text-muted-foreground">
-              Inspect a node, move through neighbors, and edit graph details without losing the canvas.
+            <p className="mt-1.5 max-w-[240px] text-[11px] leading-relaxed text-slate-500 font-medium">
+              Inspect semantic nodes, navigate relationships, and enrich your knowledge graph.
             </p>
           </div>
-          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full bg-slate-50" type="button" onClick={onClose} aria-label="Close inspector">
-            <X className="h-4 w-4" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 rounded-full bg-white shadow-sm border border-slate-200/60 hover:bg-slate-50 hover:scale-105 transition-all" 
+            type="button" 
+            onClick={onClose} 
+            aria-label="Close inspector"
+          >
+            <X className="h-3.5 w-3.5 text-slate-400" />
           </Button>
         </div>
 
@@ -301,103 +333,118 @@ export function GraphFocusDrawer({
           {activeNode ? (
             <Card className="border-border/50 bg-card/70 shadow-sm">
               <CardContent className="space-y-4 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-primary" />
-                      <h3 className="text-sm font-semibold">{activeNode.isPhantom ? 'Create new node' : 'Node details'}</h3>
+                <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/5 text-primary">
+                      <Target className="h-4 w-4" />
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {activeNode.isPhantom ? 'Configure your new graph node before saving.' : 'This node is driving the current focused graph view.'}
-                    </p>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">{activeNode.isPhantom ? 'Create Node' : 'Node Details'}</h3>
+                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">{activeNode.id?.substring(0, 8) || 'Draft'}</p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {onAddRelated && !activeNode.isPhantom && (
                       <Button 
                         variant="gradient" 
                         size="sm" 
-                        className="gap-2 shadow-[0_8px_20px_rgba(var(--primary-rgb),0.3)] hover:scale-105 active:scale-95 transition-all bg-primary text-white font-bold px-4 ring-2 ring-primary/20 animate-in fade-in zoom-in duration-500" 
+                        className="h-8 gap-1.5 rounded-full bg-primary text-white text-[11px] font-bold px-3 shadow-md hover:shadow-primary/20 transition-all" 
                         onClick={onAddRelated}
                       >
-                        <Plus className="h-4 w-4" />
-                        Add Related
+                        <Plus className="h-3 w-3" />
+                        Related
                       </Button>
                     )}
-                    {onEdit ? (
-                      <Button variant="outline" size="sm" className="gap-2" type="button" onClick={onEdit}>
-                        <Pencil className="h-4 w-4" />
-                        Edit
-                      </Button>
-                    ) : null}
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge className="bg-primary/10 text-primary hover:bg-primary/10">{activeNode.type || 'Unknown type'}</Badge>
-                  <Badge variant="outline">{activeNode.degree ?? 0} connections</Badge>
+                <div className="grid gap-4 pt-1">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Identity Name</Label>
+                    <Input 
+                      value={nodeForm.name} 
+                      className="h-10 border-slate-200/60 bg-slate-50/30 font-semibold focus:bg-white transition-colors"
+                      onChange={(event) => setNodeForm((prev) => ({ ...prev, name: event.target.value }))} 
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Class/Type</Label>
+                      <Input 
+                        value={nodeForm.type} 
+                        className="h-9 border-slate-200/60 bg-slate-50/30 text-xs focus:bg-white transition-colors"
+                        onChange={(event) => setNodeForm((prev) => ({ ...prev, type: event.target.value }))} 
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Connectivity</Label>
+                      <div className="flex h-9 items-center rounded-lg border border-slate-100 bg-slate-50/50 px-3 text-xs font-bold text-slate-600">
+                        {activeNode.degree ?? 0} Neighbors
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Name</Label>
-                    <Input value={nodeForm.name} onChange={(event) => setNodeForm((prev) => ({ ...prev, name: event.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Type</Label>
-                    <Input value={nodeForm.type} onChange={(event) => setNodeForm((prev) => ({ ...prev, type: event.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Degree</Label>
-                    <Input value={String(activeNode.degree ?? 0)} disabled />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Color</Label>
-                    <Input value={nodeForm.color} onChange={(event) => setNodeForm((prev) => ({ ...prev, color: event.target.value }))} placeholder="#A78BFA" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Size</Label>
-                    <Input value={nodeForm.size} onChange={(event) => setNodeForm((prev) => ({ ...prev, size: event.target.value }))} placeholder="1" />
-                  </div>
+                <div className="space-y-4 rounded-2xl bg-slate-50/50 p-4 border border-slate-100/50">
+                  <EditableTextarea
+                    label="Description"
+                    value={nodeForm.description}
+                    onChange={(value) => setNodeForm((prev) => ({ ...prev, description: value }))}
+                    rows={2}
+                    placeholder="Describe this entity..."
+                  />
+
+                  <EditableTextarea
+                    label="Analyst Notes"
+                    value={nodeForm.notes}
+                    onChange={(value) => setNodeForm((prev) => ({ ...prev, notes: value }))}
+                    rows={3}
+                    placeholder="Add findings or context..."
+                  />
                 </div>
 
-                <EditableTextarea
-                  label="Description"
-                  value={nodeForm.description}
-                  onChange={(value) => setNodeForm((prev) => ({ ...prev, description: value }))}
-                  rows={3}
-                  placeholder="Short description"
-                />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Extended Properties</Label>
+                    <span className="text-[10px] font-medium text-slate-300 italic">Technical fields hidden</span>
+                  </div>
+                  <textarea
+                    value={nodeForm.propertiesText}
+                    onChange={(event) => setNodeForm((prev) => ({ ...prev, propertiesText: event.target.value }))}
+                    rows={4}
+                    placeholder='{"key": "value"}'
+                    className="flex w-full rounded-xl border border-slate-200/60 bg-slate-50/30 p-3 font-mono text-[11px] leading-relaxed text-slate-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                </div>
 
-                <EditableTextarea
-                  label="Notes"
-                  value={nodeForm.notes}
-                  onChange={(value) => setNodeForm((prev) => ({ ...prev, notes: value }))}
-                  rows={4}
-                  placeholder="Add analyst notes, reminders, or interpretation"
-                />
-
-                <EditableTextarea
-                  label="Properties"
-                  value={nodeForm.propertiesText}
-                  onChange={(value) => setNodeForm((prev) => ({ ...prev, propertiesText: value }))}
-                  rows={6}
-                  placeholder='{"key":"value"} or key: value per line'
-                />
-
-                <div className="flex items-center justify-end gap-3">
-                  <Button variant="gradient" size="sm" className="gap-2" onClick={handleSaveNode} disabled={saving} type="button">
-                    <Save className="h-4 w-4" />
-                    {activeNode.isPhantom ? 'Create Node' : 'Save Node'}
+                <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                   <div className="flex items-center gap-1.5">
+                      <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">System Ready</span>
+                   </div>
+                  <Button 
+                    variant="gradient" 
+                    size="sm" 
+                    className="h-9 gap-2 rounded-full px-5 bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg" 
+                    onClick={handleSaveNode} 
+                    disabled={saving} 
+                    type="button"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    {activeNode.isPhantom ? 'Publish Node' : 'Update Node'}
                   </Button>
                 </div>
 
                 {neighboringNodes.length > 0 ? (
-                  <div className="space-y-3 rounded-2xl border border-border/40 bg-background/40 p-3">
+                  <div className="mt-4 space-y-3 rounded-[24px] border border-slate-200/60 bg-white p-4 shadow-sm">
                     <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-primary" />
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500">
+                        <Link2 className="h-3.5 w-3.5" />
+                      </div>
                       <div>
-                        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Neighbors</div>
-                        <p className="mt-1 text-xs text-muted-foreground">Move through the graph from this node one neighbor at a time.</p>
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Semantic Neighbors</div>
+                        <p className="text-[10px] text-slate-400">Directly connected knowledge nodes.</p>
                       </div>
                     </div>
                     <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
@@ -492,16 +539,7 @@ export function GraphFocusDrawer({
                   </div>
                 </div>
 
-                {nodeProperties.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Existing properties</div>
-                    <div className="space-y-2">
-                      {nodeProperties.map(([key, value]) => (
-                        <DetailRow key={key} label={key} value={value} />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
+                {/* Redundant properties list removed in favor of integrated editable area */}
               </CardContent>
             </Card>
           ) : null}
@@ -509,93 +547,99 @@ export function GraphFocusDrawer({
           {activeRelationship ? (
             <Card className="border-border/50 bg-card/70 shadow-sm">
               <CardContent className="space-y-4 p-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Link2 className="h-4 w-4 text-primary" />
-                    <h3 className="text-sm font-semibold">{activeRelationship.isPhantom ? 'Create relationship' : 'Relationship details'}</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {activeRelationship.isPhantom ? 'Define relationship type and attributes.' : 'This link is isolated with its source-to-target direction preserved.'}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge className="bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300">
-                    {activeRelationship.type || 'Relationship'}
-                  </Badge>
-                  <Badge variant="outline">{relationSummary || 'Linked nodes'}</Badge>
-                </div>
-
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Source</Label>
-                    <Input value={resolveValue(activeRelationship.source)} disabled />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Target</Label>
-                    <Input value={resolveValue(activeRelationship.target)} disabled />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Type</Label>
-                    <Input
-                      value={relationshipForm.type}
-                      onChange={(event) => setRelationshipForm((prev) => ({ ...prev, type: event.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Strength</Label>
-                    <Input
-                      value={relationshipForm.strength}
-                      onChange={(event) => setRelationshipForm((prev) => ({ ...prev, strength: event.target.value }))}
-                      placeholder="1"
-                    />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">ID</Label>
-                    <Input value={activeRelationship.id || activeRelationship.key || '-'} disabled />
+                <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
+                      <Link2 className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">{activeRelationship.isPhantom ? 'Create Link' : 'Link Details'}</h3>
+                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">{activeRelationship.id?.substring(0, 8) || 'Draft'}</p>
+                    </div>
                   </div>
                 </div>
 
-                <EditableTextarea
-                  label="Properties"
-                  value={relationshipForm.propertiesText}
-                  onChange={(value) => setRelationshipForm((prev) => ({ ...prev, propertiesText: value }))}
-                  rows={5}
-                  placeholder='{"key":"value"} or key: value per line'
-                />
+                <div className="grid gap-3 pt-1">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Source Node</Label>
+                      <div className="truncate flex h-9 items-center rounded-lg border border-slate-100 bg-slate-50/50 px-3 text-[11px] font-semibold text-slate-500">
+                        {resolveValue(activeRelationship.source)}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Target Node</Label>
+                      <div className="truncate flex h-9 items-center rounded-lg border border-slate-100 bg-slate-50/50 px-3 text-[11px] font-semibold text-slate-500">
+                        {resolveValue(activeRelationship.target)}
+                      </div>
+                    </div>
+                  </div>
 
-                <div className="flex items-center justify-end gap-3">
-                  {!activeRelationship.isPhantom && activeRelationship.id ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 border-destructive/30 text-destructive hover:bg-destructive/10"
-                      onClick={handleDeleteRelationship}
-                      disabled={saving}
-                      type="button"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </Button>
-                  ) : null}
-                  <Button variant="gradient" size="sm" className="gap-2" onClick={handleSaveRelationship} disabled={saving} type="button">
-                    <Save className="h-4 w-4" />
-                    {activeRelationship.isPhantom ? 'Create Link' : 'Save Link'}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Relationship Type</Label>
+                      <Input
+                        value={relationshipForm.type}
+                        className="h-9 border-slate-200/60 bg-slate-50/30 text-xs font-bold focus:bg-white transition-colors"
+                        onChange={(event) => setRelationshipForm((prev) => ({ ...prev, type: event.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Weight/Strength</Label>
+                      <Input
+                        value={relationshipForm.strength}
+                        className="h-9 border-slate-200/60 bg-slate-50/30 text-xs focus:bg-white transition-colors"
+                        onChange={(event) => setRelationshipForm((prev) => ({ ...prev, strength: event.target.value }))}
+                        placeholder="1.0"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Relationship Properties</Label>
+                    <span className="text-[10px] font-medium text-slate-300 italic">Metadata filtered</span>
+                  </div>
+                  <textarea
+                    value={relationshipForm.propertiesText}
+                    onChange={(value) => setRelationshipForm((prev) => ({ ...prev, propertiesText: value }))}
+                    rows={5}
+                    placeholder='{"key": "value"}'
+                    className="flex w-full rounded-xl border border-slate-200/60 bg-slate-50/30 p-3 font-mono text-[11px] leading-relaxed text-slate-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                  <div>
+                    {!activeRelationship.isPhantom && activeRelationship.id ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 gap-2 rounded-full border border-red-100 text-red-500 hover:bg-red-50"
+                        onClick={handleDeleteRelationship}
+                        disabled={saving}
+                        type="button"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Remove
+                      </Button>
+                    ) : null}
+                  </div>
+                  <Button 
+                    variant="gradient" 
+                    size="sm" 
+                    className="h-9 gap-2 rounded-full px-5 bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg" 
+                    onClick={handleSaveRelationship} 
+                    disabled={saving} 
+                    type="button"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    {activeRelationship.isPhantom ? 'Create Link' : 'Update Link'}
                   </Button>
                 </div>
 
-                {relationshipProperties.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      Existing properties
-                    </div>
-                    <div className="space-y-2">
-                      {relationshipProperties.map(([key, value]) => (
-                        <DetailRow key={key} label={key} value={value} />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
+                {/* Redundant properties list removed */}
               </CardContent>
             </Card>
           ) : null}
