@@ -33,13 +33,13 @@ export function AnalyticsResultsPanel({ result, summary, error }) {
       <CardContent className="flex min-h-0 flex-1 flex-col space-y-6 p-8">
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Synthesis Output</div>
-            <h2 className="text-xl font-black tracking-tighter text-foreground uppercase">Neural Distribution</h2>
+            <div className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Analysis Results</div>
+            <h2 className="text-xl font-black tracking-tighter text-foreground uppercase">Result Distribution</h2>
           </div>
           {result && (
             <div className="flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-3 py-1.5 shadow-sm">
                 <Database className="h-4 w-4 text-primary" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-primary">{rows.length} Distributed Nodes</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary">{rows.length} Result Items</span>
             </div>
           )}
         </div>
@@ -57,8 +57,8 @@ export function AnalyticsResultsPanel({ result, summary, error }) {
                     <Sparkles className="h-10 w-10 text-primary/30" />
                 </div>
                 <div className="space-y-2">
-                    <p className="text-lg font-black uppercase tracking-tight text-foreground/80">Quiescent State</p>
-                    <p className="text-[13px] font-bold text-muted-foreground/40 leading-relaxed">Choose your targeted folder and specific growth engine to initiate neural synthesis.</p>
+                    <p className="text-lg font-black uppercase tracking-tight text-foreground/80">Ready to Analyze</p>
+                    <p className="text-[13px] font-bold text-muted-foreground/40 leading-relaxed">Select a folder and algorithm, then run the analysis.</p>
                 </div>
             </div>
           </div>
@@ -73,7 +73,7 @@ export function AnalyticsResultsPanel({ result, summary, error }) {
                   <CheckCircle2 className="h-6 w-6" />
                 </div>
                 <div className="pt-1">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Synthesis Deciphered</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Analysis Complete</p>
                   <p className="mt-2 text-[14px] font-bold leading-relaxed text-foreground/90 tracking-tight">{summary}</p>
                 </div>
               </div>
@@ -83,8 +83,8 @@ export function AnalyticsResultsPanel({ result, summary, error }) {
             <div className="flex min-h-0 flex-1 flex-col rounded-[32px] border border-border/15 bg-white/40 shadow-xl overflow-hidden backdrop-blur-3xl ring-1 ring-white/10">
               <div className="grid grid-cols-12 gap-4 border-b border-border/10 px-8 py-5 text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/60 bg-secondary/5">
                 <div className="col-span-1">#</div>
-                <div className="col-span-5">Seed/target</div>
-                <div className="col-span-3">Network Layer</div>
+                <div className="col-span-5">Node / Target</div>
+                <div className="col-span-3">Data Type</div>
                 <div className="col-span-3 text-right">Intensity</div>
               </div>
 

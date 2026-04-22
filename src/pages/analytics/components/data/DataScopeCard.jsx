@@ -31,14 +31,14 @@ export function DataScopeCard({
             <div className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Step 2</div>
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <h2 className="text-xl font-black tracking-tighter text-foreground uppercase">Harvesting Scope</h2>
-                <p className="text-[12px] font-bold text-muted-foreground/50 tracking-tight">Define the bio-network boundaries for synthesis</p>
+                <h2 className="text-xl font-black tracking-tighter text-foreground uppercase">Data Scope</h2>
+                <p className="text-[12px] font-bold text-muted-foreground/50 tracking-tight">Define the data boundaries for your analysis</p>
               </div>
               <button
                 type="button"
                 onClick={onToggleCollapsed}
                 className="h-11 w-11 flex items-center justify-center rounded-[18px] border border-border/15 bg-secondary/10 text-muted-foreground/40 transition-all duration-300 hover:bg-primary/10 hover:text-primary"
-                aria-label={collapsed ? 'Investigate Scope' : 'Seal Scope'}
+                aria-label={collapsed ? 'Show Scope' : 'Hide Scope'}
               >
                 {collapsed ? <ChevronDown className="h-5 w-5" /> : <ChevronUp className="h-5 w-5" />}
               </button>
@@ -51,8 +51,8 @@ export function DataScopeCard({
                  <Target className="h-4.5 w-4.5 text-primary/40" />
                  <span>
                   {runFullFolder
-                    ? `Harvesting ${graphStats.nodes.toLocaleString()} nodes spanning ${graphStats.links.toLocaleString()} relations.`
-                    : `Isolating ${selectedNodes.length} specific neural node${selectedNodes.length === 1 ? '' : 's'}.`}
+                    ? `Processing ${graphStats.nodes.toLocaleString()} nodes with ${graphStats.links.toLocaleString()} relations.`
+                    : `Analyzing ${selectedNodes.length} selected node${selectedNodes.length === 1 ? '' : 's'}.`}
                  </span>
                </div>
             </div>
@@ -65,13 +65,13 @@ export function DataScopeCard({
                     <FolderOpen className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Source Origin</span>
-                    <p className="text-base font-black tracking-tight text-foreground/90 uppercase">{currentFolder?.name || 'No Biosphere Selected'}</p>
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Data Source</span>
+                    <p className="text-base font-black tracking-tight text-foreground/90 uppercase">{currentFolder?.name || 'No Dataset Selected'}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="rounded-[22px] border border-border/10 bg-white/40 p-4 shadow-sm">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Total Roots</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Total Nodes</p>
                     <p className="text-xl font-black text-foreground tracking-tighter">{graphStats.nodes.toLocaleString()}</p>
                   </div>
                   <div className="rounded-[22px] border border-border/10 bg-white/40 p-4 shadow-sm">
@@ -89,8 +89,8 @@ export function DataScopeCard({
                        <Layers className="h-6 w-6 text-muted-foreground/60" />
                      </div>
                      <div>
-                      <h3 className="text-[15px] font-black text-foreground uppercase tracking-tight">Full Biosphere Harvest</h3>
-                      <p className="text-[11px] font-bold text-muted-foreground/40 tracking-tight">Disable for surgical node selection</p>
+                      <h3 className="text-[15px] font-black text-foreground uppercase tracking-tight">Full Dataset Processing</h3>
+                      <p className="text-[11px] font-bold text-muted-foreground/40 tracking-tight">Disable for selective node analysis</p>
                      </div>
                   </div>
                   <button
@@ -115,14 +115,14 @@ export function DataScopeCard({
                       className="w-full h-14 rounded-[20px] border-primary/20 bg-primary/5 text-primary font-black uppercase tracking-widest text-[11px] hover:bg-primary/10 hover:border-primary/40 transition-all shadow-sm" 
                       onClick={() => setModalOpen(true)}
                     >
-                      Initialize Custom Data Seed
+                      Select Custom Nodes
                     </Button>
                     <div className="rounded-[22px] border border-border/10 bg-secondary/10 px-6 py-5 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <Database className="h-5 w-5 text-primary/60" />
                         <div>
-                          <p className="text-[13px] font-black text-foreground/80 lowercase tracking-tight">{selectedNodes.length} targeted nodes</p>
-                          <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">Surgical Scope Active</p>
+                          <p className="text-[13px] font-black text-foreground/80 lowercase tracking-tight">{selectedNodes.length} selected nodes</p>
+                          <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">Custom Selection Active</p>
                         </div>
                       </div>
                       <button onClick={clearSelection} className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive/60 hover:text-destructive transition-colors">Clear</button>

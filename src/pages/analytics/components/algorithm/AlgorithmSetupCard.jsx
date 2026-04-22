@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calculator, Play, Activity, Settings2, Target } from 'lucide-react';
+import { Calculator, Play, Activity, Settings2, Target, Loader2 } from 'lucide-react';
 import { Button } from '../../../../components/ui/Button';
 import { Card, CardContent } from '../../../../components/ui/Card';
 import { Input, Label } from '../../../../components/ui/Input';
@@ -15,7 +15,7 @@ function NodeSelectField({ label, value, nodes, onChange }) {
         className="h-12 w-full rounded-[20px] border border-border/15 bg-secondary/10 px-5 text-[14px] font-bold text-foreground focus:ring-4 focus:ring-primary/10 hover:border-primary/30 transition-all duration-300 appearance-none cursor-pointer"
         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.2rem' }}
       >
-        <option value="">Choose Seed Node</option>
+        <option value="">Select a Node</option>
         {nodes.map((node) => (
           <option key={node.id} value={node.id} className="bg-card text-foreground">
             {node.name || node.id} {node.type ? `[${node.type}]` : ''}
@@ -71,10 +71,10 @@ export function AlgorithmSetupCard({
             <div className="min-w-0 pt-1">
                <div className="flex items-center gap-2.5 mb-1.5">
                   <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Configure Synthesis</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Algorithm Settings</span>
                </div>
-              <h2 className="text-xl font-black tracking-tighter text-foreground uppercase">{selectedAlgorithm?.name || 'Initialize Core'}</h2>
-              <p className="mt-1 line-clamp-1 text-[12px] font-bold text-muted-foreground/50 tracking-tight">{selectedAlgorithm?.description || 'Select an engine to begin cluster analysis'}</p>
+              <h2 className="text-xl font-black tracking-tighter text-foreground uppercase">{selectedAlgorithm?.name || 'Select an Algorithm'}</h2>
+              <p className="mt-1 line-clamp-1 text-[12px] font-bold text-muted-foreground/50 tracking-tight">{selectedAlgorithm?.description || 'Choose an algorithm to begin analysis'}</p>
             </div>
           </div>
           <span className={cn('shrink-0 rounded-[14px] border px-4 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] shadow-sm', selectedAlgorithm?.chipClass || 'border-border/10 bg-secondary/5 text-muted-foreground/50')}>
@@ -87,9 +87,9 @@ export function AlgorithmSetupCard({
              <div className="flex items-center gap-3">
                <Target className="w-4 h-4 text-primary/40" />
                <span>
-                Targeting {runFullFolder
-                  ? `${graphStats.nodes.toLocaleString()} active network nodes.`
-                  : `${selectedNodes.length} selected localized node${selectedNodes.length === 1 ? '' : 's'}.`}
+                {runFullFolder
+                  ? `Processing ${graphStats.nodes.toLocaleString()} nodes.`
+                  : `Analyzing ${selectedNodes.length} selected node${selectedNodes.length === 1 ? '' : 's'}.`}
                </span>
              </div>
           </div>
@@ -106,11 +106,11 @@ export function AlgorithmSetupCard({
                     <Activity className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-[15px] font-black text-white uppercase tracking-tight">Active State</h3>
+                    <h3 className="text-[15px] font-black text-white uppercase tracking-tight">Analysis Scope</h3>
                     <p className="text-[11px] font-bold text-white/70 tracking-tight">
                       {runFullFolder
-                        ? `${graphStats.nodes.toLocaleString()} Ecosystem Nodes`
-                        : `${selectedNodes.length} Manually Rooted Nodes`}
+                        ? `${graphStats.nodes.toLocaleString()} Total Nodes`
+                        : `${selectedNodes.length} Selected Nodes`}
                     </p>
                   </div>
                 </div>
@@ -223,7 +223,7 @@ export function AlgorithmSetupCard({
                     {weightFormulaType === 'ratio' && (
                       <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-3">
-                          <Label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/60 ml-1">Numerator Root</Label>
+                          <Label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/60 ml-1">Numerator</Label>
                           <select value={weightNumerator} onChange={(event) => setWeightNumerator(event.target.value)} className="h-12 w-full rounded-[20px] border border-border/15 bg-secondary/20 px-5 text-[14px] font-bold text-foreground focus:ring-4 focus:ring-primary/10 transition-all duration-300 appearance-none">
                             {relationshipProperties.map((property) => (
                               <option key={property} value={property}>{property}</option>

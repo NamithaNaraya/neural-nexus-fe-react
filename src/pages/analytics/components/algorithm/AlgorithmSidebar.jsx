@@ -36,8 +36,8 @@ export function AlgorithmSidebar({ selectedAlgorithmId, setSelectedAlgorithmId }
     <Card className="flex h-full min-h-0 flex-col border-border/20 bg-secondary/15 shadow-[0_32px_64px_-16px_rgba(45,58,40,0.1)] backdrop-blur-3xl rounded-[32px] ring-1 ring-white/10">
       <CardContent className="flex min-h-0 flex-1 flex-col gap-6 p-6">
         <div className="space-y-1">
-          <div className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Algorithm Catalog</div>
-          <h2 className="text-xl font-black tracking-tighter text-foreground uppercase">Select Growth Engine</h2>
+          <div className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Algorithm Library</div>
+          <h2 className="text-xl font-black tracking-tighter text-foreground uppercase">Select Algorithm</h2>
         </div>
 
         <div className="relative group">
@@ -45,7 +45,7 @@ export function AlgorithmSidebar({ selectedAlgorithmId, setSelectedAlgorithmId }
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Scan methodologies..."
+            placeholder="Search algorithms..."
             className="h-12 pl-12 rounded-[20px] border-border/10 bg-secondary/20 focus:ring-4 focus:ring-primary/10 transition-all duration-500 font-bold tracking-tight shadow-inner"
           />
         </div>
