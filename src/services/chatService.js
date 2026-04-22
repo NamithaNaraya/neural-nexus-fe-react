@@ -87,6 +87,7 @@ export const chatService = {
             createdAt: lastActivity,
             updatedAt: lastActivity,
             title: backendSession.last_message?.substring(0, 42) || 'New Chat',
+            messageCount: backendSession.message_count || 0,
           };
         });
 

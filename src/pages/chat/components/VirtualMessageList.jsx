@@ -1,23 +1,47 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
+import { MessageBubble, TypingIndicator } from '../MessageBubble';
 
 export function VirtualMessageList({
-  items,
-  renderItem,
-  className = '',
-  innerClassName = '',
-  bottomRef = null,
+  messages = [],
+  onWebSearch,
+  onOpenDetails,
 }) {
-  const safeItems = Array.isArray(items) ? items : [];
+  const scrollRef = useRef(null);
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [messages]);
 
   return (
-    <div className={className}>
-      <div className={innerClassName}>
-        {safeItems.map((item, index) => (
-          <div key={item?.key ?? index}>
-            {renderItem(item, index)}
-          </div>
-        ))}
-        {bottomRef ? <div ref={bottomRef} className="h-px w-full" /> : null}
+    <div 
+      ref={scrollRef}
+      className="h-full overflow-y-auto px-6 py-8 space-y-2 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent"
+    >
+      <div className="flex flex-col gap-2 min-h-full">
+        {messages.map((item) => {
+          if (item.type === 'message') {
+            return (
+              <MessageBubble
+                key={item.key}
+                message={item.message}
+                messageIndex={item.index}
+                onWebSearch={onWebSearch}
+                onOpenDetails={onOpenDetails}
+              />
+            );
+          }
+          if (item.type === 'typing') {
+            return <TypingIndicator key={item.key} />;
+          }
+          return null;
+        })}
+        <div className="h-20 shrink-0" /> {/* Bottom spacing for input area */}
       </div>
     </div>
   );

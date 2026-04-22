@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Bot, Globe, ExternalLink, Loader2, User, Sprout, Leaf } from 'lucide-react';
+import { Bot, Globe, ExternalLink, Loader2, User, Sprout, Leaf, Sparkles } from 'lucide-react';
 
 const MD_INLINE_REGEX = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(\*\*([^*]+)\*\*)|(`([^`]+)`)|(\*([^*\n]+)\*)/g;
 
@@ -381,7 +381,7 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIn
           {isStandaloneWebSearch ? (
             <Globe className="w-7 h-7 text-primary" />
           ) : (
-            <Sprout className="w-7 h-7 text-primary animate-float" />
+            <Sparkles className="w-7 h-7 text-primary animate-pulse" />
           )}
         </div>
       )}
@@ -390,7 +390,7 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIn
         'group relative min-w-0 rounded-[36px] px-8 py-7 text-[15px] leading-[1.8] transition-all duration-700',
         isUser ? 'max-w-[min(85%,42rem)]' : 'max-w-[min(100%,64rem)]',
         isUser
-          ? 'rounded-tr-none bg-primary text-white shadow-[0_20px_50px_-12px_hsl(var(--primary)/0.4)]'
+          ? 'rounded-tr-none bg-primary/10 text-foreground border border-primary/30 shadow-[0_10px_30px_-12px_rgba(74,103,65,0.15)] backdrop-blur-xl'
           : isError
             ? 'rounded-tl-none bg-destructive/10 text-destructive border border-destructive/20'
             : isWelcome
@@ -404,7 +404,7 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIn
               <div className="p-2 rounded-xl bg-primary/10">
                 <Globe className="w-5 h-5 animate-spin-slow" />
               </div>
-              <span className="text-[12px] font-black uppercase tracking-[0.3em]">Pollinating Context</span>
+              <span className="text-[12px] font-black uppercase tracking-[0.3em]">Context Search</span>
             </div>
           ) : hasAssistantText ? (
             message.isStreaming ? (
@@ -419,7 +419,7 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIn
 
           {message.isStreaming && !hasAssistantText && (
             <div className="flex items-center gap-4 py-2">
-              <span className="text-[11px] font-black text-primary/60 tracking-[0.3em] uppercase">Sprouting Insight</span>
+              <span className="text-[11px] font-black text-primary/60 tracking-[0.3em] uppercase">Synthesizing</span>
               <AnimatedDots />
             </div>
           )}
@@ -448,7 +448,7 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIn
                 ) : (
                   <Globe className="w-4 h-4" />
                 )}
-                {webSearchPending ? 'Searching...' : 'Deep Botany Scan'}
+                {webSearchPending ? 'Searching...' : 'Web Search'}
               </button>
             )}
 
@@ -458,7 +458,7 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIn
                 className="flex items-center gap-3 rounded-[20px] border border-primary/30 bg-primary/10 px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] text-primary transition-all hover:bg-primary/20 hover:scale-105 active:scale-95 hover:shadow-xl hover:shadow-primary/20 shadow-sm"
               >
                 <Sprout className="h-4.5 w-4.5" />
-                Botany Insight
+                Analysis
               </button>
             )}
           </div>
@@ -472,7 +472,7 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIn
                   <div className="p-2.5 rounded-2xl bg-accent/15 backdrop-blur-md">
                     <Globe className="w-5 h-5" />
                   </div>
-                  <span className="text-[12px] font-black uppercase tracking-[0.3em]">Intelligence Workspace</span>
+                  <span className="text-[12px] font-black uppercase tracking-[0.3em]">Search Results</span>
               </div>
               {message.isStreamingWebSearch && (
                 <div className="flex items-center gap-2">
@@ -550,10 +550,10 @@ export const TypingIndicator = React.memo(function TypingIndicator() {
   return (
     <div className="flex gap-6 justify-start animate-fade-up py-4">
       <div className="w-14 h-14 rounded-[20px] bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-xl animate-pulse">
-        <Sprout className="w-7 h-7 text-primary" />
+        <Sparkles className="w-7 h-7 text-primary" />
       </div>
       <div className="bg-secondary/30 border border-border/40 rounded-[32px] rounded-tl-none px-8 py-6 backdrop-blur-xl shadow-2xl flex items-center gap-4">
-         <span className="text-[11px] font-black text-primary/50 tracking-[0.3em] uppercase">Pollination in Progress</span>
+         <span className="text-[11px] font-black text-primary/50 tracking-[0.3em] uppercase">Thinking...</span>
          <AnimatedDots />
       </div>
     </div>

@@ -197,9 +197,9 @@ export default function GraphSunburstPage(props) {
       .text((d) => d.data.name);
 
     const center = g.append('g').attr('text-anchor', 'middle');
-    center.append('circle').attr('r', 52).attr('fill', 'rgba(255,255,255,0.92)').attr('stroke', 'rgba(148,163,184,0.25)');
-    center.append('text').attr('y', -4).attr('font-size', 14).attr('font-weight', 600).attr('fill', '#0F172A').text('Nodes');
-    center.append('text').attr('y', 18).attr('font-size', 22).attr('font-weight', 700).attr('fill', BRAND_COLORS.emerald).text(renderedGraph.nodes.length);
+    center.append('circle').attr('r', 52).attr('fill', 'var(--background)').attr('stroke', 'var(--primary)').attr('stroke-width', 2).style('filter', 'drop-shadow(0 0 10px var(--primary))');
+    center.append('text').attr('y', -4).attr('font-size', 14).attr('font-weight', 600).attr('fill', 'var(--muted-foreground)').text('Entities');
+    center.append('text').attr('y', 22).attr('font-size', 28).attr('font-weight', 900).attr('fill', 'var(--primary)').text(renderedGraph.nodes.length);
   }, [containerWidth, loading, renderedGraph.nodes.length, sunburstData]);
 
   if (loading) {

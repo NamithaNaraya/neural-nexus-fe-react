@@ -7,7 +7,7 @@ const MAX_TEXT_LENGTH = 12000;
 export const WELCOME_MESSAGE = {
   role: 'assistant',
   isWelcome: true,
-  content: "Welcome to the NESSO Biosphere! I'm your Botany Assistant with integrated RAG and ecosystem search. Ask anything about your research folders or growth cycles, and I'll help you cultivate full answers from your data.",
+  content: "Welcome to the NESSO Nexus! I'm your Research Assistant with integrated RAG and ecosystem search. Ask anything about your research folders or knowledge clusters, and I'll help you cultivate full answers from your data.",
 };
 
 const generateId = () => {
@@ -189,8 +189,8 @@ const serializeWorkspace = (workspace, options = {}) => {
       const rawMessages = Array.isArray(session?.messages) ? session.messages : [];
       
       if (isCurrent) {
-        // Keep last 100 messages for the current session to ensure quick re-entry but avoid bloat
-        messagesToSerialize = rawMessages.slice(-100);
+        // Keep last 90 messages for the current session to ensure quick re-entry but avoid bloat
+        messagesToSerialize = rawMessages.slice(-90);
       } else {
         const nonWelcome = rawMessages.filter(m => !m.isWelcome);
         if (nonWelcome.length > 0) {

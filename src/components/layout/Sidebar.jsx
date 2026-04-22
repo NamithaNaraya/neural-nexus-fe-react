@@ -19,7 +19,7 @@ import {
   Activity,
   Cpu,
   HelpCircle,
-  Sprout,
+  Sparkles,
   Leaf,
 } from 'lucide-react';
 import nessoLogo from '../../assets/logo.png';
@@ -31,7 +31,7 @@ const navSections = [
       { icon: Folder, label: 'Folders', path: '/folders' },
       { icon: Network, label: 'Knowledge Graph', path: '/graph' },
       { icon: Palette, label: 'Visualization', path: '/visualize' },
-      { icon: Sprout, label: 'Botany AI', path: '/chat', badge: 'RAG' },
+      { icon: MessageSquare, label: 'Chat', path: '/chat', badge: 'RAG' },
     ],
   },
   {
@@ -77,12 +77,12 @@ export function Sidebar() {
       )}>
         <div className="flex items-center gap-3.5 shrink-0">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary shadow-xl shadow-primary/30 ring-4 ring-primary/10 animate-float">
-            <Sprout className="h-6 w-6 text-white" />
+            <Sparkles className="h-6 w-6 text-white" />
           </div>
           {expanded && (
             <div className="flex flex-col animate-scale-in">
               <span className="text-[14px] font-black tracking-tighter text-foreground leading-none">NESSO</span>
-              <span className="text-[9px] font-black text-primary/70 tracking-[0.25em] uppercase mt-0.5">Botanica</span>
+              <span className="text-[9px] font-black text-primary/70 tracking-[0.25em] uppercase mt-0.5">Nexus</span>
             </div>
           )}
         </div>

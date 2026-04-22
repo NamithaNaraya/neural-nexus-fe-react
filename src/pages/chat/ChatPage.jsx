@@ -7,6 +7,7 @@ import { ChatInput } from './ChatInput';
 import { VirtualMessageList } from './components/VirtualMessageList';
 import { ChatDownloadModal } from './components/ChatDownloadModal';
 import { ChatAnswerDetailsDrawer } from './components/ChatAnswerDetailsDrawer';
+import { ConfirmationModal } from './components/ConfirmationModal';
 const ChatHistoryPanel = React.lazy(() =>
   import('./ChatHistoryPanel').then((m) => ({ default: m.ChatHistoryPanel }))
 );
@@ -155,6 +156,8 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [isHistoryOpen, setHistoryOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1280 : false));
   const [isDownloadOpen, setDownloadOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const [detailsMessageIndex, setDetailsMessageIndex] = useState(null);
   const [isWebSearchEnabled, setIsWebSearchEnabled] = useState(false);
   const [isWorkspaceLoading, setWorkspaceLoading] = useState(true);
@@ -252,6 +255,25 @@ export default function ChatPage() {
     return result;
   }, []);
 
+  const updateCurrentSession = useCallback((updater) => {
+    setWorkspace((prev) => {
+      const current = prev.sessions.find((session) => session.id === prev.currentSessionId);
+      if (!current) return prev;
+      const nextSession = updater(current);
+      const sessions = prev.sessions.map((session) => session.id === nextSession.id ? nextSession : session);
+      return { ...prev, sessions };
+    });
+  }, []);
+
+  const updateMessageAtIndex = useCallback((index, updater) => {
+    updateCurrentSession((session) => ({
+      ...session,
+      messages: session.messages.map((message, messageIdx) => messageIdx === index ? updater(message) : message),
+      title: session.title || getSessionTitleFromMessages(session.messages, getDefaultSessionTitle(currentFolder?.name || 'New Research')),
+      updatedAt: Date.now(),
+    }));
+  }, [currentFolder?.name, updateCurrentSession]);
+
   const scrollToBottom = useCallback((behavior = 'smooth') => {
     if (messagesEndRef.current) {
         messagesEndRef.current.scrollIntoView({ behavior });
@@ -276,34 +298,42 @@ export default function ChatPage() {
   }, [currentFolder?.name, selectedFolderId]);
 
   const handleDeleteSession = useCallback((sessionId) => {
-    if (window.confirm('Delete this research session permanently?')) {
-      setWorkspace((prev) => {
-        const nextSessions = prev.sessions.filter((s) => s.id !== sessionId);
-        let nextId = prev.currentSessionId;
-        if (nextId === sessionId) {
-          nextId = nextSessions[0]?.id || null;
-        }
-        removeSession(userKey, sessionId);
-        return {
-          ...prev,
-          currentSessionId: nextId,
-          sessions: nextSessions,
-        };
-      });
-      toast.success('Session pruned.');
-    }
-  }, [userKey]);
+    setDeleteConfirmId(sessionId);
+  }, []);
+
+  const confirmDeleteSession = useCallback(() => {
+    if (!deleteConfirmId) return;
+    const sessionId = deleteConfirmId;
+    setWorkspace((prev) => {
+      const nextSessions = prev.sessions.filter((s) => s.id !== sessionId);
+      let nextId = prev.currentSessionId;
+      if (nextId === sessionId) {
+        nextId = nextSessions[0]?.id || null;
+      }
+      removeSession(storageKey, sessionId);
+      return {
+        ...prev,
+        currentSessionId: nextId,
+        sessions: nextSessions,
+      };
+    });
+    toast.success('Session pruned.');
+    setDeleteConfirmId(null);
+  }, [deleteConfirmId, storageKey]);
 
   const clearChat = useCallback(() => {
-    if (window.confirm('Flush current session data?')) {
-      updateCurrentSession((session) => ({
-        ...session,
-        messages: [WELCOME_MESSAGE],
-        updatedAt: Date.now(),
-      }));
-      toast.success('Session cleared.');
-    }
+    setIsClearConfirmOpen(true);
   }, []);
+
+  const confirmClearChat = useCallback(() => {
+    updateCurrentSession((session) => ({
+      ...session,
+      messages: [WELCOME_MESSAGE],
+      updatedAt: Date.now(),
+    }));
+    toast.success('Session cleared.');
+    setIsClearConfirmOpen(false);
+  }, [updateCurrentSession]);
 
   const exportChat = useCallback((format) => {
     // Basic export logic preservation
@@ -370,6 +400,35 @@ export default function ChatPage() {
   }, [user?.id]);
 
   useEffect(() => {
+    const loadSessionContent = async () => {
+      if (!workspace.currentSessionId || isWorkspaceLoading || !user?.id) return;
+      const session = workspace.sessions.find(s => s.id === workspace.currentSessionId);
+      
+      const localCount = session?.messages?.filter(m => !m.isWelcome).length || 0;
+      const backendCount = session?.messageCount || 0;
+      const isTrimmed = localCount <= 2 && backendCount > localCount;
+      const isEmpty = localCount === 0;
+
+      if (session && (isEmpty || isTrimmed) && !attemptedSessionsHydrationRef.current.has(workspace.currentSessionId)) {
+        attemptedSessionsHydrationRef.current.add(workspace.currentSessionId);
+        try {
+          const rawMessages = await chatService.getSessionHistory(workspace.currentSessionId);
+          if (rawMessages && rawMessages.length > 0) {
+            const normalized = normalizeBackendMessages(rawMessages);
+            setWorkspace(prev => ({
+              ...prev,
+              sessions: prev.sessions.map(s => s.id === workspace.currentSessionId ? { ...s, messages: normalized, messageCount: rawMessages.length } : s)
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to load session history:', error);
+        }
+      }
+    };
+    loadSessionContent();
+  }, [workspace.currentSessionId, workspace.sessions, isWorkspaceLoading, user?.id, normalizeBackendMessages]);
+
+  useEffect(() => {
     if (isWorkspaceLoading || !hasHydratedWorkspaceRef.current) return;
     const folderIdStr = selectedFolderId ? String(selectedFolderId) : '';
     setWorkspace((prev) => {
@@ -381,24 +440,17 @@ export default function ChatPage() {
     });
   }, [selectedFolderId, isWorkspaceLoading, currentFolder?.name]);
 
-  const updateCurrentSession = useCallback((updater) => {
-    setWorkspace((prev) => {
-      const current = prev.sessions.find((session) => session.id === prev.currentSessionId);
-      if (!current) return prev;
-      const nextSession = updater(current);
-      const sessions = prev.sessions.map((session) => session.id === nextSession.id ? nextSession : session);
-      return { ...prev, sessions };
-    });
-  }, []);
+  useEffect(() => {
+    if (isWorkspaceLoading || !hasHydratedWorkspaceRef.current || !userKey) return;
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      saveChatWorkspace(userKey, workspace);
+    }, 800);
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, [workspace, userKey, isWorkspaceLoading]);
 
-  const updateMessageAtIndex = useCallback((index, updater) => {
-    updateCurrentSession((session) => ({
-      ...session,
-      messages: session.messages.map((message, messageIdx) => messageIdx === index ? updater(message) : message),
-      title: session.title || getSessionTitleFromMessages(session.messages, getDefaultSessionTitle(currentFolder?.name || 'New Research')),
-      updatedAt: Date.now(),
-    }));
-  }, [currentFolder?.name, updateCurrentSession]);
 
   const performWebSearch = useCallback(async ({ question, contextHint = '', messageIndex = null, appendMessage = false }) => {
     const searchQuery = (question || '').trim();
@@ -512,15 +564,11 @@ export default function ChatPage() {
               >
                 <PanelRightClose className={cn("h-5.5 w-5.5 transition-transform duration-700", !isHistoryOpen && "rotate-180")} />
               </button>
-              <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-2">
-                  <Sprout className="h-4 w-4 text-primary animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Botany AI Session</span>
+                <div className="flex flex-col min-w-0">
+                  <h2 className="text-xl font-black tracking-tighter text-foreground uppercase">
+                    Chat
+                  </h2>
                 </div>
-                <h2 className="text-base font-black tracking-tighter text-foreground truncate max-w-[200px] md:max-w-[450px] uppercase mt-0.5">
-                  {activeSession?.title || 'Initializing Growth Output...'}
-                </h2>
-              </div>
             </div>
 
             <div className="flex items-center gap-4">
@@ -530,7 +578,7 @@ export default function ChatPage() {
                   className="flex items-center gap-3 rounded-2xl border border-border/20 bg-card/40 px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-foreground/70 transition-all hover:bg-primary hover:text-white hover:shadow-xl hover:shadow-primary/20 shadow-sm"
                 >
                   <Download className="h-4.5 w-4.5" />
-                  <span className="hidden md:inline">Harvest Workspace</span>
+                  <span className="hidden md:inline">Export Findings</span>
                 </button>
               </div>
 
@@ -539,7 +587,7 @@ export default function ChatPage() {
                 className="flex items-center gap-3 rounded-2xl bg-primary px-6 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-2xl shadow-primary/30 transition-all hover:scale-105 active:scale-95 ring-4 ring-primary/10"
               >
                 <SquarePen className="h-4.5 w-4.5" />
-                <span className="hidden md:inline">New Growth</span>
+                <span className="hidden md:inline">New Session</span>
               </button>
               
               <button
@@ -587,6 +635,23 @@ export default function ChatPage() {
         isOpen={detailsMessageIndex !== null}
         onClose={() => setDetailsMessageIndex(null)}
         message={detailsMessage}
+      />
+      <ConfirmationModal
+        isOpen={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={confirmDeleteSession}
+        title="Prune Session"
+        description="This research path will be permanently deleted from the repository stash."
+        confirmText="Prune"
+      />
+
+      <ConfirmationModal
+        isOpen={isClearConfirmOpen}
+        onClose={() => setIsClearConfirmOpen(false)}
+        onConfirm={confirmClearChat}
+        title="Flush Session"
+        description="All messages in this active stream will be cleared. This cannot be undone."
+        confirmText="Flush"
       />
     </div>
   );

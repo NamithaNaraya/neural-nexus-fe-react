@@ -118,7 +118,7 @@ export const ChatHistoryPanel = React.memo(function ChatHistoryPanel({ chatHisto
                       {createdAtLabel}
                     </div>
                     <div className="text-[9px] font-black uppercase tracking-widest text-primary/60">
-                      {sessionMessages.length} Messages
+                      {session?.messageCount || sessionMessages.length} Messages
                     </div>
                   </div>
                 </button>
