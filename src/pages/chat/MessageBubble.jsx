@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Bot, Globe, ExternalLink, Loader2, User, BrainCircuit } from 'lucide-react';
+import { Bot, Globe, ExternalLink, Loader2, User, Sprout, Leaf } from 'lucide-react';
 
 const MD_INLINE_REGEX = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(\*\*([^*]+)\*\*)|(`([^`]+)`)|(\*([^*\n]+)\*)/g;
 
@@ -126,15 +126,15 @@ const renderInlineMarkdown = (text, keyPrefix = 'inline') => {
           href={match[3]}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium hover:underline text-primary"
+          className="font-black hover:underline text-primary/90 transition-all hover:text-primary decoration-primary/30"
         >
           {match[2]}
-          <ExternalLink className="ml-1 inline-block h-3 w-3" />
+          <ExternalLink className="ml-1 inline-block h-3 w-3 opacity-60" />
         </a>
       );
     } else if (match[5]) {
       pieces.push(
-        <strong key={`${keyPrefix}-${match.index}`} className="font-bold text-foreground">
+        <strong key={`${keyPrefix}-${match.index}`} className="font-black text-foreground">
           {match[5]}
         </strong>
       );
@@ -142,14 +142,14 @@ const renderInlineMarkdown = (text, keyPrefix = 'inline') => {
       pieces.push(
         <code
           key={`${keyPrefix}-${match.index}`}
-          className="rounded-md border border-border/40 bg-muted/30 px-1.5 py-0.5 font-mono text-[0.85em] text-foreground"
+          className="rounded-lg border border-primary/20 bg-primary/5 px-2 py-0.5 font-mono text-[0.88em] text-primary"
         >
           {match[7]}
         </code>
       );
     } else if (match[9]) {
       pieces.push(
-        <em key={`${keyPrefix}-${match.index}`} className="italic text-foreground/90">
+        <em key={`${keyPrefix}-${match.index}`} className="italic text-foreground/80">
           {match[9]}
         </em>
       );
@@ -189,17 +189,17 @@ const renderMarkdownContent = (text) => {
       }
       if (index < lines.length) index += 1;
       blocks.push(
-        <pre key={`code-${index}`} className="my-4 overflow-x-auto rounded-xl border border-border/30 bg-muted/20 p-4 text-xs font-medium text-foreground/90 backdrop-blur-sm">
+        <pre key={`code-${index}`} className="my-6 overflow-x-auto rounded-[24px] border border-border/30 bg-secondary/20 p-6 text-[13px] font-medium text-foreground/90 backdrop-blur-md shadow-inner">
           {language && (
-            <div className="mb-3 flex items-center justify-between border-b border-border/20 pb-2">
-              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/60">{language}</span>
-              <div className="flex gap-1">
-                <div className="h-2 w-2 rounded-full bg-border/40" />
-                <div className="h-2 w-2 rounded-full bg-border/40" />
+            <div className="mb-4 flex items-center justify-between border-b border-border/20 pb-3">
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/60">{language}</span>
+              <div className="flex gap-1.5">
+                <div className="h-2.5 w-2.5 rounded-full bg-primary/20" />
+                <div className="h-2.5 w-2.5 rounded-full bg-primary/20" />
               </div>
             </div>
           )}
-          <code className="block whitespace-pre font-mono leading-relaxed">{codeLines.join('\n')}</code>
+          <code className="block whitespace-pre font-mono leading-[1.8]">{codeLines.join('\n')}</code>
         </pre>
       );
       continue;
@@ -213,8 +213,8 @@ const renderMarkdownContent = (text) => {
         <Tag
           key={`heading-${index}`}
           className={cn(
-            'mt-6 mb-3 font-bold tracking-tight',
-            level === 1 ? 'text-xl text-foreground' : level === 2 ? 'text-lg text-foreground/90' : 'text-base text-foreground/80'
+            'mt-8 mb-4 font-black tracking-tighter uppercase',
+            level === 1 ? 'text-2xl text-foreground' : level === 2 ? 'text-xl text-foreground/90' : 'text-lg text-foreground/80'
           )}
         >
           {renderInlineMarkdown(headingMatch[2], `heading-${index}`)}
@@ -239,13 +239,13 @@ const renderMarkdownContent = (text) => {
       }
 
       blocks.push(
-        <div key={`table-${index}`} className="my-5 overflow-hidden rounded-xl border border-border/40 bg-card/40 shadow-sm backdrop-blur-sm">
+        <div key={`table-${index}`} className="my-6 overflow-hidden rounded-[28px] border border-border/40 bg-secondary/10 shadow-sm backdrop-blur-xl">
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-xs">
+            <table className="w-full border-collapse text-left text-[13px]">
               <thead>
-                <tr className="bg-muted/30 border-b border-border/30">
+                <tr className="bg-primary/5 border-b border-border/30">
                   {header.map((cell, cellIndex) => (
-                    <th key={cellIndex} className="px-4 py-3 font-bold uppercase tracking-wider text-muted-foreground">
+                    <th key={cellIndex} className="px-6 py-4 font-black uppercase tracking-[0.15em] text-primary/70">
                       {renderInlineMarkdown(cell, `table-header-${index}-${cellIndex}`)}
                     </th>
                   ))}
@@ -253,9 +253,9 @@ const renderMarkdownContent = (text) => {
               </thead>
               <tbody className="divide-y divide-border/20">
                 {rowLines.map((row, rowIndex) => (
-                  <tr key={rowIndex} className="hover:bg-muted/10 transition-colors">
+                  <tr key={rowIndex} className="hover:bg-primary/5 transition-all duration-300">
                     {row.map((cell, cellIndex) => (
-                      <td key={cellIndex} className="px-4 py-3 align-top text-foreground/90 leading-relaxed font-medium">
+                      <td key={cellIndex} className="px-6 py-4 align-top text-foreground/90 leading-[1.7] font-medium">
                         {renderInlineMarkdown(cell, `table-row-${index}-${rowIndex}-${cellIndex}`)}
                       </td>
                     ))}
@@ -277,10 +277,10 @@ const renderMarkdownContent = (text) => {
       }
 
       blocks.push(
-        <ul key={`ul-${index}`} className="my-4 list-none space-y-2.5">
+        <ul key={`ul-${index}`} className="my-5 list-none space-y-3.5">
           {items.map((item, itemIndex) => (
-            <li key={itemIndex} className="relative pl-6 text-sm leading-relaxed text-foreground/90 font-medium">
-              <span className="absolute left-0 top-[0.6em] h-1.5 w-1.5 rounded-full bg-primary/40" />
+            <li key={itemIndex} className="relative pl-8 text-[14px] leading-[1.7] text-foreground/90 font-medium">
+              <span className="absolute left-0 top-[0.5em] h-2 w-2 rounded-full bg-primary/40 shadow-[0_0_8px_rgba(74,103,65,0.3)]" />
               {renderInlineMarkdown(item, `ul-${index}-${itemIndex}`)}
             </li>
           ))}
@@ -297,10 +297,10 @@ const renderMarkdownContent = (text) => {
       }
 
       blocks.push(
-        <ol key={`ol-${index}`} className="my-4 list-none space-y-2.5">
+        <ol key={`ol-${index}`} className="my-5 list-none space-y-3.5">
           {items.map((item, itemIndex) => (
-            <li key={itemIndex} className="relative pl-7 text-sm leading-relaxed text-foreground/90 font-medium">
-              <span className="absolute left-0 top-0 text-[10px] font-bold text-primary/50">{itemIndex + 1}.</span>
+            <li key={itemIndex} className="relative pl-9 text-[14px] leading-[1.7] text-foreground/90 font-medium">
+              <span className="absolute left-0 top-0 text-[11px] font-black text-primary/50 tracking-tighter">{String(itemIndex + 1).padStart(2, '0')}</span>
               {renderInlineMarkdown(item, `ol-${index}-${itemIndex}`)}
             </li>
           ))}
@@ -311,7 +311,7 @@ const renderMarkdownContent = (text) => {
 
     if (/^>\s+/.test(trimmed)) {
       blocks.push(
-        <blockquote key={`quote-${index}`} className="my-4 border-l-3 border-accent/40 bg-accent/5 px-4 py-3 text-sm text-foreground/80 italic rounded-r-lg">
+        <blockquote key={`quote-${index}`} className="my-6 border-l-4 border-primary/40 bg-primary/5 px-6 py-4 text-[14px] text-foreground/80 italic rounded-r-[24px] shadow-inner">
           {renderInlineMarkdown(trimmed.replace(/^>\s+/, ''), `quote-${index}`)}
         </blockquote>
       );
@@ -331,7 +331,7 @@ const renderMarkdownContent = (text) => {
     }
 
     blocks.push(
-      <p key={`p-${index}`} className="mb-4 last:mb-0 leading-[1.8] text-sm text-foreground/90 font-medium">
+      <p key={`p-${index}`} className="mb-5 last:mb-0 leading-[1.8] text-[14px] text-foreground/90 font-medium">
         {renderInlineMarkdown(paragraphLines.join(' '), `p-${index}`)}
       </p>
     );
@@ -344,13 +344,13 @@ const AnimatedDots = ({ tone = 'neutral' }) => {
   const dotClassName =
     tone === 'amber'
       ? 'bg-accent/60'
-      : 'bg-muted-foreground/30';
+      : 'bg-primary/40';
 
   return (
-    <span className="inline-flex items-center gap-1.5 align-middle px-1">
-      <span className={cn('h-1.5 w-1.5 rounded-full animate-bounce', dotClassName)} />
-      <span className={cn('h-1.5 w-1.5 rounded-full animate-bounce', dotClassName)} style={{ animationDelay: '0.15s' }} />
-      <span className={cn('h-1.5 w-1.5 rounded-full animate-bounce', dotClassName)} style={{ animationDelay: '0.3s' }} />
+    <span className="inline-flex items-center gap-2 align-middle px-1">
+      <span className={cn('h-2 w-2 rounded-full animate-bounce', dotClassName)} />
+      <span className={cn('h-2 w-2 rounded-full animate-bounce', dotClassName)} style={{ animationDelay: '0.15s' }} />
+      <span className={cn('h-2 w-2 rounded-full animate-bounce', dotClassName)} style={{ animationDelay: '0.3s' }} />
     </span>
   );
 };
@@ -372,37 +372,45 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIn
   const hasWebSearchText = Boolean(String(cleanedWebSearchAnswer || '').trim());
 
   return (
-    <div className={cn('flex w-full items-start gap-4 py-1.5 animate-scale-in', isUser ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex w-full items-start gap-6 py-5 animate-scale-in', isUser ? 'justify-end' : 'justify-start')}>
       {!isUser && (
         <div className={cn(
-          'mt-1 h-9 w-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-primary/20 bg-primary/10 transition-all duration-500',
-          message.isStreaming ? 'animate-pulse scale-105' : 'hover:scale-110'
+          'mt-1 h-14 w-14 rounded-[20px] flex items-center justify-center shrink-0 shadow-2xl border border-primary/20 bg-primary/10 backdrop-blur-xl transition-all duration-700',
+          message.isStreaming ? 'ring-4 ring-primary/20 scale-105 shadow-primary/20' : 'hover:scale-110'
         )}>
           {isStandaloneWebSearch ? (
-            <Globe className="w-4.5 h-4.5 text-primary" />
+            <Globe className="w-7 h-7 text-primary" />
           ) : (
-            <Bot className="w-4.5 h-4.5 text-primary" />
+            <Sprout className="w-7 h-7 text-primary animate-float" />
           )}
         </div>
       )}
 
       <div className={cn(
-        'group relative min-w-0 rounded-3xl px-5 py-4 text-sm leading-relaxed transition-all duration-300',
-        isUser ? 'max-w-[min(78%,34rem)]' : 'max-w-[min(100%,56rem)]',
+        'group relative min-w-0 rounded-[36px] px-8 py-7 text-[15px] leading-[1.8] transition-all duration-700',
+        isUser ? 'max-w-[min(85%,42rem)]' : 'max-w-[min(100%,64rem)]',
         isUser
-          ? 'rounded-tr-none border border-primary/15 bg-primary/8 text-foreground shadow-sm hover:shadow-md'
+          ? 'rounded-tr-none bg-primary text-white shadow-[0_20px_50px_-12px_hsl(var(--primary)/0.4)]'
           : isError
-            ? 'bg-destructive/8 border border-destructive/20 text-destructive rounded-tl-none'
-            : isStandaloneWebSearch
-              ? 'rounded-tl-none border border-accent/20 bg-accent/8 text-foreground shadow-sm hover:shadow-md'
-              : 'rounded-tl-none border border-border/50 bg-card/80 text-foreground shadow-sm hover:shadow-md backdrop-blur-md'
+            ? 'rounded-tl-none bg-destructive/10 text-destructive border border-destructive/20'
+            : isWelcome
+              ? 'rounded-tl-none bg-gradient-to-br from-primary/10 via-accent/5 to-primary/10 border border-primary/20 text-foreground/90 backdrop-blur-2xl shadow-xl'
+              : 'rounded-tl-none bg-secondary/40 text-foreground border border-border/30 backdrop-blur-2xl shadow-2xl shadow-primary/5 hover:border-primary/40 hover:bg-secondary/50 transition-colors'
       )}>
+        {/* Main Content Area */}
         <div className="prose prose-sm max-w-none break-words whitespace-normal w-full overflow-hidden">
-          {hasAssistantText ? (
+          {isStandaloneWebSearch ? (
+            <div className="flex items-center gap-3.5 py-2 text-primary">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Globe className="w-5 h-5 animate-spin-slow" />
+              </div>
+              <span className="text-[12px] font-black uppercase tracking-[0.3em]">Pollinating Context</span>
+            </div>
+          ) : hasAssistantText ? (
             message.isStreaming ? (
-              <p className="mb-0 whitespace-pre-wrap leading-[1.8] text-foreground font-medium">
+              <p className="mb-0 whitespace-pre-wrap leading-[1.8] text-current font-medium">
                 {cleanedContent}
-                <span className="inline-block w-2 h-4 ml-1.5 bg-primary/50 rounded-sm animate-pulse align-text-bottom" />
+                <span className="inline-block w-3 h-5 ml-2.5 bg-primary/40 rounded-sm animate-pulse align-text-bottom" />
               </p>
             ) : (
               renderMarkdownContent(cleanedContent)
@@ -410,17 +418,17 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIn
           ) : null}
 
           {message.isStreaming && !hasAssistantText && (
-            <div className="flex items-center gap-2 py-1">
-              <span className="text-xs font-semibold text-muted-foreground/60 tracking-wider">THINKING</span>
+            <div className="flex items-center gap-4 py-2">
+              <span className="text-[11px] font-black text-primary/60 tracking-[0.3em] uppercase">Sprouting Insight</span>
               <AnimatedDots />
             </div>
           )}
         </div>
 
-        {/* Web Search Trigger Button (for manual search if suggested) */}
+        {/* Action Bar (Web Search / Details) */}
         {!isUser && !isError && !isWelcome && !message.isStreaming && ((onWebSearch && !message.webSearchAnswer && message.content) || hasAnalysisDetails) && (
-          <div className="mt-4 flex flex-wrap gap-2.5 border-t border-border/20 pt-4">
-            {onWebSearch && !message.webSearchAnswer && message.content ? (
+          <div className="mt-7 flex flex-wrap gap-4 border-t border-border/20 pt-7">
+            {onWebSearch && !message.webSearchAnswer && message.content && (
               <button
                 onClick={() => onWebSearch({
                   question: message.webSearchQuery || message.content,
@@ -429,83 +437,88 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIn
                 })}
                 disabled={webSearchPending}
                 className={cn(
-                  'flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all disabled:opacity-50 ring-1 ring-inset',
+                  'flex items-center gap-3 rounded-[20px] px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] transition-all disabled:opacity-50 ring-1 ring-inset',
                   webSearchPending
                     ? 'bg-muted/10 ring-border/20 text-muted-foreground'
-                    : 'bg-accent/10 ring-accent/30 text-accent hover:bg-accent/20 hover:scale-105 active:scale-95'
+                    : 'bg-accent/10 ring-accent/30 text-accent hover:bg-accent/20 hover:scale-105 active:scale-95 hover:shadow-xl hover:shadow-accent/20 shadow-sm'
                 )}
               >
                 {webSearchPending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Globe className="w-3.5 h-3.5" />
+                  <Globe className="w-4 h-4" />
                 )}
-                {webSearchPending ? 'Searching...' : 'Explore Web'}
+                {webSearchPending ? 'Searching...' : 'Deep Botany Scan'}
               </button>
-            ) : null}
+            )}
 
-            {hasAnalysisDetails && onOpenDetails ? (
+            {hasAnalysisDetails && onOpenDetails && (
               <button
                 onClick={() => onOpenDetails(messageIndex)}
-                className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-primary transition-all hover:bg-primary/14 hover:scale-105 active:scale-95"
+                className="flex items-center gap-3 rounded-[20px] border border-primary/30 bg-primary/10 px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] text-primary transition-all hover:bg-primary/20 hover:scale-105 active:scale-95 hover:shadow-xl hover:shadow-primary/20 shadow-sm"
               >
-                <BrainCircuit className="h-3.5 w-3.5" />
-                View Details
+                <Sprout className="h-4.5 w-4.5" />
+                Botany Insight
               </button>
-            ) : null}
+            )}
           </div>
         )}
 
         {/* Integrated Web Search Result Section */}
         {(message.webSearchAnswer || message.isStreamingWebSearch) && (
-          <div className="mt-5 rounded-[1.75rem] border border-accent/25 bg-accent/5 p-5 shadow-inner backdrop-blur-sm animate-fade-up">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2.5 text-accent">
-                  <div className="p-1.5 rounded-lg bg-accent/15">
-                    <Globe className="w-4 h-4" />
+          <div className="mt-8 rounded-[32px] border border-accent/25 bg-accent/5 p-8 shadow-inner backdrop-blur-3xl animate-fade-up ring-1 ring-white/10">
+            <div className="mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-4 text-accent/80">
+                  <div className="p-2.5 rounded-2xl bg-accent/15 backdrop-blur-md">
+                    <Globe className="w-5 h-5" />
                   </div>
-                  <span className="text-[11px] font-bold uppercase tracking-[0.14em]">Connected Research</span>
+                  <span className="text-[12px] font-black uppercase tracking-[0.3em]">Intelligence Workspace</span>
               </div>
-              {message.isStreamingWebSearch && <div className="h-1.5 w-1.5 rounded-full bg-accent animate-ping" />}
+              {message.isStreamingWebSearch && (
+                <div className="flex items-center gap-2">
+                   <div className="h-2 w-2 rounded-full bg-accent animate-ping" />
+                   <span className="text-[10px] font-black text-accent/60 uppercase tracking-widest">Active Flow</span>
+                </div>
+              )}
             </div>
             
             <div className="prose prose-sm max-w-none break-words whitespace-normal w-full overflow-hidden">
               {hasWebSearchText ? (
                 message.isStreamingWebSearch ? (
-                  <p className="mb-0 whitespace-pre-wrap leading-[1.8] text-foreground font-medium">
+                  <p className="mb-0 whitespace-pre-wrap leading-[1.8] text-foreground/90 font-medium">
                     {cleanedWebSearchAnswer}
-                    <span className="inline-block w-2 h-4 ml-1.5 bg-accent/50 rounded-sm animate-pulse align-text-bottom" />
+                    <span className="inline-block w-3 h-5 ml-3 bg-accent/40 rounded-sm animate-pulse align-text-bottom" />
                   </p>
                 ) : (
                   renderMarkdownContent(cleanedWebSearchAnswer)
                 )
               ) : null}
               {message.isStreamingWebSearch && !hasWebSearchText && (
-                <div className="flex items-center gap-2 py-1">
-                  <span className="text-xs font-semibold text-accent/60 tracking-wider uppercase">Searching</span>
+                <div className="flex items-center gap-4 py-2">
+                  <span className="text-[11px] font-black text-accent/60 tracking-[0.2em] uppercase">Retrieving Context</span>
                   <AnimatedDots tone="amber" />
                 </div>
               )}
             </div>
 
             {Array.isArray(message.webSearchSources) && message.webSearchSources.length > 0 && (
-              <div className="mt-5 pt-4 border-t border-accent/15">
-                <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-accent/50">Verified Sources</div>
-                <div className="flex flex-wrap gap-2.5">
+              <div className="mt-8 pt-7 border-t border-accent/20">
+                <div className="mb-5 text-[10px] font-black uppercase tracking-[0.4em] text-accent/50">Verified Data Sources</div>
+                <div className="flex flex-wrap gap-3.5">
                   {message.webSearchSources.map((source, idx) => {
                     const url = source?.url || source?.uri || '';
-                    const title = source?.title || source?.name || (url ? new URL(url).hostname : `Source ${idx + 1}`);
+                    const title = source?.title || source?.name || (url ? new URL(url).hostname : `Node ${idx + 1}`);
                     return url ? (
                       <a
                         key={idx}
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group/source inline-flex items-center gap-2 rounded-xl border border-accent/20 bg-card/60 px-3.5 py-1.5 text-[11px] font-bold text-foreground transition-all hover:bg-accent hover:text-white hover:border-accent hover:shadow-lg dark:bg-card/40 dark:hover:bg-accent dark:hover:text-white"
+                        className="group/source inline-flex items-center gap-3 rounded-2xl border border-accent/20 bg-white/40 px-5 py-2.5 text-[12px] font-bold text-foreground/80 transition-all hover:bg-accent hover:text-white hover:border-accent hover:shadow-2xl dark:bg-card/40 dark:hover:bg-accent dark:hover:text-white shadow-sm"
                         title={title}
                       >
-                        <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-40 group-hover/source:opacity-100 transition-opacity" />
-                        <span className="max-w-[180px] truncate">{title}</span>
+                        <ExternalLink className="h-4.5 w-4.5 shrink-0 opacity-40 group-hover/source:opacity-100 transition-opacity" />
+                        <span className="max-w-[220px] truncate">{title}</span>
                       </a>
                     ) : null;
                   })}
@@ -517,8 +530,8 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIn
       </div>
 
       {isUser && (
-        <div className="mt-1 h-9 w-9 rounded-xl bg-accent flex items-center justify-center shrink-0 border border-white/20 shadow-lg shadow-accent/20 transition-transform hover:scale-110">
-          <User className="w-4.5 h-4.5 text-white" />
+        <div className="mt-1 h-14 w-14 rounded-[20px] bg-accent flex items-center justify-center shrink-0 border-2 border-white shadow-[0_20px_50px_-12px_hsl(var(--accent)/0.3)] transition-transform hover:scale-110 hover:shadow-accent/40 active:scale-95">
+          <User className="w-7 h-7 text-white" />
         </div>
       )}
     </div>
@@ -535,15 +548,13 @@ export const MessageBubble = React.memo(
 
 export const TypingIndicator = React.memo(function TypingIndicator() {
   return (
-    <div className="flex gap-4 justify-start animate-fade-up">
-      <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-sm animate-pulse">
-        <Bot className="w-4.5 h-4.5 text-primary" />
+    <div className="flex gap-6 justify-start animate-fade-up py-4">
+      <div className="w-14 h-14 rounded-[20px] bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-xl animate-pulse">
+        <Sprout className="w-7 h-7 text-primary" />
       </div>
-      <div className="bg-card/80 border border-border/50 rounded-3xl rounded-tl-none px-6 py-4 backdrop-blur-md shadow-sm">
-        <div className="flex items-center gap-2">
-           <span className="text-[10px] font-bold text-muted-foreground/50 tracking-widest uppercase">Streaming</span>
-           <AnimatedDots />
-        </div>
+      <div className="bg-secondary/30 border border-border/40 rounded-[32px] rounded-tl-none px-8 py-6 backdrop-blur-xl shadow-2xl flex items-center gap-4">
+         <span className="text-[11px] font-black text-primary/50 tracking-[0.3em] uppercase">Pollination in Progress</span>
+         <AnimatedDots />
       </div>
     </div>
   );

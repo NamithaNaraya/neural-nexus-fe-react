@@ -1,33 +1,34 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, KeyRound, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, KeyRound, Loader2, ShieldCheck, Lock, Fingerprint } from 'lucide-react';
 import { Input, Label } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { authService } from '../../../services/authService';
+import { cn } from '../../../utils/cn';
 
 function PasswordField({ label, value, onChange, minLength, hint }) {
   const [visible, setVisible] = useState(false);
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <Label>{label}</Label>
-        {hint ? <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/60">{hint}</span> : null}
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3 px-1">
+        <Label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/60">{label}</Label>
+        {hint ? <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">{hint}</span> : null}
       </div>
-      <div className="relative">
+      <div className="relative group">
         <Input
           type={visible ? 'text' : 'password'}
           value={value}
           onChange={onChange}
           minLength={minLength}
-          className="h-11 rounded-xl pr-11"
+          className="h-12 rounded-[20px] bg-secondary/10 border-border/15 pr-12 font-bold focus:ring-4 focus:ring-primary/10 transition-all duration-300"
         />
         <button
           type="button"
           onClick={() => setVisible((current) => !current)}
-          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted/70 hover:text-foreground"
+          className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[14px] text-muted-foreground/30 transition-all hover:bg-primary/10 hover:text-primary group-focus-within:text-primary/60"
           aria-label={visible ? `Hide ${label}` : `Show ${label}`}
         >
-          {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {visible ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
         </button>
       </div>
     </div>
@@ -46,67 +47,75 @@ export function PasswordCard() {
     if (saving) return;
 
     if (newPassword !== confirmPassword) {
-      setStatus('New password and confirm password must match.');
+      setStatus('Verification failed: Neural signatures do not match.');
       return;
     }
 
     setSaving(true);
     try {
       const response = await authService.changePassword(currentPassword, newPassword);
-      setStatus(response?.message || 'Password updated successfully.');
+      setStatus(response?.message || 'Cipher matrix updated successfully.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
-      setStatus(error.response?.data?.detail || 'Password change failed.');
+      setStatus(error.response?.data?.detail || 'Handshake failed: Root access denied.');
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <section className="rounded-[24px] border border-border/60 bg-card/82 p-4 shadow-[0_18px_46px_-36px_rgba(15,23,42,0.3)] backdrop-blur-xl">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <KeyRound className="h-4.5 w-4.5" />
+    <section className="rounded-[32px] border border-border/20 bg-secondary/15 p-8 shadow-[0_32px_64px_-16px_rgba(45,58,40,0.1)] backdrop-blur-[40px] ring-1 ring-white/10">
+      <div className="flex items-center gap-5">
+        <div className="flex h-14 w-14 items-center justify-center rounded-[22px] bg-primary/10 border border-primary/20 text-primary shadow-inner">
+          <Fingerprint className="h-7 w-7" />
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/80">Password</p>
-          <h2 className="text-lg font-semibold">Change password</h2>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Encrypted Roots</p>
+          <h2 className="text-xl font-black text-foreground uppercase tracking-tight">Cipher Matrix</h2>
         </div>
       </div>
 
-      <div className="mt-4 rounded-[20px] border border-primary/15 bg-gradient-to-br from-primary/[0.06] to-background/90 px-4 py-3">
-        <p className="text-xs font-medium text-foreground">Use a fresh password you do not reuse elsewhere.</p>
+      <div className="mt-8 rounded-[24px] border border-primary/20 bg-primary/5 p-6 shadow-inner ring-1 ring-primary/5">
+         <div className="flex items-start gap-4">
+            <ShieldCheck className="h-5 w-5 text-primary/60 shrink-0 mt-1" />
+            <p className="text-[13px] font-bold text-foreground/80 leading-relaxed tracking-tight">Utilize a unique biometric cipher. Ensure your roots are protected across all distributed ecosystems.</p>
+         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-3 space-y-3 rounded-[22px] border border-border/50 bg-background/72 p-4">
+      <form onSubmit={handleSubmit} className="mt-8 space-y-6 rounded-[32px] border border-border/10 bg-white/40 p-8 shadow-xl">
         <PasswordField
-          label="Current password"
+          label="Current Root Cipher"
           value={currentPassword}
           onChange={(event) => setCurrentPassword(event.target.value)}
         />
+        <div className="h-px bg-border/5" />
         <PasswordField
-          label="New password"
+          label="Fresh Neural Sequence"
           value={newPassword}
           onChange={(event) => setNewPassword(event.target.value)}
           minLength={3}
-          hint="Min. 3 chars"
+          hint="Strength: High"
         />
         <PasswordField
-          label="Confirm password"
+          label="Verify Sequence"
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
           minLength={3}
         />
-        <Button type="submit" variant="gradient" className="mt-2 h-11 w-full gap-2 rounded-xl" disabled={saving || !currentPassword || !newPassword || !confirmPassword}>
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-          Update password
+        <Button 
+            type="submit" 
+            className="mt-4 h-14 w-full gap-3 rounded-[22px] bg-primary text-white font-black uppercase tracking-[0.15em] shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all text-[12px]" 
+            disabled={saving || !currentPassword || !newPassword || !confirmPassword}
+        >
+          {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Lock className="h-5 w-5" />}
+          Re-Cipher Roots
         </Button>
       </form>
 
       {status && (
-        <div role="status" aria-live="polite" className="mt-4 rounded-2xl border border-border/50 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+        <div role="status" aria-live="polite" className="mt-6 rounded-[20px] border border-border/10 bg-secondary/10 px-6 py-4 text-[12px] font-black uppercase tracking-widest text-muted-foreground/60 text-center animate-fade-in shadow-inner">
           {status}
         </div>
       )}

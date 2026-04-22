@@ -14,41 +14,45 @@ import {
   LogOut,
   Folder,
   Search,
-  Sparkles,
-  HelpCircle,
   Palette,
+  Terminal,
+  Activity,
+  Cpu,
+  HelpCircle,
+  Sprout,
+  Leaf,
 } from 'lucide-react';
 import nessoLogo from '../../assets/logo.png';
 
 const navSections = [
   {
-    label: 'Main',
+    label: 'Workspace',
     items: [
       { icon: Folder, label: 'Folders', path: '/folders' },
       { icon: Network, label: 'Knowledge Graph', path: '/graph' },
-      { icon: Palette, label: 'Visualize Data', path: '/visualize' },
-      { icon: MessageSquare, label: 'Chat', path: '/chat', badge: 'RAG+Web' },
+      { icon: Palette, label: 'Visualization', path: '/visualize' },
+      { icon: Sprout, label: 'Botany AI', path: '/chat', badge: 'RAG' },
     ],
   },
   {
-    label: 'Data',
+    label: 'Resources',
     items: [
-      { icon: Upload, label: 'Upload', path: '/upload' },
+      { icon: Upload, label: 'Ingest Data', path: '/upload' },
       { icon: Search, label: 'Browse Graph', path: '/browse' },
     ],
   },
   {
-    label: 'Intelligence',
+    label: 'Biosphere',
     items: [
-      { icon: Sparkles, label: 'ML Prediction', path: '/ml-prediction' },
+      { icon: Leaf, label: 'Growth ML', path: '/ml-prediction' },
       { icon: BarChart3, label: 'Analytics', path: '/analytics' },
     ],
   },
   {
-    label: 'System',
+    label: 'Core',
     items: [
       { icon: Settings, label: 'Settings', path: '/settings' },
-      { icon: HelpCircle, label: 'Help', path: '/help' },
+      { icon: HelpCircle, label: 'Help Center', path: '/help' },
     ],
   },
 ];
@@ -61,21 +65,39 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'h-screen flex flex-col border-r border-border/40 transition-all duration-300 ease-in-out relative z-30',
-        'bg-gradient-to-b from-card/95 via-card/90 to-card/80 backdrop-blur-2xl',
+        'h-screen flex flex-col border-r border-white/5 transition-all duration-500 ease-[cubic-bezier(0.33,1,0.68,1)] relative z-[130]',
+        'bg-white/10 dark:bg-black/30 backdrop-blur-[60px] shadow-[4px_0_24px_rgba(45,58,40,0.05)]',
         expanded ? 'w-64' : 'w-[72px]'
       )}
     >
+      {/* Branding Header */}
+      <div className={cn(
+        'h-20 flex items-center border-b border-border/20 px-6 overflow-hidden transition-all duration-300',
+        !expanded && 'px-0 justify-center'
+      )}>
+        <div className="flex items-center gap-3.5 shrink-0">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary shadow-xl shadow-primary/30 ring-4 ring-primary/10 animate-float">
+            <Sprout className="h-6 w-6 text-white" />
+          </div>
+          {expanded && (
+            <div className="flex flex-col animate-scale-in">
+              <span className="text-[14px] font-black tracking-tighter text-foreground leading-none">NESSO</span>
+              <span className="text-[9px] font-black text-primary/70 tracking-[0.25em] uppercase mt-0.5">Botanica</span>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Navigation */}
-      <nav aria-label="Primary" className="flex-1 overflow-y-auto overflow-x-hidden py-6 px-3 space-y-6 scrollbar-thin">
+      <nav aria-label="Primary" className="flex-1 overflow-hidden overflow-x-visible py-8 px-4 space-y-9">
         {navSections.map((section) => (
-          <div key={section.label} className="space-y-1">
+          <div key={section.label} className="space-y-3">
             {/* Section label */}
             <div className={cn(
-              'px-3 mb-2 transition-all duration-200',
-              expanded ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden mb-0'
+              'px-3 mb-2 transition-all duration-300',
+              expanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 h-0 overflow-hidden mb-0'
             )}>
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60">
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
                 {section.label}
               </span>
             </div>
@@ -90,42 +112,37 @@ export function Sidebar() {
                   to={item.path}
                   aria-label={item.label}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative group',
+                    'flex items-center gap-4 px-3 py-3.5 rounded-2xl text-[13px] font-black transition-all duration-500 relative group',
                     isActive
-                      ? 'bg-primary/10 text-primary shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
-                    !expanded && 'justify-center px-0'
+                      ? 'bg-primary text-white shadow-[0_12px_24px_-8px_rgba(45,58,40,0.2)]'
+                      : 'text-muted-foreground/40 hover:text-primary hover:bg-primary/5',
+                    !expanded && 'px-0 mx-0 justify-center w-11 mx-auto'
                   )}
                 >
-                  {/* Active indicator */}
-                  {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-primary shadow-sm shadow-primary/50" />
-                  )}
-
                   <item.icon className={cn(
-                    'w-5 h-5 shrink-0 transition-colors',
-                    isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+                    'w-5.5 h-5.5 shrink-0 transition-all duration-500',
+                    isActive ? 'text-white scale-100' : 'text-muted-foreground/40 group-hover:text-primary group-hover:scale-110'
                   )} />
 
                   <span className={cn(
-                    'transition-all duration-200 whitespace-nowrap',
-                    expanded ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'
+                    'transition-all duration-500 whitespace-nowrap tracking-tight',
+                    expanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 w-0 overflow-hidden hidden'
                   )}>
                     {item.label}
                   </span>
 
                   {/* Badge */}
                   {item.badge && expanded && (
-                    <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary/15 text-primary">
+                    <span className="ml-[2px] text-[8px] font-black px-1.5 py-0.5 rounded-md bg-white/20 text-white backdrop-blur-sm uppercase tracking-tighter">
                       {item.badge}
                     </span>
                   )}
 
                   {/* Tooltip when collapsed */}
                   {!expanded && (
-                    <div className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg bg-popover border border-border shadow-xl text-sm font-medium text-popover-foreground opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 pointer-events-none">
+                    <div className="absolute left-full ml-4 px-3 py-2 rounded-xl bg-white/90 dark:bg-black/90 backdrop-blur-xl border border-white/20 text-primary shadow-2xl text-[12px] font-black uppercase tracking-widest opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-500 translate-x-[-10px] group-hover:translate-x-0 z-[200] pointer-events-none whitespace-nowrap">
                       {item.label}
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 rotate-45 bg-popover border-l border-b border-border" />
+                      <div className="absolute left-[-4px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rotate-45 bg-white/90 dark:bg-black/90 border-l border-b border-white/20" />
                     </div>
                   )}
                 </NavLink>
@@ -136,37 +153,38 @@ export function Sidebar() {
       </nav>
 
       {/* User Profile Section */}
-      <div className="border-t border-border/30 p-3 shrink-0">
+      <div className="border-t border-border/20 p-5 shrink-0 bg-secondary/10">
         <div className={cn(
-          'flex items-center gap-3 p-2 rounded-xl hover:bg-accent/30 transition-all duration-200 cursor-pointer',
-          !expanded && 'justify-center p-2'
+          'flex items-center gap-4 p-2.5 rounded-[20px] hover:bg-primary/5 transition-all duration-300 cursor-pointer group/profile',
+          !expanded && 'justify-center p-1'
         )}>
           {/* Avatar */}
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white shadow-sm shrink-0">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-gradient-to-br from-primary to-accent text-sm font-black text-white shadow-lg shrink-0 group-hover/profile:scale-110 transition-transform duration-500">
             {user?.email?.[0]?.toUpperCase() || 'U'}
           </div>
 
           <div className={cn(
-            'flex-1 min-w-0 transition-all duration-200',
-            expanded ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'
+            'flex-1 min-w-0 transition-all duration-300',
+            expanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'
           )}>
-            <p className="text-sm font-medium truncate">{user?.email || 'User'}</p>
-            <p className="text-[10px] text-muted-foreground capitalize">{user?.role || 'user'}</p>
+            <p className="text-[12px] font-black truncate tracking-tight text-foreground">{user?.email || 'System Operator'}</p>
+            <p className="text-[9px] font-black text-primary uppercase tracking-widest mt-0.5">{user?.role || 'Botanist/Admin'}</p>
           </div>
 
           {expanded && (
             <button
               onClick={logout}
               type="button"
-              aria-label="Sign out"
-              className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+              aria-label="Secure exit"
+              className="p-2.5 rounded-xl hover:bg-destructive/10 text-muted-foreground/60 hover:text-destructive transition-all duration-300 group/exit"
               title="Sign out"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-5 h-5 group-hover/exit:rotate-12 transition-transform" />
             </button>
           )}
         </div>
       </div>
+
 
       {/* Collapse/Expand Toggle */}
       <button
@@ -174,9 +192,9 @@ export function Sidebar() {
         type="button"
         aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
         className={cn(
-          'absolute -right-3 top-20 w-6 h-6 rounded-full border border-border/60 bg-card flex items-center justify-center',
-          'text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200',
-          'shadow-md hover:shadow-lg z-40'
+          'absolute -right-3 top-[68px] w-6.5 h-6.5 rounded-full border border-white/10 bg-white dark:bg-black/50 flex items-center justify-center',
+          'text-primary hover:scale-110 active:scale-95 transition-all duration-500',
+          'shadow-xl shadow-primary/5 z-[150] backdrop-blur-xl'
         )}
       >
         {expanded ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}

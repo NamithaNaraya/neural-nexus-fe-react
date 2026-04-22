@@ -4,69 +4,79 @@
 
 @layer base {
   :root {
-    /* Global semantic theme tokens.
-       Change these variables for app-wide light-mode color behavior. */
-    --background: 120 24% 98%;
-    --foreground: 162 18% 24%;
+    /* Global semantic theme tokens - Botanical Nexus */
+    --background: 45 40% 98%;
+    /* Soft Bone / Paper */
+    --foreground: 96 40% 12%;
+    /* Deep Forest */
     --card: 0 0% 100%;
-    --card-foreground: 162 18% 24%;
+    --card-foreground: 96 40% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 162 18% 24%;
-    --primary: 154 15% 48%;
+    --popover-foreground: 96 40% 12%;
+    --primary: 96 25% 33%;
+    /* Moss Green */
     --primary-foreground: 0 0% 100%;
-    --secondary: 126 26% 93%;
-    --secondary-foreground: 162 18% 24%;
-    --muted: 128 20% 95%;
-    --muted-foreground: 210 12% 44%;
-    --accent: 262 38% 78%;
-    --accent-foreground: 270 20% 24%;
-    --accent-soft: 200 38% 88%;
-    --accent-warm: 18 60% 88%;
-    --destructive: 344 39% 66%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 154 12% 86%;
-    --input: 132 18% 84%;
-    --ring: 273 34% 71%;
-    --radius: 1rem;
-    --sidebar-width: 16rem;
-    --sidebar-collapsed: 4.5rem;
-    --success: 132 21% 58%;
-    --warning: 286 30% 77%;
-    --info: 273 34% 71%;
-    --bg-glow-primary: 132 21% 58%;
-    --bg-glow-accent: 262 38% 78%;
-    --bg-glow-soft: 284 28% 82%;
+    --secondary: 90 20% 95%;
+    /* Soft Sage Tint */
+    --secondary-foreground: 96 40% 12%;
+    --muted: 90 20% 93%;
+    --muted-foreground: 96 20% 40%;
+    --accent: 76 18% 62%;
+    /* Sage Accent */
+    --accent-foreground: 96 40% 12%;
+    --accent-soft: 140 25% 94%;
+    /* Mist Green */
+    --accent-warm: 28 65% 94%;
+    /* Clay Tint */
+    --destructive: 5 80% 40%;
+    /* Rowan Red */
+    --destructive-foreground: 45 40% 98%;
+    --border: 90 15% 85%;
+    --input: 90 15% 85%;
+    --ring: 96 25% 33%;
+    --radius: 1.25rem;
+    /* More organic rounded corners */
+    --sidebar-width: 17rem;
+    --sidebar-collapsed: 5rem;
+    --success: 96 25% 33%;
+    --warning: 28 65% 45%;
+    --info: 168 20% 58%;
+    --bg-glow-primary: 96 25% 33%;
+    --bg-glow-accent: 76 18% 62%;
+    --bg-glow-soft: 28 65% 85%;
   }
 
   .dark {
-    /* Dark-mode counterparts for the same semantic theme system. */
-    --background: 152 22% 11%;
-    --foreground: 120 18% 91%;
-    --card: 154 18% 14%;
-    --card-foreground: 120 18% 91%;
-    --popover: 154 18% 14%;
-    --popover-foreground: 120 18% 91%;
-    --primary: 154 18% 62%;
-    --primary-foreground: 154 30% 12%;
-    --secondary: 154 16% 19%;
-    --secondary-foreground: 120 18% 91%;
-    --muted: 156 14% 17%;
-    --muted-foreground: 138 10% 73%;
-    --accent: 262 40% 72%;
-    --accent-foreground: 270 20% 18%;
-    --accent-soft: 200 28% 32%;
-    --accent-warm: 18 35% 30%;
-    --destructive: 343 32% 47%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 150 14% 28%;
-    --input: 150 14% 28%;
-    --ring: 262 40% 72%;
-    --success: 132 25% 70%;
-    --warning: 286 28% 70%;
-    --info: 272 33% 76%;
-    --bg-glow-primary: 132 25% 70%;
-    --bg-glow-accent: 262 40% 72%;
-    --bg-glow-soft: 286 24% 68%;
+    /* Dark-mode counterparts - Botanical Dark */
+    --background: 96 40% 5%;
+    /* Deep Dark Forest */
+    --foreground: 45 40% 98%;
+    --card: 96 40% 7%;
+    --card-foreground: 45 40% 98%;
+    --popover: 96 40% 7%;
+    --popover-foreground: 45 40% 98%;
+    --primary: 96 25% 55%;
+    /* Brighter Moss */
+    --primary-foreground: 96 40% 10%;
+    --secondary: 96 20% 12%;
+    --secondary-foreground: 45 40% 98%;
+    --muted: 96 20% 12%;
+    --muted-foreground: 96 15% 65%;
+    --accent: 76 18% 50%;
+    --accent-foreground: 45 40% 98%;
+    --accent-soft: 96 20% 18%;
+    --accent-warm: 28 30% 18%;
+    --destructive: 5 60% 45%;
+    --destructive-foreground: 45 40% 98%;
+    --border: 96 20% 18%;
+    --input: 96 20% 18%;
+    --ring: 96 25% 55%;
+    --success: 96 25% 55%;
+    --warning: 28 65% 50%;
+    --info: 168 20% 58%;
+    --bg-glow-primary: 96 25% 33%;
+    --bg-glow-accent: 76 18% 62%;
+    --bg-glow-soft: 28 65% 20%;
   }
 }
 
@@ -82,7 +92,7 @@
   select,
   summary,
   [role='button'] {
-    transition-property: color, background-color, border-color;
+    transition-property: color, background-color, border-color, box-shadow, transform;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 200ms;
   }
@@ -95,6 +105,8 @@
   }
 
   html {
+    font-size: 14px;
+    /* Scaled down to 14px for a professional, high-density UI */
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -103,25 +115,45 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-weight: 500;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.0125em;
     text-rendering: optimizeLegibility;
-    background-image:
-      radial-gradient(circle at top left, hsl(var(--bg-glow-primary) / 0.08), transparent 28%),
-      radial-gradient(circle at top right, hsl(var(--bg-glow-accent) / 0.1), transparent 26%),
-      radial-gradient(circle at bottom right, hsl(var(--bg-glow-soft) / 0.08), transparent 24%);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
   }
 
-  html.dark {
-    color-scheme: dark;
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -20;
+    background:
+      radial-gradient(circle at 0% 0%, hsl(var(--primary) / 0.12) 0%, transparent 40%),
+      radial-gradient(circle at 100% 0%, hsl(var(--accent) / 0.15) 0%, transparent 40%),
+      radial-gradient(circle at 100% 100%, hsl(var(--primary) / 0.1) 0%, transparent 40%),
+      radial-gradient(circle at 0% 100%, hsl(var(--accent-warm) / 0.15) 0%, transparent 40%),
+      hsl(var(--background));
+    opacity: 0.95;
   }
 
-  .dark body {
-    background-image:
-      radial-gradient(circle at top left, hsl(var(--bg-glow-primary) / 0.08), transparent 30%),
-      radial-gradient(circle at top right, hsl(var(--bg-glow-accent) / 0.1), transparent 26%),
-      radial-gradient(circle at bottom right, hsl(var(--bg-glow-soft) / 0.08), transparent 22%);
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -19;
+    opacity: 0.025;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+
+  .dark body::before {
+    background:
+      radial-gradient(circle at 0% 0%, hsl(var(--primary) / 0.25) 0%, transparent 50%),
+      radial-gradient(circle at 100% 0%, hsl(var(--accent) / 0.15) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, hsl(var(--background)) 0%, transparent 100%),
+      hsl(96 40% 2%);
   }
 
   :focus-visible {
@@ -130,8 +162,8 @@
   }
 
   ::selection {
-    background: hsl(var(--primary) / 0.2);
-    color: hsl(var(--foreground));
+    background: hsl(var(--primary) / 0.15);
+    color: hsl(var(--primary));
   }
 
   h1,
@@ -140,15 +172,17 @@
   h4,
   h5,
   h6 {
-    font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', 'Outfit', sans-serif;
     font-weight: 700;
-    letter-spacing: -0.025em;
+    /* Slightly less heavy than 800 for better small-scale legibility */
+    letter-spacing: -0.04em;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* Custom scrollbar — works on both themes */
+  /* Custom scrollbar */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
@@ -156,11 +190,11 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/15 rounded-full;
+    @apply bg-muted-foreground/20 rounded-full border-2 border-transparent bg-clip-padding;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/30;
+    @apply bg-muted-foreground/40;
   }
 }
 
@@ -334,8 +368,50 @@
   animation: shimmer 2s infinite;
 }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+@keyframes float-complex {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+  }
+
+  33% {
+    transform: translate(4%, -6%) scale(1.1) rotate(2deg);
+  }
+
+  66% {
+    transform: translate(-3%, 4%) scale(0.95) rotate(-1deg);
+  }
+}
+
+.animate-float-complex {
+  animation: float-complex 20s ease-in-out infinite;
+}
+
+@keyframes morph {
+
+  0%,
+  100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+
+  50% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+  }
+}
+
+.animate-morph {
+  animation: morph 12s ease-in-out infinite;
+}
+
+.glass-card {
+  @apply bg-white/40 backdrop-blur-[60px] border border-white/40;
+  box-shadow: 0 32px 64px -16px rgba(45, 58, 40, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.dark .glass-card {
+  @apply bg-black/40 backdrop-blur-[60px] border border-white/5;
+  box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .animate-pulse-glow {
@@ -420,6 +496,33 @@
 
 .stagger-5 {
   animation-delay: 250ms;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .custom-scrollbar-horizontal::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .custom-scrollbar-horizontal::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar-horizontal::-webkit-scrollbar-thumb {
+    @apply bg-primary/20 rounded-full;
+  }
+
+  .custom-scrollbar-horizontal::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary/40;
+  }
 }
 
 .stagger-6 {

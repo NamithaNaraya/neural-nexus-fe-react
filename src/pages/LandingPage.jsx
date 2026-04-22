@@ -85,69 +85,69 @@ export default function LandingPage() {
         </div>
 
         <section className="mx-auto flex min-h-screen w-full max-w-[1380px] flex-col px-6 pb-10 pt-6 lg:px-10">
-          <header className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-card/85 shadow-[0_16px_40px_-28px_hsl(var(--primary)/0.35)] backdrop-blur-xl">
-                <BrainCircuit className="h-6 w-6 text-primary" />
+          <header className="flex items-center justify-between gap-4 py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-13 w-13 items-center justify-center rounded-[20px] bg-primary shadow-2xl shadow-primary/40 ring-4 ring-primary/20">
+                <BrainCircuit className="h-7 w-7 text-white" />
               </div>
-              <div>
-                <p className="text-xl font-bold tracking-tight">NESSO Botanica</p>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Neural knowledge platform</p>
+              <div className="space-y-0.5">
+                <p className="text-2xl font-black tracking-tight leading-none text-foreground">Neural Nexus</p>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-primary font-black">Next-Gen Intelligence</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button as={Link} to="/login" variant="outline" className="rounded-2xl px-5">
+            <div className="flex items-center gap-3">
+              <Button as={Link} to="/login" variant="outline" className="rounded-2xl px-6 h-11 font-bold border-border/60">
                 Sign in
               </Button>
-              <Button as={Link} to="/login" variant="gradient" className="rounded-2xl px-5">
-                Open workspace
+              <Button as={Link} to="/login" variant="default" className="rounded-2xl px-6 h-11 font-black shadow-lg shadow-primary/25">
+                GET STARTED
               </Button>
             </div>
           </header>
 
-          <div className="grid flex-1 items-center gap-12 py-10 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/18 bg-card/70 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-primary shadow-sm backdrop-blur-xl">
-                <Sparkles className="h-3.5 w-3.5" />
-                Pastel neural workspace
+          <div className="grid flex-1 items-center gap-16 py-12 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-10">
+              <div className="inline-flex items-center gap-2.5 rounded-full border border-primary/20 bg-primary/5 px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] text-primary shadow-sm backdrop-blur-xl">
+                <Sparkles className="h-4 w-4" />
+                V2.0 NEURAL INDIGO CORE
               </div>
 
-              <div className="space-y-5">
-                <h1 className="max-w-3xl text-5xl font-bold leading-[1.02] tracking-[-0.04em] text-foreground md:text-6xl">
-                  Build calm, connected intelligence from your documents and graph data.
+              <div className="space-y-6">
+                <h1 className="max-w-3xl text-6xl font-black leading-[0.98] tracking-[-0.05em] text-foreground xl:text-7xl">
+                  Connect your <span className="text-primary">knowledge</span> dots with ease.
                 </h1>
-                <p className="max-w-2xl text-lg font-medium leading-8 text-muted-foreground">
-                  A smoother knowledge platform for ingestion, exploration, chat, and analytics. Structured enough for enterprise work, soft enough to feel modern and effortless.
+                <p className="max-w-2xl text-xl font-medium leading-relaxed text-muted-foreground/80">
+                   The ultimate neural workspace for data-driven teams. Transform fragmented documents and knowledge graphs into an interactive, high-performance ecosystem.
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <Button as={Link} to="/login" variant="gradient" className="h-12 rounded-2xl px-6 text-sm font-semibold">
-                  Launch platform
-                  <ArrowRight className="ml-2 h-4 w-4" />
+              <div className="flex flex-wrap items-center gap-4">
+                <Button as={Link} to="/login" variant="default" className="h-14 rounded-2xl px-8 text-base font-black tracking-tight shadow-xl shadow-primary/30 active:scale-95 group">
+                  LAUNCH WORKSPACE
+                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Button>
-                <Button as={Link} to="/login" variant="outline" className="h-12 rounded-2xl px-6 text-sm font-semibold">
-                  Explore login
+                <Button as={Link} to="/login" variant="outline" className="h-14 rounded-2xl px-8 text-base font-black border-border/60 hover:bg-secondary transition-all">
+                  LEARN MORE
                 </Button>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-3">
                 {quickStats.map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-[1.75rem] border border-border/60 bg-card/72 px-5 py-4 shadow-[0_24px_70px_-48px_hsl(var(--primary)/0.22)] backdrop-blur-xl"
+                    className="rounded-[32px] border border-border/40 bg-card/40 p-6 shadow-sm backdrop-blur-xl group hover:border-primary/30 transition-all duration-500"
                   >
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">{item.label}</p>
-                    <p className="mt-2 text-xl font-bold tracking-tight">{item.value}</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/60 transition-colors group-hover:text-primary">{item.label}</p>
+                    <p className="mt-2 text-2xl font-black tracking-tight text-foreground">{item.value}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="relative">
-              <div className="hero-surface-brand relative overflow-hidden rounded-[2.5rem] border border-border/70 p-6 shadow-[0_32px_120px_-60px_hsl(var(--primary)/0.3)]">
-                <div className="absolute inset-0 opacity-80">
+              <div className="relative overflow-hidden rounded-[3rem] border border-border/50 bg-secondary/30 p-8 shadow-2xl ring-1 ring-white/10">
+                <div className="absolute inset-0 opacity-40">
                   <svg viewBox="0 0 100 100" className="h-full w-full">
                     {neuralLinks.map(([x1, y1, x2, y2], index) => (
                       <line
@@ -156,8 +156,8 @@ export default function LandingPage() {
                         y1={y1}
                         x2={x2}
                         y2={y2}
-                        stroke="hsl(var(--primary) / 0.24)"
-                        strokeWidth="0.45"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth="0.5"
                       />
                     ))}
                   </svg>
@@ -167,40 +167,40 @@ export default function LandingPage() {
                   {neuralNodes.map((node, index) => (
                     <div
                       key={node.id}
-                      className="absolute rounded-full border border-white/60 bg-card/85 shadow-[0_12px_35px_-16px_hsl(var(--primary)/0.45)] backdrop-blur-md animate-float"
+                      className="absolute rounded-full border-2 border-white/80 bg-white shadow-lg animate-float"
                       style={{
                         left: node.x,
                         top: node.y,
-                        width: `${node.size * 4}px`,
-                        height: `${node.size * 4}px`,
+                        width: `${node.size * 3.5}px`,
+                        height: `${node.size * 3.5}px`,
                         transform: 'translate(-50%, -50%)',
-                        animationDelay: `${index * 0.35}s`,
+                        animationDelay: `${index * 0.4}s`,
                       }}
                     >
-                      <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-primary/16 to-accent/14">
-                        <div className="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_18px_hsl(var(--primary)/0.45)]" />
+                      <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/10">
+                        <div className="h-2 w-2 rounded-full bg-primary" />
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="relative z-10 flex min-h-[28rem] flex-col justify-between">
-                  <div className="ml-auto max-w-[18rem] rounded-[1.75rem] border border-border/60 bg-card/78 p-5 backdrop-blur-xl">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">Neural canvas</p>
-                    <h2 className="mt-3 text-2xl font-bold tracking-tight">Graph, chat, and insight in one flow.</h2>
-                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                      Soft visual energy, strong information structure, and a theme system that stays consistent across the product.
+                <div className="relative z-10 flex min-h-[30rem] flex-col justify-between">
+                  <div className="ml-auto max-w-[20rem] rounded-[32px] border border-border/50 bg-white/40 p-6 shadow-xl backdrop-blur-3xl ring-1 ring-white/20">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">CORE ENGINE</p>
+                    <h2 className="mt-3 text-2xl font-black tracking-tight leading-tight text-foreground">Graph, chat, and insight in one flow.</h2>
+                    <p className="mt-4 text-sm leading-relaxed text-muted-foreground/80 font-medium">
+                      Neural Nexus provides a seamless interface between unstructured data and structured relational intelligence.
                     </p>
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-3">
                     {highlights.map((item) => (
-                      <div key={item.title} className="rounded-[1.5rem] border border-border/60 bg-card/76 p-4 backdrop-blur-xl">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-                          <item.icon className="h-5 w-5" />
+                      <div key={item.title} className="rounded-[24px] border border-border/60 bg-white/70 p-5 backdrop-blur-xl shadow-sm">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-white shadow-md">
+                          <item.icon className="h-5.5 w-5.5" />
                         </div>
-                        <h3 className="mt-4 text-base font-bold tracking-tight">{item.title}</h3>
-                        <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                        <h3 className="mt-4 text-[15px] font-black tracking-tight text-foreground">{item.title}</h3>
+                        <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground/70 font-medium">{item.description}</p>
                       </div>
                     ))}
                   </div>
@@ -209,17 +209,17 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <section className="grid gap-4 pb-6 md:grid-cols-3">
+          <section className="grid gap-6 pb-12 md:grid-cols-3">
             {featureCards.map((item) => (
               <div
                 key={item.title}
-                className="rounded-[2rem] border border-border/60 bg-card/74 p-6 shadow-[0_24px_70px_-48px_hsl(var(--primary)/0.2)] backdrop-blur-xl"
+                className="rounded-[36px] border border-border/60 bg-card/60 p-8 shadow-xl backdrop-blur-xl group hover:border-primary/40 transition-all duration-500"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/14 text-accent">
-                  <item.icon className="h-6 w-6" />
+                <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-secondary text-primary transition-transform group-hover:scale-110 shadow-sm border border-border/20">
+                  <item.icon className="h-6.5 w-6.5" />
                 </div>
-                <h3 className="mt-5 text-xl font-bold tracking-tight">{item.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-muted-foreground">{item.text}</p>
+                <h3 className="mt-6 text-2xl font-black tracking-tight text-foreground">{item.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground font-medium">{item.text}</p>
               </div>
             ))}
           </section>

@@ -43,55 +43,58 @@ function HomeRoute() {
     </Suspense>
   );
 }
+import { motion, AnimatePresence } from 'framer-motion';
 
 function PageTransition({ children }) {
-  return <div className="h-full w-full">{children}</div>;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+      className="flex flex-col h-full w-full overflow-hidden"
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 function AppRouteFallback() {
   return (
-    <div className="space-y-5 pb-6">
-      <div className="rounded-[28px] border border-border/50 bg-card/70 p-6 shadow-sm">
-        <div className="space-y-3">
-          <div className="h-4 w-28 rounded-full animate-skeleton-shine" />
-          <div className="h-9 w-72 max-w-[70%] rounded-2xl animate-skeleton-shine" />
-          <div className="h-4 w-full max-w-2xl rounded-full animate-skeleton-shine" />
+    <div className="space-y-6 pb-6 animate-pulse">
+      <div className="rounded-[32px] border border-border/40 bg-card/40 p-10 shadow-sm ring-1 ring-black/5">
+        <div className="space-y-4">
+          <div className="h-4 w-32 rounded-full bg-primary/10" />
+          <div className="h-10 w-96 max-w-[80%] rounded-2xl bg-secondary" />
+          <div className="h-4 w-full max-w-2xl rounded-full bg-muted/20" />
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="space-y-3">
-          <div className="h-11 w-full rounded-2xl animate-skeleton-shine" />
-          {[1, 2, 3, 4].map((item) => (
-            <div key={item} className="rounded-[24px] border border-border/50 bg-card/70 p-4 shadow-sm">
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-2xl animate-skeleton-shine" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 w-2/3 rounded-full animate-skeleton-shine" />
-                  <div className="h-3 w-1/2 rounded-full animate-skeleton-shine" />
+      <div className="grid gap-6 xl:grid-cols-[400px_minmax(0,1fr)]">
+        <div className="space-y-4">
+          <div className="h-14 w-full rounded-2xl bg-secondary" />
+          {[1, 2, 3].map((item) => (
+            <div key={item} className="rounded-[28px] border border-border/30 bg-card/60 p-6">
+              <div className="flex items-start gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-secondary" />
+                <div className="flex-1 space-y-3">
+                  <div className="h-5 w-2/3 rounded-full bg-muted/20" />
+                  <div className="h-3 w-1/2 rounded-full bg-muted/10" />
                 </div>
-              </div>
-              <div className="mt-4 flex gap-3">
-                <div className="h-8 w-20 rounded-xl animate-skeleton-shine" />
-                <div className="h-8 w-24 rounded-xl animate-skeleton-shine" />
               </div>
             </div>
           ))}
         </div>
 
-        <div className="rounded-[28px] border border-border/50 bg-card/70 p-5 shadow-sm">
-          <div className="grid grid-cols-3 gap-4">
+        <div className="rounded-[32px] border border-border/40 bg-card/40 p-8 shadow-sm ring-1 ring-black/5">
+          <div className="grid grid-cols-3 gap-5">
             {[1, 2, 3].map((item) => (
-              <div key={item} className="rounded-[24px] border border-border/40 bg-background/40 p-4">
-                <div className="h-5 w-5 rounded-md animate-skeleton-shine" />
-                <div className="mt-3 h-7 w-16 rounded-full animate-skeleton-shine" />
-                <div className="mt-2 h-3 w-20 rounded-full animate-skeleton-shine" />
-              </div>
+              <div key={item} className="rounded-3xl border border-border/20 bg-secondary/50 p-6 h-32" />
             ))}
           </div>
-          <div className="mt-6 space-y-3">
-            <div className="h-10 w-56 rounded-2xl animate-skeleton-shine" />
-            <div className="h-[260px] w-full rounded-[24px] animate-skeleton-shine" />
+          <div className="mt-8 space-y-4">
+            <div className="h-12 w-64 rounded-2xl bg-secondary" />
+            <div className="h-[300px] w-full rounded-[28px] bg-secondary/30" />
           </div>
         </div>
       </div>
@@ -102,20 +105,22 @@ function AppRouteFallback() {
 function AnimatedRoutes() {
   const location = useLocation();
   return (
-    <Routes location={location} key={location.pathname}>
-      <Route path="/" element={<Navigate to="/folders" replace />} />
-      <Route path="/folders" element={<PageTransition><FoldersPage /></PageTransition>} />
-      <Route path="/graph/*" element={<PageTransition><GraphPage /></PageTransition>} />
-      <Route path="/visualize/*" element={<PageTransition><VisualizeDataPage /></PageTransition>} />
-      <Route path="/chat" element={<PageTransition><ChatPage /></PageTransition>} />
-      <Route path="/upload" element={<PageTransition><UploadPage /></PageTransition>} />
-      <Route path="/browse" element={<PageTransition><BrowsePage /></PageTransition>} />
-      <Route path="/ml-prediction" element={<PageTransition><MLPredictionPage /></PageTransition>} />
-      <Route path="/analytics" element={<PageTransition><AnalyticsPage /></PageTransition>} />
-      <Route path="/settings" element={<PageTransition><SettingsPage /></PageTransition>} />
-      <Route path="/help" element={<PageTransition><HelpPage /></PageTransition>} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <AnimatePresence mode="wait" initial={false}>
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<Navigate to="/folders" replace />} />
+        <Route path="/folders" element={<PageTransition><FoldersPage /></PageTransition>} />
+        <Route path="/graph/*" element={<PageTransition><GraphPage /></PageTransition>} />
+        <Route path="/visualize/*" element={<PageTransition><VisualizeDataPage /></PageTransition>} />
+        <Route path="/chat" element={<PageTransition><ChatPage /></PageTransition>} />
+        <Route path="/upload" element={<PageTransition><UploadPage /></PageTransition>} />
+        <Route path="/browse" element={<PageTransition><BrowsePage /></PageTransition>} />
+        <Route path="/ml-prediction" element={<PageTransition><MLPredictionPage /></PageTransition>} />
+        <Route path="/analytics" element={<PageTransition><AnalyticsPage /></PageTransition>} />
+        <Route path="/settings" element={<PageTransition><SettingsPage /></PageTransition>} />
+        <Route path="/help" element={<PageTransition><HelpPage /></PageTransition>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
   );
 }
 

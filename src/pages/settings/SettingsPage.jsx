@@ -3,30 +3,46 @@ import { ProfileCard } from './components/ProfileCard';
 import { AppearanceCard } from './components/AppearanceCard';
 import { FolderPermissionsCard } from './components/FolderPermissionsCard';
 import { PasswordCard } from './components/PasswordCard';
+import { Settings2, Sliders, ShieldCheck } from 'lucide-react';
+import { Badge } from '../../components/ui/Badge';
 
 export default function SettingsPage() {
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
-      <div className="rounded-[26px] border border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-background/95 to-amber-500/[0.05] px-5 py-4 shadow-[0_18px_46px_-36px_rgba(15,23,42,0.24)]">
-        <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/80">Workspace settings</p>
-          <h1 className="text-2xl font-bold tracking-tight">
-            <span className="gradient-text">Settings</span>
-          </h1>
-          <p className="text-xs text-muted-foreground sm:text-sm">
-            Profile, sharing, password, and appearance in one compact workspace.
+    <div className="flex h-full min-h-0 flex-col gap-8 overflow-hidden pt-4 bg-transparent">
+      {/* Botanical Header */}
+      <div className="flex flex-col gap-4 px-2">
+        <div className="flex items-center gap-3">
+           <div className="p-2.5 rounded-2xl bg-primary/10 backdrop-blur-xl border border-primary/20">
+             <Settings2 className="h-6 w-6 text-primary animate-spin-slow" />
+           </div>
+           <Badge variant="secondary" className="px-5 py-2 text-[10px] bg-primary/5 text-primary border border-primary/20 uppercase tracking-[0.3em] font-black rounded-xl">
+             System Calibration
+           </Badge>
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase">Settings</h1>
+          <p className="max-w-3xl text-[14px] text-muted-foreground/60 font-bold leading-relaxed tracking-tight group-hover:text-muted-foreground/80 transition-colors">
+            Configure your research environment. Orchestrate profile aesthetics, security layers, and data visibility permissions within your neural ecosystem.
           </p>
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-4 overflow-hidden xl:grid-cols-[1.02fr_0.98fr]">
-        <div className="flex min-h-0 flex-col gap-4">
-          <ProfileCard />
-          <FolderPermissionsCard />
+      <div className="grid min-h-0 flex-1 gap-6 overflow-y-auto px-2 pb-10 custom-scrollbar xl:grid-cols-[1.1fr_0.9fr] animate-in fade-in slide-in-from-bottom-8 duration-1000">
+        <div className="flex min-h-0 flex-col gap-6">
+          <div className="animate-in fade-in slide-in-from-left-8 duration-700 delay-100">
+            <ProfileCard />
+          </div>
+          <div className="animate-in fade-in slide-in-from-left-8 duration-700 delay-300">
+            <FolderPermissionsCard />
+          </div>
         </div>
-        <div className="flex min-h-0 flex-col gap-4">
-          <PasswordCard />
-          <AppearanceCard />
+        <div className="flex min-h-0 flex-col gap-6">
+          <div className="animate-in fade-in slide-in-from-right-8 duration-700 delay-200">
+            <PasswordCard />
+          </div>
+          <div className="animate-in fade-in slide-in-from-right-8 duration-700 delay-400">
+            <AppearanceCard />
+          </div>
         </div>
       </div>
     </div>

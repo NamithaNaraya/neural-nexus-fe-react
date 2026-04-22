@@ -15,57 +15,61 @@ export function ChatInput({
   setIsWebSearchEnabled
 }) {
   return (
-    <div className="border-t border-border/30 bg-card/50 px-4 py-3 backdrop-blur-sm">
-      <form onSubmit={onSubmit} className="flex gap-2">
-        <label htmlFor="chat-message-input" className="sr-only">
-          Ask a question about the selected folder or knowledge graph
-        </label>
-        <Input
-          id="chat-message-input"
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={isWebSearchEnabled ? "Search web + knowledge graph..." : "Ask anything about your knowledge graph..."}
-          className="flex-1 h-11 bg-muted/20 transition-all duration-300 focus:shadow-lg focus:shadow-primary/10 focus:ring-2 focus:ring-primary/20 rounded-xl"
-          disabled={loading}
-          aria-describedby="chat-input-help"
-          autoComplete="off"
-        />
-        <Button
-          type="button"
-          variant={isWebSearchEnabled ? "solid" : "outline"}
-          size="icon"
-          className={cn(
-            "h-11 w-11 shrink-0 transition-all duration-200 rounded-xl",
-            isWebSearchEnabled 
-              ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-500/25 border-transparent" 
-              : "hover:bg-emerald-50 dark:hover:bg-emerald-950/20 text-muted-foreground"
-          )}
-          onClick={() => setIsWebSearchEnabled(!isWebSearchEnabled)}
-          disabled={loading}
-          title={isWebSearchEnabled ? "Web Search Enabled" : "Enable Web Search"}
-          aria-label={isWebSearchEnabled ? "Disable web search" : "Enable web search"}
-        >
-          <Globe className={cn("w-4 h-4", isWebSearchEnabled ? "text-white" : "text-emerald-600 dark:text-emerald-300")} />
-        </Button>
-        <Button
-          type="submit"
-          variant="gradient"
-          size="icon"
-          className="h-11 w-11 shrink-0 shadow-lg hover:shadow-xl transition-shadow duration-200 rounded-xl"
-          disabled={loading || !input.trim()}
-          aria-label={loading ? 'Sending message' : 'Send message'}
-        >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Send className="w-4 h-4" />
-          )}
-        </Button>
-      </form>
+    <div className="relative z-10 px-8 pb-10 pt-4">
+      <div className="mx-auto max-w-5xl overflow-hidden rounded-[32px] border border-border/20 bg-secondary/30 p-2 shadow-[0_32px_64px_-12px_rgba(45,58,40,0.15)] backdrop-blur-3xl ring-1 ring-white/10 transition-all duration-700 hover:shadow-[0_48px_80px_-12px_rgba(45,58,40,0.2)]">
+        <form onSubmit={onSubmit} className="flex items-center gap-2.5">
+          <label htmlFor="chat-message-input" className="sr-only">
+            Ask a botanical research question or query the network
+          </label>
+          
+          <button
+            type="button"
+            onClick={() => setIsWebSearchEnabled(!isWebSearchEnabled)}
+            disabled={loading}
+            className={cn(
+              "flex h-12 w-12 shrink-0 items-center justify-center transition-all duration-500 rounded-2xl",
+              isWebSearchEnabled 
+                ? "bg-primary text-white shadow-xl shadow-primary/30" 
+                : "text-muted-foreground/60 hover:text-primary hover:bg-primary/10"
+            )}
+            title={isWebSearchEnabled ? "Digesting Global Knowledge" : "Scan Hybrid Ecosystem"}
+            aria-label={isWebSearchEnabled ? "Disable web search" : "Enable web search"}
+          >
+            <Globe className={cn("w-5.5 h-5.5 transition-transform duration-700", isWebSearchEnabled && "animate-spin-slow")} />
+          </button>
+
+          <Input
+            id="chat-message-input"
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={isWebSearchEnabled ? "Query the global knowledge network..." : "Search the local research graph..."}
+            className="flex-1 border-none bg-transparent shadow-none focus:ring-0 h-12 text-[15px] font-bold tracking-tight text-foreground placeholder:text-muted-foreground/40"
+            disabled={loading}
+            aria-describedby="chat-input-help"
+            autoComplete="off"
+          />
+
+          <Button
+            type="submit"
+            variant="default"
+            size="icon"
+            className="h-12 w-12 shrink-0 rounded-2xl shadow-xl shadow-primary/20 transition-all duration-500 active:scale-95 group/send"
+            disabled={loading || !input.trim()}
+            aria-label={loading ? 'Synthesizing...' : 'Seed query'}
+          >
+            {loading ? (
+              <Loader2 className="w-5.5 h-5.5 animate-spin" />
+            ) : (
+              <Send className="w-5.5 h-5.5 transition-transform group-hover/send:translate-x-1 group-hover/send:-translate-y-1" />
+            )}
+          </Button>
+        </form>
+      </div>
       <p id="chat-input-help" className="sr-only">
-        Press Enter to send. Toggle the globe to include web search results.
+        Enter to submit. Use the globe to toggle cross-ecosystem research.
       </p>
     </div>
+
   );
 }

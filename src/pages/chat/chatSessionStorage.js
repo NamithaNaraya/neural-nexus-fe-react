@@ -7,7 +7,7 @@ const MAX_TEXT_LENGTH = 12000;
 export const WELCOME_MESSAGE = {
   role: 'assistant',
   isWelcome: true,
-  content: "Hello! I'm your AI chat assistant with RAG and web search. Ask anything about your knowledge graph or general domain, and you'll get full answers from the backend.",
+  content: "Welcome to the NESSO Biosphere! I'm your Botany Assistant with integrated RAG and ecosystem search. Ask anything about your research folders or growth cycles, and I'll help you cultivate full answers from your data.",
 };
 
 const generateId = () => {
@@ -32,9 +32,9 @@ const normalizeUserKey = (userKey) => {
 
 export const getChatStorageKey = (userKey) => `${STORAGE_PREFIX}:${normalizeUserKey(userKey)}`;
 
-export const getDefaultSessionTitle = (folderName = 'New Chat') => folderName || 'New Chat';
+export const getDefaultSessionTitle = (folderName = 'New Growth') => folderName || 'New Growth';
 
-export const getSessionTitleFromMessages = (messages = [], fallback = 'New Chat') => {
+export const getSessionTitleFromMessages = (messages = [], fallback = 'New Growth') => {
   const firstUserMessage = messages.find((message) => message?.role === 'user' && String(message?.content || '').trim());
   const content = String(firstUserMessage?.content || '').trim();
 
@@ -89,7 +89,7 @@ export const loadChatWorkspace = (userKey) => {
           id: String(session.id || generateId()),
           folderId: session.folderId ? String(session.folderId) : '',
           folderName: session.folderName || '',
-          title: session.title || getSessionTitleFromMessages(session.messages || [], getDefaultSessionTitle(session.folderName || 'New Chat')),
+          title: session.title || getSessionTitleFromMessages(session.messages || [], getDefaultSessionTitle(session.folderName || 'New Research')),
           createdAt: Number(session.createdAt || Date.now()),
           updatedAt: Number(session.updatedAt || session.createdAt || Date.now()),
           messages: Array.isArray(session.messages) && session.messages.length > 0 ? session.messages : [WELCOME_MESSAGE],
@@ -203,7 +203,7 @@ const serializeWorkspace = (workspace, options = {}) => {
         id: String(session?.id || generateId()),
         folderId: session?.folderId ? String(session.folderId) : '',
         folderName: session?.folderName || '',
-        title: session?.title || getDefaultSessionTitle(session?.folderName || 'New Chat'),
+        title: session?.title || getDefaultSessionTitle(session?.folderName || 'New Research'),
         createdAt: Number(session?.createdAt || Date.now()),
         updatedAt: Number(session?.updatedAt || session?.createdAt || Date.now()),
         messages: messagesToSerialize.map((message) => serializeMessage(message, isCurrent ? options : { ...options, aggressive: true })),
@@ -223,7 +223,7 @@ const serializeWorkspace = (workspace, options = {}) => {
 export const upsertSession = (workspace, session) => {
   const nextSession = {
     ...session,
-    title: session.title || getSessionTitleFromMessages(session.messages || [], getDefaultSessionTitle(session.folderName || 'New Chat')),
+    title: session.title || getSessionTitleFromMessages(session.messages || [], getDefaultSessionTitle(session.folderName || 'New Research')),
     updatedAt: Date.now(),
   };
 
@@ -241,7 +241,7 @@ export const replaceSessionMessages = (workspace, sessionId, messages, patch = {
       ...session,
       ...patch,
       messages,
-      title: patch.title || session.title || getSessionTitleFromMessages(messages, getDefaultSessionTitle(patch.folderName || session.folderName || 'New Chat')),
+      title: patch.title || session.title || getSessionTitleFromMessages(messages, getDefaultSessionTitle(patch.folderName || session.folderName || 'New Research')),
       updatedAt: Date.now(),
     };
   });

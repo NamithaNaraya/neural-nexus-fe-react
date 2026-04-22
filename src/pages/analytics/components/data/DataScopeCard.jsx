@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Database, FolderOpen, Network } from 'lucide-react';
+import { ChevronDown, ChevronUp, Database, FolderOpen, Network, Target, Layers, GitFork } from 'lucide-react';
 import { Button } from '../../../../components/ui/Button';
 import { Card, CardContent } from '../../../../components/ui/Card';
 import { cn } from '../../../../utils/cn';
 import { DataSelectionModal } from './DataSelectionModal';
+import { Badge } from '../../../../components/ui/Badge';
 
 export function DataScopeCard({
   collapsed,
@@ -24,122 +25,153 @@ export function DataScopeCard({
 
   return (
     <>
-      <Card variant="branded" className="border-border/60 bg-card/70 shadow-lg backdrop-blur-xl">
-        <CardContent className="space-y-2.5 p-3">
-          <div className="space-y-0.5">
-            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Step 2</div>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold">Choose data</h2>
-                <p className="text-xs text-muted-foreground">Whole folder on, or custom popup.</p>
+      <Card className="border-border/20 bg-secondary/15 shadow-[0_32px_64px_-16px_rgba(45,58,40,0.1)] backdrop-blur-[40px] rounded-[32px] ring-1 ring-white/10 overflow-hidden">
+        <CardContent className="space-y-6 p-8">
+          <div className="flex flex-col gap-1.5">
+            <div className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Step 2</div>
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h2 className="text-xl font-black tracking-tighter text-foreground uppercase">Harvesting Scope</h2>
+                <p className="text-[12px] font-bold text-muted-foreground/50 tracking-tight">Define the bio-network boundaries for synthesis</p>
               </div>
               <button
                 type="button"
                 onClick={onToggleCollapsed}
-                className="rounded-lg border border-border/50 bg-background/70 p-1.5 text-muted-foreground transition hover:text-foreground"
-                aria-label={collapsed ? 'Expand setup panels' : 'Collapse setup panels'}
+                className="h-11 w-11 flex items-center justify-center rounded-[18px] border border-border/15 bg-secondary/10 text-muted-foreground/40 transition-all duration-300 hover:bg-primary/10 hover:text-primary"
+                aria-label={collapsed ? 'Investigate Scope' : 'Seal Scope'}
               >
-                {collapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                {collapsed ? <ChevronDown className="h-5 w-5" /> : <ChevronUp className="h-5 w-5" />}
               </button>
             </div>
           </div>
 
           {collapsed ? (
-            <div className="rounded-xl border border-border/40 bg-background/35 px-3 py-2 text-xs text-muted-foreground">
-              {runFullFolder
-                ? `${graphStats.nodes.toLocaleString()} nodes and ${graphStats.links.toLocaleString()} relations in the full folder.`
-                : `${selectedNodes.length} selected node${selectedNodes.length === 1 ? '' : 's'} in custom mode.`}
+            <div className="rounded-[24px] border border-border/10 bg-secondary/5 px-7 py-5 text-[12px] font-bold text-muted-foreground/60 tracking-tight animate-fade-in shadow-inner">
+               <div className="flex items-center gap-3">
+                 <Target className="h-4.5 w-4.5 text-primary/40" />
+                 <span>
+                  {runFullFolder
+                    ? `Harvesting ${graphStats.nodes.toLocaleString()} nodes spanning ${graphStats.links.toLocaleString()} relations.`
+                    : `Isolating ${selectedNodes.length} specific neural node${selectedNodes.length === 1 ? '' : 's'}.`}
+                 </span>
+               </div>
             </div>
           ) : (
-            <>
-          <div className="rounded-xl border border-border/40 bg-background/40 p-3">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <FolderOpen className="h-4 w-4 text-primary" />
-              {currentFolder?.name || 'No folder selected'}
-            </div>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Nodes</p>
-                <p className="mt-1 text-sm font-semibold">{graphStats.nodes.toLocaleString()}</p>
-              </div>
-              <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Relations</p>
-                <p className="mt-1 text-sm font-semibold">{graphStats.links.toLocaleString()}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border/40 bg-background/35 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold">Run whole folder</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">Turn off for custom nodes.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setRunFullFolder((current) => !current)}
-                className={cn('relative h-6 w-11 rounded-full transition', runFullFolder ? 'bg-primary/70' : 'bg-muted')}
-              >
-                <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-white transition', runFullFolder ? 'left-[22px]' : 'left-0.5')} />
-              </button>
-            </div>
-
-            {!runFullFolder && (
-              <div className="mt-3 space-y-2">
-                <Button variant="outline" className="w-full" onClick={() => setModalOpen(true)}>
-                  Open custom data popup
-                </Button>
-                <div className="rounded-xl border border-border/30 bg-background/60 px-3 py-2.5">
-                  <div className="flex items-center gap-2 text-sm font-semibold">
-                    <Database className="h-4 w-4 text-primary" />
-                    {selectedNodes.length} selected node{selectedNodes.length === 1 ? '' : 's'}
+            <div className="space-y-8 animate-fade-in">
+              {/* Folder Origin */}
+              <div className="rounded-[28px] border border-border/10 bg-secondary/5 p-7 shadow-inner">
+                <div className="flex items-center gap-4 mb-5 border-b border-border/10 pb-5">
+                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                    <FolderOpen className="h-6 w-6 text-primary" />
                   </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">Use the popup filters to pick nodes.</p>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Source Origin</span>
+                    <p className="text-base font-black tracking-tight text-foreground/90 uppercase">{currentFolder?.name || 'No Biosphere Selected'}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-[22px] border border-border/10 bg-white/40 p-4 shadow-sm">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Total Roots</p>
+                    <p className="text-xl font-black text-foreground tracking-tighter">{graphStats.nodes.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-[22px] border border-border/10 bg-white/40 p-4 shadow-sm">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Connections</p>
+                    <p className="text-xl font-black text-foreground tracking-tighter">{graphStats.links.toLocaleString()}</p>
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-border/40 bg-background/35 p-3">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <Network className="h-4 w-4 text-primary" />
-                Node types
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {nodeTypes.slice(0, 6).map((type) => (
-                  <span key={type} className="rounded-full border border-border/50 bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground">
-                    {type}
-                  </span>
-                ))}
-                {nodeTypes.length > 6 && (
-                  <span className="rounded-full border border-border/50 bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground">
-                    +{nodeTypes.length - 6}
-                  </span>
+              {/* Mode Control */}
+              <div className="rounded-[28px] border border-border/10 bg-white/30 backdrop-blur-md p-7 shadow-xl ring-1 ring-white/10">
+                <div className="flex items-center justify-between gap-6">
+                  <div className="flex items-center gap-4">
+                     <div className="h-12 w-12 rounded-2xl bg-secondary/30 flex items-center justify-center shadow-inner border border-border/10">
+                       <Layers className="h-6 w-6 text-muted-foreground/60" />
+                     </div>
+                     <div>
+                      <h3 className="text-[15px] font-black text-foreground uppercase tracking-tight">Full Biosphere Harvest</h3>
+                      <p className="text-[11px] font-bold text-muted-foreground/40 tracking-tight">Disable for surgical node selection</p>
+                     </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRunFullFolder((current) => !current)}
+                    className={cn(
+                      'group relative h-8 w-14 rounded-full transition-all duration-500 ring-4 ring-transparent',
+                      runFullFolder ? 'bg-primary ring-primary/10 shadow-lg shadow-primary/25' : 'bg-muted-foreground/20'
+                    )}
+                  >
+                    <span className={cn(
+                      'absolute top-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-500',
+                      runFullFolder ? 'left-[26px] scale-90' : 'left-1 scale-75 opacity-80'
+                    )} />
+                  </button>
+                </div>
+
+                {!runFullFolder && (
+                  <div className="mt-8 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <Button 
+                      variant="outline" 
+                      className="w-full h-14 rounded-[20px] border-primary/20 bg-primary/5 text-primary font-black uppercase tracking-widest text-[11px] hover:bg-primary/10 hover:border-primary/40 transition-all shadow-sm" 
+                      onClick={() => setModalOpen(true)}
+                    >
+                      Initialize Custom Data Seed
+                    </Button>
+                    <div className="rounded-[22px] border border-border/10 bg-secondary/10 px-6 py-5 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <Database className="h-5 w-5 text-primary/60" />
+                        <div>
+                          <p className="text-[13px] font-black text-foreground/80 lowercase tracking-tight">{selectedNodes.length} targeted nodes</p>
+                          <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">Surgical Scope Active</p>
+                        </div>
+                      </div>
+                      <button onClick={clearSelection} className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive/60 hover:text-destructive transition-colors">Clear</button>
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
 
-            <div className="rounded-xl border border-border/40 bg-background/35 p-3">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <Network className="h-4 w-4 text-primary" />
-                Relationship types
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {relationshipTypes.slice(0, 6).map((type) => (
-                  <span key={type} className="rounded-full border border-border/50 bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground">
-                    {type}
-                  </span>
-                ))}
-                {relationshipTypes.length > 6 && (
-                  <span className="rounded-full border border-border/50 bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground">
-                    +{relationshipTypes.length - 6}
-                  </span>
-                )}
+              {/* Taxonomy Summary */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-[28px] border border-border/10 bg-secondary/5 p-6 shadow-inner">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Network className="h-4.5 w-4.5 text-primary/60" />
+                    <span className="text-[11px] font-black text-foreground/80 uppercase tracking-widest">Node Taxonomy</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {nodeTypes.slice(0, 8).map((type) => (
+                      <Badge key={type} className="bg-white/60 text-[9px] font-bold text-muted-foreground/70 border-border/10 uppercase py-1 px-2.5 rounded-lg tracking-wider">
+                        {type}
+                      </Badge>
+                    ))}
+                    {nodeTypes.length > 8 && (
+                      <span className="text-[9px] font-black text-primary/40 uppercase tracking-widest ml-1 pt-1.5">
+                        +{nodeTypes.length - 8} More
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-[28px] border border-border/10 bg-secondary/5 p-6 shadow-inner">
+                  <div className="flex items-center gap-3 mb-4">
+                    <GitFork className="h-4.5 w-4.5 text-primary/60 rotate-90" />
+                    <span className="text-[11px] font-black text-foreground/80 uppercase tracking-widest">Relation types</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {relationshipTypes.slice(0, 8).map((type) => (
+                      <Badge key={type} className="bg-white/60 text-[9px] font-bold text-muted-foreground/70 border-border/10 uppercase py-1 px-2.5 rounded-lg tracking-wider">
+                        {type}
+                      </Badge>
+                    ))}
+                    {relationshipTypes.length > 8 && (
+                      <span className="text-[9px] font-black text-primary/40 uppercase tracking-widest ml-1 pt-1.5">
+                        +{relationshipTypes.length - 8} More
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-            </>
           )}
         </CardContent>
       </Card>

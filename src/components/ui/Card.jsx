@@ -2,16 +2,25 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 
 const cardVariants = {
-  default: 'rounded-xl border-border/50 bg-card/60',
-  branded: 'rounded-[32px] border-primary/10 bg-card/75 shadow-[0_24px_70px_-48px_hsl(var(--primary)/0.24)]',
+  variant: {
+    default: 'rounded-[32px] border-border/40 bg-card/70 shadow-xl shadow-primary/5',
+    branded: 'rounded-[40px] border-primary/20 bg-card/85 shadow-2xl shadow-primary/10 ring-1 ring-white/20',
+    glass: 'rounded-[32px] border-white/40 bg-white/40 backdrop-blur-3xl shadow-sm shadow-black/5',
+  },
+  hover: {
+    none: '',
+    lift: 'hover:-translate-y-2 hover:shadow-[0_32px_64px_-32px_hsl(var(--primary)/25%)] hover:border-primary/30',
+    glow: 'hover:border-primary/40 hover:shadow-xl hover:shadow-primary/15',
+  }
 };
 
-export function Card({ className, variant = 'default', children, ...props }) {
+export function Card({ className, variant = 'default', hover = 'none', children, ...props }) {
   return (
     <div
       className={cn(
-        'border backdrop-blur-xl text-card-foreground shadow-sm transition-all duration-300',
-        cardVariants[variant],
+        'overflow-hidden transition-all duration-500 ease-out text-card-foreground',
+        cardVariants.variant[variant],
+        cardVariants.hover[hover],
         className
       )}
       {...props}

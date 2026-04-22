@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useState, useRef } from 'react';
 import { Navigate, Route, Routes, useSearchParams } from 'react-router-dom';
 import { ChevronRight, Compass, MoveRight, Radar, RotateCcw, SlidersHorizontal, Sparkles, Spline, Waypoints, Layout } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -138,12 +138,31 @@ export default function GraphPage() {
   
   // Handle Deep Link Exploration
   const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkProcessedRef = useRef(null);
+
   useEffect(() => {
     const exploreId = searchParams.get('exploreId');
-    if (exploreId && graphData.nodes?.length > 0) {
-      // Find the node to ensure it exists in the current graph
-      const targetNode = graphData.nodes.find(n => String(n.id) === String(exploreId));
+    if (!exploreId || !folderId || deepLinkProcessedRef.current === exploreId) return;
+
+    async function processDeepLink() {
+      // 1. Check if node is already in graph data
+      let targetNode = (graphData.nodes || []).find(n => String(n.id) === String(exploreId));
+      
+      // 2. If not, try to fetch its neighbors explicitly (this is the missing piece)
+      if (!targetNode && graphData.nodes?.length > 0) {
+        try {
+          const neighbors = await graphService.getNodeNeighbors(exploreId);
+          if (neighbors && neighbors.nodes?.length > 0) {
+            // Merge into local graph data temporarily or just set as explorer seed
+            targetNode = neighbors.nodes.find(n => String(n.id) === String(exploreId));
+          }
+        } catch (err) {
+          console.error("Failed to fetch deep-linked node neighborhood:", err);
+        }
+      }
+
       if (targetNode) {
+        deepLinkProcessedRef.current = exploreId;
         setExplorerModeActive(true);
         setExpandedNodeIds(new Set([String(exploreId)]));
         setToolsOpen(true);
@@ -151,11 +170,14 @@ export default function GraphPage() {
         handleJumpToNode(targetNode);
         
         // Clear param so it doesn't re-trigger on refresh
-        searchParams.delete('exploreId');
-        setSearchParams(searchParams, { replace: true });
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete('exploreId');
+        setSearchParams(nextParams, { replace: true });
       }
     }
-  }, [searchParams, graphData.nodes, setSearchParams]);
+
+    void processDeepLink();
+  }, [searchParams, graphData.nodes, folderId, setSearchParams]);
 
   const graphDataWithPredictions = useMemo(
     () => mergePredictedLinks(graphData, predictedLinks),

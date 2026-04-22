@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react';
 import { folderService } from '../services/folderService';
 
 const GlobalFolderContext = createContext(undefined);
@@ -20,13 +20,20 @@ export function GlobalFolderProvider({ children }) {
   const [selectedFolderId, setSelectedFolderId] = useState(() => localStorage.getItem('neural_nexus_global_folder_id') || '');
   const [loading, setLoading] = useState(() => readCachedFolders().length === 0);
 
-  const refreshFolders = useCallback(async ({ showLoader = folders.length === 0 } = {}) => {
-    if (showLoader) {
+  const isInitialMountRef = useRef(true);
+
+  const refreshFolders = useCallback(async ({ showLoader = false } = {}) => {
+    // Only show loader if explicitly requested OR it's the first time and we have no folders
+    const shouldShowLoader = showLoader || (isInitialMountRef.current && folders.length === 0);
+    
+    if (shouldShowLoader) {
       setLoading(true);
     }
+    
     try {
       const data = await folderService.list();
       const items = Array.isArray(data) ? data : [];
+      
       setFolders(items);
       localStorage.setItem(FOLDER_CACHE_KEY, JSON.stringify(items));
 
@@ -34,22 +41,20 @@ export function GlobalFolderProvider({ children }) {
         if (!current) return '';
         const stillExists = items.some((folder) => String(folder.id) === String(current));
         const nextId = stillExists ? current : String(items[0]?.id || '');
-        if (nextId) {
+        if (nextId && nextId !== current) {
           localStorage.setItem('neural_nexus_global_folder_id', nextId);
         }
         return nextId;
       });
     } catch (error) {
       console.error('Failed to load global folders:', error);
-      if (folders.length === 0) {
-        setFolders([]);
-      }
     } finally {
-      if (showLoader) {
+      if (shouldShowLoader) {
         setLoading(false);
       }
+      isInitialMountRef.current = false;
     }
-  }, [folders.length]);
+  }, []); // Explicitly empty to prevent refetch loops
 
   useEffect(() => {
     refreshFolders();

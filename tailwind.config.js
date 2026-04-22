@@ -6,15 +6,13 @@ const brandPalette = {
   cloud: THEME_PALETTE.neutral.canvas,
   surface: THEME_PALETTE.neutral.surface,
   surfaceMuted: THEME_PALETTE.neutral.surfaceMuted,
-  grayText: THEME_PALETTE.neutral.text,
-  grayDeep: THEME_PALETTE.neutral.textStrong,
-  blue: THEME_PALETTE.accent.info,
-  blueHover: THEME_PALETTE.accent.infoHover,
-  teal: THEME_PALETTE.accent.secondaryAction,
-  warm: THEME_PALETTE.accent.warning,
-  danger: THEME_PALETTE.accent.danger,
+  deepMoss: THEME_PALETTE.neutral.text,
+  deepForest: THEME_PALETTE.neutral.textStrong,
+  sage: THEME_PALETTE.accent.secondaryAction,
+  terracotta: THEME_PALETTE.accent.warning,
+  rowan: THEME_PALETTE.accent.danger,
   mint: THEME_PALETTE.brand.soft,
-  moss: THEME_PALETTE.brand.muted,
+  stone: THEME_PALETTE.brand.muted,
 };
 
 /** @type {import('tailwindcss').Config} */

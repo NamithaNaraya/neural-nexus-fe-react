@@ -1,51 +1,27 @@
 const NODE_COLOR_PALETTE = [
-  '#A78BFA',
-  '#F472B6',
-  '#FB923C',
-  '#FCD34D',
-  '#6EE7B7',
-  '#7DD3FC',
-  '#FCA5A5',
-  '#86EFAC',
-  '#C084FC',
-  '#5EEAD4',
-  '#818CF8',
-  '#BEF264',
-  '#FDA4AF',
-  '#67E8F9',
-  '#FDE047',
-  '#93C5FD',
-  '#D8B4FE',
-  '#FDBA74',
-  '#99F6E4',
-  '#E9D5FF',
-  '#FECDD3',
-  '#BBF7D0',
-  '#BFDBFE',
-  '#FED7AA',
+  'hsl(96 25% 33%)', // Moss
+  'hsl(76 18% 50%)', // Sage
+  'hsl(140 15% 40%)', // Pine
+  'hsl(28 45% 45%)', // Clay
+  'hsl(45 25% 40%)', // Sand
+  'hsl(96 15% 55%)', // Mist Moss
+  'hsl(168 18% 45%)', // Seaweed
+  'hsl(35 30% 35%)', // Bark
+  'hsl(96 35% 25%)', // Deep Forest
+  'hsl(76 25% 65%)', // Lichen
+  'hsl(140 10% 60%)', // Ash Green
+  'hsl(28 35% 60%)', // Terracotta
+  'hsl(0 30% 40%)', // Berry
+  'hsl(190 20% 50%)', // Lake
+  'hsl(96 20% 45%)', // Olive
 ];
 
 const RELATIONSHIP_COLOR_PALETTE = [
-  '#355070',
-  '#4A5568',
-  '#5F6F52',
-  '#6B7280',
-  '#4B5563',
-  '#516B8B',
-  '#7C6A58',
-  '#5B7065',
-  '#475569',
-  '#6C757D',
-  '#556B7A',
-  '#7A6F5A',
-  '#526D82',
-  '#667761',
-  '#6B7280',
-  '#4C5C68',
-  '#5E6472',
-  '#7D7461',
-  '#5C677D',
-  '#6E7F80',
+  'hsl(96 10% 25%)',
+  'hsl(28 15% 30%)',
+  'hsl(76 10% 35%)',
+  'hsl(140 8% 30%)',
+  'hsl(45 10% 35%)',
 ];
 
 const assignedNodeTypeColors = new Map();

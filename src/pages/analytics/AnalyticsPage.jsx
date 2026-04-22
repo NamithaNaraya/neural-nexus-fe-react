@@ -5,6 +5,9 @@ import { DataScopeCard } from './components/data/DataScopeCard';
 import { AnalyticsResultsPanel } from './components/AnalyticsResultsPanel';
 import { describeWeightFormula, formatAlgorithmSummary } from './helpers';
 import { useAnalyticsWorkbench } from './useAnalyticsWorkbench';
+import { Sprout, BrainCircuit, Activity } from 'lucide-react';
+import { Badge } from '../../components/ui/Badge';
+import { cn } from '../../utils/cn';
 
 export default function AnalyticsPage() {
   const [topPanelsCollapsed, setTopPanelsCollapsed] = useState(false);
@@ -59,18 +62,40 @@ export default function AnalyticsPage() {
   }, [result]);
 
   return (
-    <section aria-labelledby="analytics-page-title" className="h-[calc(100vh-8.5rem)] min-h-[640px] overflow-hidden">
-      <h1 id="analytics-page-title" className="sr-only">Analytics workbench</h1>
-      <div className="grid h-full gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="min-h-0">
+    <section aria-labelledby="analytics-page-title" className="flex h-full min-h-0 flex-col gap-8 overflow-hidden pt-4 bg-transparent">
+      {/* Botanical Header */}
+      <div className="flex flex-col gap-4 px-2">
+        <div className="flex items-center gap-3">
+           <div className="p-2.5 rounded-2xl bg-accent/10 backdrop-blur-xl border border-accent/20">
+             <BrainCircuit className="h-6 w-6 text-accent animate-pulse" />
+           </div>
+           <Badge variant="secondary" className="px-5 py-2 text-[10px] bg-accent/5 text-accent border border-accent/20 uppercase tracking-[0.3em] font-black rounded-xl">
+             Neural Analytics
+           </Badge>
+        </div>
+        <div className="space-y-2">
+          <h1 id="analytics-page-title" className="text-4xl font-black tracking-tighter text-foreground uppercase">Workbench</h1>
+          <p className="max-w-3xl text-[14px] text-muted-foreground/60 font-bold leading-relaxed tracking-tight group-hover:text-muted-foreground/80 transition-colors">
+            Analyze the complexity of your knowledge network. Use high-performance algorithmic synthesis to uncover structural patterns and neural clusters within your synthesized data.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid flex-1 min-h-0 gap-6 xl:grid-cols-[340px_minmax(0,1fr)] px-2 pb-6">
+        {/* Sidebar Panel */}
+        <div className="min-h-0 h-full overflow-hidden animate-in fade-in slide-in-from-left-8 duration-700">
           <AlgorithmSidebar
             selectedAlgorithmId={selectedAlgorithmId}
             setSelectedAlgorithmId={setSelectedAlgorithmId}
           />
         </div>
 
-        <div className="grid min-h-0 gap-4 lg:grid-rows-[auto_1fr]">
-          <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        {/* Main Workbench Area */}
+        <div className="grid min-h-0 gap-6 lg:grid-rows-[auto_1fr] animate-in fade-in slide-in-from-bottom-8 duration-1000">
+          <div className={cn(
+            "grid gap-6 transition-all duration-700",
+            topPanelsCollapsed ? "xl:grid-cols-1" : "xl:grid-cols-[1fr_1.1fr]"
+          )}>
             <AlgorithmSetupCard
               collapsed={topPanelsCollapsed}
               selectedAlgorithm={selectedAlgorithm}
@@ -120,7 +145,7 @@ export default function AnalyticsPage() {
             />
           </div>
 
-          <div className="min-h-0" aria-live="polite">
+          <div className="min-h-0 h-full overflow-hidden" aria-live="polite">
             <AnalyticsResultsPanel
               result={result}
               error={error}

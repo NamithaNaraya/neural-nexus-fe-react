@@ -46,83 +46,83 @@ export default function LoginPage() {
           <div className="absolute bottom-[-10%] left-[35%] h-[20rem] w-[20rem] rounded-full bg-primary/10 blur-3xl" />
         </div>
 
-        <div className="mx-auto grid min-h-screen w-full max-w-[1380px] items-center gap-10 px-6 py-8 lg:grid-cols-[1.04fr_0.96fr] lg:px-10">
-          <div className="hidden lg:flex lg:flex-col lg:justify-between">
-            <div className="mb-10 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-card/85 shadow-[0_16px_40px_-28px_hsl(var(--primary)/0.35)] backdrop-blur-xl">
-                <BrainCircuit className="h-6 w-6 text-primary" />
+        <div className="mx-auto grid min-h-screen w-full max-w-[1380px] items-center gap-16 px-6 py-8 lg:grid-cols-[1.1fr_0.9fr] lg:px-12">
+          <div className="hidden lg:flex lg:flex-col lg:justify-between h-[85vh]">
+            <div className="mb-10 flex items-center gap-4">
+              <div className="flex h-13 w-13 items-center justify-center rounded-[20px] bg-primary shadow-2xl shadow-primary/40 ring-4 ring-primary/10">
+                <BrainCircuit className="h-7 w-7 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">NESSO Botanica</h1>
-                <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Knowledge intelligence</p>
+              <div className="space-y-0.5">
+                <h1 className="text-2xl font-black tracking-tight text-foreground leading-none">Neural Nexus</h1>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-primary font-black">Authentication Core</p>
               </div>
             </div>
 
-            <div className="space-y-8">
-              <div className="space-y-5">
-                <div className="inline-flex items-center gap-2 rounded-full border border-primary/18 bg-card/70 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-primary backdrop-blur-xl">
-                  <Orbit className="h-3.5 w-3.5" />
-                  Calm neural workspace
+            <div className="space-y-10">
+              <div className="space-y-6">
+                <div className="inline-flex items-center gap-2.5 rounded-full border border-primary/20 bg-primary/5 px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] text-primary backdrop-blur-xl">
+                  <Orbit className="h-4 w-4" />
+                  SECURE ACCESS GATEWAY
                 </div>
-                <h2 className="max-w-2xl text-5xl font-bold leading-[1.04] tracking-[-0.04em] text-foreground">
-                  Sign in to your connected graph, chat, and analytics workspace.
+                <h2 className="max-w-2xl text-5xl font-black leading-[0.98] tracking-[-0.05em] text-foreground xl:text-6xl">
+                  Pulse into your <span className="text-primary text-glow-primary">neural</span> workspace.
                 </h2>
-                <p className="max-w-xl text-lg leading-8 text-muted-foreground">
-                  A softer, modern interface for structured knowledge work with graph-aware AI, ingestion pipelines, and smooth workspace navigation.
+                <p className="max-w-xl text-xl leading-relaxed text-muted-foreground/70 font-medium">
+                  Experience the next generation of professional knowledge management with graph-native AI and high-precision analytics.
                 </p>
               </div>
 
-              <div className="grid gap-4">
+              <div className="grid gap-5">
                 {features.map((feat, i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-4 rounded-[1.5rem] border border-border/60 bg-card/72 p-5 shadow-[0_24px_70px_-48px_hsl(var(--primary)/0.22)] backdrop-blur-xl"
+                    className="flex items-start gap-5 rounded-[32px] border border-border/40 bg-card/40 p-6 shadow-sm backdrop-blur-xl group hover:border-primary/30 transition-all duration-500"
                   >
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-                      <feat.icon className="h-5 w-5" />
+                    <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-secondary text-primary shadow-sm border border-border/20 group-hover:scale-110 transition-transform">
+                      <feat.icon className="h-6 w-6" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-foreground">{feat.title}</h3>
-                      <p className="mt-1 text-sm leading-6 text-muted-foreground">{feat.desc}</p>
+                      <h3 className="text-[15px] font-black tracking-tight text-foreground uppercase tracking-widest">{feat.title}</h3>
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground/80 font-medium">{feat.desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <p className="mt-12 text-xs text-muted-foreground/60">
-              NESSO Platform v2.0 · Natural and essential oil intelligence
+            <p className="mt-12 text-xs font-bold text-muted-foreground/50 tracking-widest uppercase">
+              Neural Nexus v2.0 Indigo Core · Secure AI Infrastructure
             </p>
           </div>
 
           <div className="flex items-center justify-center">
             <div className="w-full max-w-md space-y-8">
-              <div className="lg:hidden flex items-center justify-center gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/20 bg-card/85 backdrop-blur-xl">
-                  <Network className="w-5 h-5 text-primary" />
+              <div className="lg:hidden flex flex-col items-center justify-center gap-4 mb-8">
+                <div className="flex h-16 w-16 items-center justify-center rounded-[24px] bg-primary shadow-2xl shadow-primary/40">
+                  <BrainCircuit className="w-9 h-9 text-white" />
                 </div>
-                <h1 className="text-xl font-bold tracking-tight text-foreground">NESSO Botanica</h1>
+                <h1 className="text-2xl font-black tracking-tight text-foreground">Neural Nexus</h1>
               </div>
 
-              <section aria-labelledby="login-title" className="space-y-6 rounded-[2rem] border border-border/60 bg-card/78 p-8 shadow-[0_30px_100px_-56px_hsl(var(--primary)/0.32)] backdrop-blur-2xl">
-                <div className="space-y-2 text-center">
-                  <h2 id="login-title" className="text-2xl font-bold tracking-tight">
-                    {isRegister ? 'Create an account' : 'Welcome back'}
+              <section aria-labelledby="login-title" className="space-y-8 rounded-[40px] border border-border/50 bg-card/60 p-10 shadow-2xl backdrop-blur-3xl ring-1 ring-white/20">
+                <div className="space-y-3 text-center">
+                  <h2 id="login-title" className="text-3xl font-black tracking-tight text-foreground leading-tight">
+                    {isRegister ? 'Begin your journey' : 'Systems Check'}
                   </h2>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground font-medium">
                     {isRegister
-                      ? 'Enter your email to create your account'
-                      : 'Sign in to your Neural Nexus workspace'}
+                      ? 'Create your decentralized neural identity'
+                      : 'Authenticate to access your workspace'}
                   </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-2.5">
+                    <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 ml-1">Email Protocol</Label>
                     <Input
                       id="email"
                       type="email"
-                      placeholder="you@example.com"
+                      placeholder="operator@nexus.io"
                       value={email}
                       onChange={(e) => {
                         setEmail(e.target.value);
@@ -131,12 +131,12 @@ export default function LoginPage() {
                       required
                       autoFocus
                       autoComplete="email"
-                      className="h-11"
+                      className="h-13 px-5 text-base font-bold bg-secondary/50 border-border/40 focus:bg-white"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
+                  <div className="space-y-2.5">
+                    <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 ml-1">Secure Key</Label>
                     <div className="relative">
                       <Input
                         id="password"
@@ -150,49 +150,49 @@ export default function LoginPage() {
                         required
                         minLength={3}
                         autoComplete={isRegister ? 'new-password' : 'current-password'}
-                        className="h-11 pr-10"
+                        className="h-13 px-5 pr-12 text-base font-bold bg-secondary/50 border-border/40 focus:bg-white"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label={showPassword ? 'Hide password' : 'Show password'}
                         aria-pressed={showPassword}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-all duration-300"
                       >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
 
                   {error && (
-                    <div role="alert" aria-live="polite" className="rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-red-500 animate-fade-up">
+                    <div role="alert" aria-live="polite" className="rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-sm font-bold text-destructive text-center animate-fade-in shadow-sm shadow-destructive/5">
                       {error}
                     </div>
                   )}
 
                   <Button
                     type="submit"
-                    variant="gradient"
-                    className="w-full h-11 gap-2 text-base font-semibold"
+                    variant="default"
+                    className="w-full h-14 gap-3 text-base font-black tracking-tight shadow-xl shadow-primary/30 active:scale-[0.98] group"
                     disabled={loading}
                   >
                     {loading ? (
-                      <div className="h-5 w-5 rounded-full border-2 border-foreground/20 border-t-foreground animate-spin" />
+                      <Loader2 className="h-6 w-6 animate-spin" />
                     ) : (
                       <>
-                        {isRegister ? 'Create Account' : 'Sign In'}
-                        <ArrowRight className="w-4 h-4" />
+                        {isRegister ? 'CREATE ACCOUNT' : 'AUTHENTICATE'}
+                        <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                       </>
                     )}
                   </Button>
                 </form>
 
-                <div className="relative">
+                <div className="relative p-2">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border/50" />
+                    <span className="w-full border-t border-border/40" />
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card/40 px-2 text-muted-foreground">or</span>
+                  <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.3em]">
+                    <span className="bg-transparent px-4 text-muted-foreground/40 backdrop-blur-none">ACCESS OPTIONS</span>
                   </div>
                 </div>
 
@@ -202,16 +202,16 @@ export default function LoginPage() {
                     setIsRegister(!isRegister);
                     clearError();
                   }}
-                  className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="w-full text-center text-sm font-black tracking-tight text-primary hover:text-primary-foreground hover:bg-primary transition-all duration-500 py-3 rounded-2xl border border-primary/20 bg-primary/5 active:scale-95"
                 >
                   {isRegister
-                    ? 'Already have an account? Sign in'
-                    : "Don't have an account? Create one"}
+                    ? 'ALREADY REGISTERED? LOG IN'
+                    : "NO IDENTITY FOUND? JOIN NEXUS"}
                 </button>
               </section>
 
-              <p className="text-center text-xs text-muted-foreground/50">
-                By continuing, you agree to Neural Nexus Terms of Service
+              <p className="text-center text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest px-8">
+                By pulsating, you agree to Neural Nexus Neural Privacy Protocols and Terms of Intelligence.
               </p>
             </div>
           </div>

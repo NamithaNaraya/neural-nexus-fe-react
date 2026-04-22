@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Sparkles } from 'lucide-react';
+import { CheckCircle2, Sparkles, Filter, Database, Search } from 'lucide-react';
 import { Card, CardContent } from '../../../components/ui/Card';
 import { getCompactTypeLabel, getDisplayName, getScoreLabel, getTypeToneClasses } from '../helpers';
+import { cn } from '../../../utils/cn';
 
 export function AnalyticsResultsPanel({ result, summary, error }) {
   const [visibleCount, setVisibleCount] = useState(25);
@@ -28,69 +29,91 @@ export function AnalyticsResultsPanel({ result, summary, error }) {
   }
 
   return (
-    <Card className="flex h-full min-h-0 flex-col border-border/60 bg-card/70 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
-      <CardContent className="flex min-h-0 flex-1 flex-col space-y-4 p-4">
-        <div className="space-y-1">
-          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Results</div>
-          <h2 className="text-lg font-semibold">Output</h2>
+    <Card className="flex h-full min-h-0 flex-col border-border/20 bg-secondary/15 shadow-[0_32px_64px_-16px_rgba(45,58,40,0.1)] backdrop-blur-[40px] rounded-[32px] ring-1 ring-white/10 overflow-hidden">
+      <CardContent className="flex min-h-0 flex-1 flex-col space-y-6 p-8">
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Synthesis Output</div>
+            <h2 className="text-xl font-black tracking-tighter text-foreground uppercase">Neural Distribution</h2>
+          </div>
+          {result && (
+            <div className="flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-3 py-1.5 shadow-sm">
+                <Database className="h-4 w-4 text-primary" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary">{rows.length} Distributed Nodes</span>
+            </div>
+          )}
         </div>
 
         {error && (
-          <div role="alert" className="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <div role="alert" className="rounded-2xl border border-destructive/25 bg-destructive/10 px-6 py-4 text-[13px] font-bold text-destructive animate-fade-in">
             {error}
           </div>
         )}
 
         {!result && !error && (
-          <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-border/40 bg-background/30 px-4 py-12 text-center">
-            <div>
-            <Sparkles className="mx-auto h-10 w-10 text-primary/60" />
-            <p className="mt-4 text-sm font-semibold">No algorithm run yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">Choose the folder and algorithm on the left, then click the run button.</p>
+          <div className="flex flex-1 items-center justify-center rounded-[32px] border-2 border-dashed border-border/20 bg-secondary/5 px-8 py-20 text-center animate-fade-in">
+            <div className="space-y-6 max-w-sm">
+                <div className="mx-auto w-20 h-20 rounded-full bg-primary/5 flex items-center justify-center border border-primary/10">
+                    <Sparkles className="h-10 w-10 text-primary/30" />
+                </div>
+                <div className="space-y-2">
+                    <p className="text-lg font-black uppercase tracking-tight text-foreground/80">Quiescent State</p>
+                    <p className="text-[13px] font-bold text-muted-foreground/40 leading-relaxed">Choose your targeted folder and specific growth engine to initiate neural synthesis.</p>
+                </div>
             </div>
           </div>
         )}
 
         {result && (
-          <div className="flex min-h-0 flex-1 flex-col space-y-4">
-            <div className="rounded-2xl border border-primary/20 bg-primary/10 p-3">
-              <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-background/80 text-primary">
-                  <CheckCircle2 className="h-4.5 w-4.5" />
+          <div className="flex min-h-0 flex-1 flex-col space-y-8 animate-in fade-in duration-700">
+            {/* Analysis Metadata */}
+            <div className="rounded-[28px] border border-primary/20 bg-primary/10 p-6 shadow-inner ring-1 ring-primary/5">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-white border border-primary/20 text-primary shadow-xl shadow-primary/10">
+                  <CheckCircle2 className="h-6 w-6" />
                 </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Analysis summary</p>
-                  <p className="mt-1.5 text-sm leading-6 text-foreground">{summary}</p>
+                <div className="pt-1">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Synthesis Deciphered</p>
+                  <p className="mt-2 text-[14px] font-bold leading-relaxed text-foreground/90 tracking-tight">{summary}</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border/40 bg-background/30">
-              <div className="grid grid-cols-12 gap-2 border-b border-border/40 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            {/* Results Table */}
+            <div className="flex min-h-0 flex-1 flex-col rounded-[32px] border border-border/15 bg-white/40 shadow-xl overflow-hidden backdrop-blur-3xl ring-1 ring-white/10">
+              <div className="grid grid-cols-12 gap-4 border-b border-border/10 px-8 py-5 text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/60 bg-secondary/5">
                 <div className="col-span-1">#</div>
-                <div className="col-span-5">Name</div>
-                <div className="col-span-3">Type</div>
-                <div className="col-span-3 text-right">Score</div>
+                <div className="col-span-5">Seed/target</div>
+                <div className="col-span-3">Network Layer</div>
+                <div className="col-span-3 text-right">Intensity</div>
               </div>
 
-              <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto" onScroll={handleScroll}>
+              <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto custom-scrollbar" onScroll={handleScroll}>
                 {visibleRows.map((item, index) => (
-                  <div key={item.id || `${index}-${getDisplayName(item)}`} className="grid grid-cols-12 gap-2 border-t border-border/30 px-4 py-3 text-sm">
-                    <div className="col-span-1 text-muted-foreground">{index + 1}</div>
+                  <div 
+                    key={item.id || `${index}-${getDisplayName(item)}`} 
+                    className="grid grid-cols-12 gap-4 border-t border-border/5 px-8 py-4.5 text-sm hover:bg-primary/5 transition-all duration-300 group"
+                  >
+                    <div className="col-span-1 text-[11px] font-black text-muted-foreground/30 group-hover:text-primary/50 transition-colors pt-1.5">
+                        {String(index + 1).padStart(2, '0')}
+                    </div>
                     <div className="col-span-5 min-w-0">
-                      <div className="truncate font-semibold">
-                        {item.target_name ? `${getDisplayName(item)} -> ${item.target_name}` : getDisplayName(item)}
+                      <div className="truncate font-black text-foreground tracking-tight text-[13px] uppercase pt-1">
+                        {item.target_name ? `${getDisplayName(item)} ➔ ${item.target_name}` : getDisplayName(item)}
                       </div>
                     </div>
-                    <div className="col-span-3">
+                    <div className="col-span-3 pt-0.5">
                       <span
-                        className={`inline-flex max-w-full truncate rounded-full border px-2.5 py-1 text-[11px] font-medium ${getTypeToneClasses(item)}`}
+                        className={cn(
+                            'inline-flex max-w-full truncate rounded-[10px] border px-3 py-1 text-[10px] font-black uppercase tracking-widest transition-all shadow-sm',
+                            getTypeToneClasses(item)
+                        )}
                         title={getCompactTypeLabel(item)}
                       >
                         {getCompactTypeLabel(item)}
                       </span>
                     </div>
-                    <div className="col-span-3 text-right font-mono text-xs font-semibold text-primary">
+                    <div className="col-span-3 text-right font-mono text-[14px] font-black text-primary tracking-tighter pt-1 pr-1">
                       {getScoreLabel(item)}
                     </div>
                   </div>

@@ -7,18 +7,18 @@ export const Input = forwardRef(function Input({ className, type = 'text', ...pr
       ref={ref}
       type={type}
       className={cn(
-        'flex min-h-11 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm transition-all duration-200',
-        'placeholder:text-muted-foreground/60',
-        'focus:outline-none focus:ring-2 focus:ring-ring/60 focus:border-primary/60',
+        'flex h-13 w-full rounded-[20px] border border-border/50 bg-secondary/30 px-5 py-3 text-base font-medium transition-all duration-300',
+        'placeholder:text-muted-foreground/40 placeholder:font-black placeholder:uppercase placeholder:tracking-widest placeholder:text-[10px]',
+        'focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white',
         'disabled:cursor-not-allowed disabled:opacity-50',
-        'backdrop-blur-sm',
+        'backdrop-blur-md shadow-sm',
         className
       )}
       {...props}
     />
   );
 });
-Input.displayName = 'Input';
+
 
 export function Label({ className, children, ...props }) {
   return (
