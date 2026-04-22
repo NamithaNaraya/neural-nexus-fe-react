@@ -12,6 +12,26 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('echarts') || id.includes('recharts')) {
+            return 'charts-vendor';
+          }
+          if (id.includes('jspdf') || id.includes('xlsx') || id.includes('html2canvas')) {
+            return 'export-vendor';
+          }
+          if (id.includes('framer-motion')) {
+            return 'motion-vendor';
+          }
+          return 'vendor';
+        },
+      },
+    },
+  },
   server: {
     port: 5174,
     proxy: {

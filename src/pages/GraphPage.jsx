@@ -437,7 +437,7 @@ export default function GraphPage() {
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
       <div className="relative z-20 mx-4 mt-1 flex-shrink-0 overflow-visible">
-        <Card variant="branded" className="overflow-visible border-border/60">
+        <Card variant="branded" className="app-surface overflow-visible border-border/60">
         <CardContent className="overflow-visible space-y-3 p-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
             <div className="flex min-w-0 flex-1 xl:max-w-[58%]">
@@ -483,9 +483,9 @@ export default function GraphPage() {
                 type="button"
                 onClick={() => setEditMode(editMode === 'add-node' ? 'view' : 'add-node')}
                 className={[
-                  "inline-flex h-10 items-center rounded-full px-4 text-sm font-medium shadow-lg transition",
+                  "inline-flex h-10 items-center rounded-full px-4 text-sm font-medium transition",
                   editMode === 'add-node' 
-                    ? "border border-teal-300 bg-teal-100 text-teal-800 ring-4 ring-teal-500/20" 
+                    ? "border border-primary/35 bg-primary/12 text-primary ring-2 ring-primary/20" 
                     : "bg-primary text-white shadow-primary/20 hover:bg-primary/90"
                 ].join(' ')}
               >
@@ -510,6 +510,39 @@ export default function GraphPage() {
               </div>
             </div>
           </div>
+          {nodeTypes.length ? (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {nodeTypes.slice(0, 8).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() =>
+                    setNodeTypeFilters((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(type)) {
+                        next.delete(type);
+                      } else {
+                        next.add(type);
+                      }
+                      return next;
+                    })
+                  }
+                  className={[
+                    'inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium transition',
+                    nodeTypeFilters.has(type)
+                      ? 'border-primary/35 bg-primary/16 text-primary'
+                      : 'border-primary/20 bg-primary/8 text-primary/90 hover:bg-primary/12',
+                  ].join(' ')}
+                  title={nodeTypeFilters.has(type) ? `Remove ${type} filter` : `Filter by ${type}`}
+                >
+                  {type}
+                </button>
+              ))}
+              {nodeTypes.length > 8 ? (
+                <span className="text-[11px] font-medium text-muted-foreground">+{nodeTypes.length - 8} more</span>
+              ) : null}
+            </div>
+          ) : null}
 
           {toolsOpen ? (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-[22px] border border-border/60 bg-card/95 px-3 py-2 animate-in fade-in-0 slide-in-from-top-1 duration-200">
@@ -538,14 +571,14 @@ export default function GraphPage() {
                     className={[
                         'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition',
                         active
-                          ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-600 shadow-sm'
-                          : 'border-border/60 bg-card text-muted-foreground hover:bg-emerald-500/5 hover:text-foreground',
+                          ? 'border-primary/35 bg-primary/10 text-primary shadow-sm'
+                          : 'border-border/60 bg-card text-muted-foreground hover:bg-primary/5 hover:text-foreground',
                       ].join(' ')}
                     >
                       <Icon className="h-3.5 w-3.5" />
                       {tool.label}
                       {tool.id === 'filters' && activeFilterCount > 0 ? (
-                        <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600">
+                        <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
                           {activeFilterCount}
                         </span>
                       ) : null}

@@ -52,6 +52,12 @@ const hasStoredWebSearchContent = (messages = []) =>
 
 const MAX_WEB_SOURCE_COUNT = 6;
 const CHAT_STARTUP_SYNC_TIMEOUT_MS = 8000;
+const CHAT_HISTORY_SEND_WINDOW = 20;
+const CHAT_QUICK_PROMPTS = [
+  'Summarize key entities in this folder',
+  'What changed most recently in this knowledge graph?',
+  'Show the strongest relationships and why they matter',
+];
 const INTERNAL_SOURCE_HOSTS = new Set([
   'vertexaisearch.cloud.google.com',
   'generativelanguage.googleapis.com',
@@ -165,6 +171,8 @@ export default function ChatPage() {
   const inputRef = useRef(null);
   const downloadMenuRef = useRef(null);
   const saveTimeoutRef = useRef(null);
+  const streamBufferRef = useRef('');
+  const streamFlushTimerRef = useRef(null);
   const backendHydrationRef = useRef('');
   const hasHydratedWorkspaceRef = useRef(false);
   const lastFolderIdRef = useRef(selectedFolderId || '');
@@ -480,10 +488,11 @@ export default function ChatPage() {
     } catch { toast.error('Web pollination failed.'); } finally { setLoading(false); }
   }, [currentFolder?.name, messages.length, updateCurrentSession, updateMessageAtIndex, workspace.currentSessionId]);
 
-  const sendMessage = async (e) => {
+  const sendMessage = async (e, overrideMessage = null) => {
     e.preventDefault();
-    if (!input.trim() || loading) return;
-    const userMessage = input.trim();
+    const draft = typeof overrideMessage === 'string' ? overrideMessage : input;
+    if (!draft.trim() || loading) return;
+    const userMessage = draft.trim();
     setInput('');
     const nextSessionTitle = getSessionTitleFromMessages([...messages.filter(m => !m.isWelcome), { role: 'user', content: userMessage }], currentFolder?.name || 'New Research');
     updateCurrentSession((session) => ({
@@ -495,12 +504,43 @@ export default function ChatPage() {
     }));
     setLoading(true);
     try {
+      const flushStreamBuffer = () => {
+        if (!streamBufferRef.current) return;
+        const pending = streamBufferRef.current;
+        streamBufferRef.current = '';
+        setWorkspace((prev) => {
+          const s = prev.sessions.find((x) => x.id === prev.currentSessionId);
+          if (!s || !s.messages?.length) return prev;
+          const msgs = [...s.messages];
+          const lastIdx = msgs.length - 1;
+          msgs[lastIdx] = { ...msgs[lastIdx], content: (msgs[lastIdx].content || '') + pending };
+          return {
+            ...prev,
+            sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
+          };
+        });
+      };
+
+      const scheduleStreamFlush = () => {
+        if (streamFlushTimerRef.current) return;
+        streamFlushTimerRef.current = window.setTimeout(() => {
+          streamFlushTimerRef.current = null;
+          flushStreamBuffer();
+        }, 45);
+      };
+
       const activeMessages = messages.filter(m => !m.isWelcome).map(m => ({ role: m.role, content: m.content }));
       const token = localStorage.getItem('neural_nexus_token');
       const response = await fetch('/api/v1/combined-chat/stream-answer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ question: userMessage, folder_id: selectedFolderId || null, session_id: workspace.currentSessionId || null, history: activeMessages.slice(-10), web_search: isWebSearchEnabled }),
+        body: JSON.stringify({
+          question: userMessage,
+          folder_id: selectedFolderId || null,
+          session_id: workspace.currentSessionId || null,
+          history: activeMessages.slice(-CHAT_HISTORY_SEND_WINDOW),
+          web_search: isWebSearchEnabled,
+        }),
       });
       if (!response.ok) throw new Error('Network fault');
       const reader = response.body?.getReader();
@@ -517,27 +557,55 @@ export default function ChatPage() {
             const chunk = JSON.parse(line);
             if (chunk.type === 'content') {
               accumulatedContent += chunk.data;
-              setWorkspace((prev) => {
-                const s = prev.sessions.find(x => x.id === prev.currentSessionId);
-                if (!s) return prev;
-                const msgs = [...s.messages];
-                msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: msgs[msgs.length - 1].content + chunk.data };
-                return { ...prev, sessions: prev.sessions.map(x => x.id === prev.currentSessionId ? { ...x, messages: msgs } : x) };
-              });
+              streamBufferRef.current += chunk.data;
+              scheduleStreamFlush();
             }
           } catch { /* parse fail */ }
         }
       }
+      if (streamFlushTimerRef.current) {
+        clearTimeout(streamFlushTimerRef.current);
+        streamFlushTimerRef.current = null;
+      }
+      if (streamBufferRef.current) {
+        const pending = streamBufferRef.current;
+        streamBufferRef.current = '';
+        setWorkspace((prev) => {
+          const s = prev.sessions.find((x) => x.id === prev.currentSessionId);
+          if (!s || !s.messages?.length) return prev;
+          const msgs = [...s.messages];
+          const lastIdx = msgs.length - 1;
+          msgs[lastIdx] = { ...msgs[lastIdx], content: (msgs[lastIdx].content || '') + pending };
+          return {
+            ...prev,
+            sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
+          };
+        });
+      }
       setWorkspace(prev => ({ ...prev, sessions: prev.sessions.map(s => s.id === workspace.currentSessionId ? { ...s, messages: s.messages.map((m, i) => i === s.messages.length - 1 ? { ...m, isStreaming: false } : m) } : s) }));
     } catch { toast.error('Synthesis interrupted.'); } finally { setLoading(false); }
   };
+
+  const sendQuickPrompt = async (prompt) => {
+    if (!prompt || loading) return;
+    const synthetic = { preventDefault: () => {} };
+    await sendMessage(synthetic, prompt);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (streamFlushTimerRef.current) {
+        clearTimeout(streamFlushTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-transparent">
       {/* Search/History Sidebar (The Repository Stash) */}
       <Suspense fallback={<ChatHistorySkeleton />}>
         {isHistoryOpen && (
-          <div className="hidden h-full border-r border-border/10 bg-secondary/10 backdrop-blur-3xl xl:block xl:w-80 animate-fade-in py-5 pl-1 pr-4">
+          <div className="app-surface-muted hidden h-full xl:block xl:w-80 py-5 pl-1 pr-4">
             <ChatHistoryPanel
               chatHistory={chatHistory}
               activeSessionId={workspace.currentSessionId}
@@ -552,14 +620,14 @@ export default function ChatPage() {
 
       {/* Main Chat Interface (Neural Studio) */}
       <div className="relative flex h-full flex-1 flex-col overflow-hidden px-4 py-5">
-        <div className="flex h-full flex-col overflow-hidden rounded-[40px] border border-border/20 bg-secondary/10 shadow-[0_48px_100px_-48px_rgba(45,58,40,0.15)] backdrop-blur-[40px] ring-1 ring-white/10">
+        <div className="app-surface app-elevated flex h-full flex-col overflow-hidden rounded-[28px]">
           
           {/* Header Area */}
-          <div className="flex h-20 shrink-0 items-center justify-between border-b border-border/10 bg-secondary/5 px-10">
+          <div className="app-surface-muted flex h-20 shrink-0 items-center justify-between px-10">
             <div className="flex items-center gap-4 min-w-0">
                <button
                 onClick={() => setHistoryOpen(!isHistoryOpen)}
-                className="group flex h-11 w-11 items-center justify-center rounded-[18px] bg-secondary/30 text-muted-foreground/60 transition-all duration-500 hover:bg-primary hover:text-white hover:shadow-xl hover:shadow-primary/20"
+                className="group flex h-11 w-11 items-center justify-center rounded-[14px] bg-secondary/50 text-muted-foreground/80 transition hover:bg-primary hover:text-primary-foreground"
                 title={isHistoryOpen ? "Focus Workspace" : "Explore Repository"}
               >
                 <PanelRightClose className={cn("h-5.5 w-5.5 transition-transform duration-700", !isHistoryOpen && "rotate-180")} />
@@ -575,7 +643,7 @@ export default function ChatPage() {
               <div className="relative" ref={downloadMenuRef}>
                 <button
                   onClick={() => setDownloadOpen(!isDownloadOpen)}
-                  className="flex items-center gap-3 rounded-2xl border border-border/20 bg-card/40 px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-foreground/70 transition-all hover:bg-primary hover:text-white hover:shadow-xl hover:shadow-primary/20 shadow-sm"
+                  className="flex items-center gap-3 rounded-xl border border-border/50 bg-card px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-foreground/80 transition hover:border-primary/40 hover:text-primary"
                 >
                   <Download className="h-4.5 w-4.5" />
                   <span className="hidden md:inline">Export Findings</span>
@@ -584,7 +652,7 @@ export default function ChatPage() {
 
               <button
                 onClick={startNewChat}
-                className="flex items-center gap-3 rounded-2xl bg-primary px-6 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-2xl shadow-primary/30 transition-all hover:scale-105 active:scale-95 ring-4 ring-primary/10"
+                className="flex items-center gap-3 rounded-xl bg-primary px-6 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-primary-foreground shadow-lg shadow-primary/20 transition hover:bg-primary/90 active:scale-[0.98]"
               >
                 <SquarePen className="h-4.5 w-4.5" />
                 <span className="hidden md:inline">New Session</span>
@@ -592,7 +660,7 @@ export default function ChatPage() {
               
               <button
                 onClick={clearChat}
-                className="flex h-11 w-11 items-center justify-center rounded-2xl bg-destructive/10 text-destructive border border-destructive/20 transition-all duration-500 hover:bg-destructive hover:text-white hover:shadow-xl hover:shadow-destructive/30"
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-destructive/10 text-destructive border border-destructive/20 transition hover:bg-destructive hover:text-destructive-foreground"
                 title="Clear Session"
               >
                 <RotateCcw className="h-4.5 w-4.5" />
@@ -601,14 +669,31 @@ export default function ChatPage() {
           </div>
 
           {/* Message Stream Container */}
-          <div className="relative flex-1 overflow-hidden animate-fade-in bg-gradient-to-b from-transparent via-transparent to-primary/5">
+          <div className="relative flex-1 overflow-hidden bg-gradient-to-b from-transparent via-transparent to-primary/5">
+            {messages.length <= 1 && !loading ? (
+              <div className="px-8 pt-6 pb-2">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Quick start</p>
+                <div className="flex flex-wrap gap-2">
+                  {CHAT_QUICK_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => sendQuickPrompt(prompt)}
+                      className="rounded-full border border-primary/25 bg-primary/8 px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/14"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <VirtualMessageList
               messages={virtualItems}
               onWebSearch={performWebSearch}
               onOpenDetails={openMessageDetails}
             />
             {/* Ambient Bottom Fade */}
-            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-secondary/15 to-transparent z-10" />
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background/75 to-transparent z-10" />
           </div>
 
           {/* Input Area */}
