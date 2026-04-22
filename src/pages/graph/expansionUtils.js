@@ -36,8 +36,8 @@ export function filterGraphForExpansion(fullGraph, expandedIds) {
 
   if (expandedIds.size === 0) {
     return {
-      nodes: [],
-      links: [],
+      nodes: fullGraph.nodes || [],
+      links: fullGraph.links || [],
       visibleNodeIds: new Set(),
       visibleLinkIds: new Set()
     };

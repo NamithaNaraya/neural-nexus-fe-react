@@ -136,7 +136,15 @@ export default function GraphHybridForcePage({
   const haloSelectionRef = useRef(null);
   const nodeSelectionRef = useRef(null);
   const nodeHighlightSelectionRef = useRef(null);
-  const latestFitRequestRef = useRef(0);
+  const explorerModeActiveRef = useRef(_traversalMode); // _traversalMode is legacy param for explorer
+  const traversalModeActiveRef = useRef(traversalModeActive);
+  const onTraversalNodeClickRef = useRef(onTraversalNodeClick);
+
+  useEffect(() => {
+    explorerModeActiveRef.current = _traversalMode;
+    traversalModeActiveRef.current = traversalModeActive;
+    onTraversalNodeClickRef.current = onTraversalNodeClick;
+  }, [_traversalMode, traversalModeActive, onTraversalNodeClick]);
 
   const [fullGraphData, setFullGraphData] = useState({ nodes: [], links: [] });
   const [focusedGraphData, setFocusedGraphData] = useState(null);
@@ -506,8 +514,8 @@ export default function GraphHybridForcePage({
     setFocusLabel(node.name || node.id);
     setInspectorOpen(true);
 
-    if (traversalModeActive && onTraversalNodeClick) {
-      onTraversalNodeClick(node);
+    if (traversalModeActiveRef.current && onTraversalNodeClickRef.current) {
+      onTraversalNodeClickRef.current(node);
     }
 
     await refreshNodeFocus(node);

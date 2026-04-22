@@ -87,14 +87,20 @@ export default function GraphForcePage({
   const showRelationshipLabelsRef = useRef(showRelationshipLabels);
   const lockDraggedNodesRef = useRef(lockDraggedNodes);
   const explorerModeActiveRef = useRef(explorerModeActive);
+  const traversalModeActiveRef = useRef(traversalModeActive);
+  const onExplorerNodeClickRef = useRef(onExplorerNodeClick);
+  const onTraversalNodeClickRef = useRef(onTraversalNodeClick);
   
   useEffect(() => {
     showNodeLabelsRef.current = showNodeLabels;
     showRelationshipLabelsRef.current = showRelationshipLabels;
     lockDraggedNodesRef.current = lockDraggedNodes;
     explorerModeActiveRef.current = explorerModeActive;
+    traversalModeActiveRef.current = traversalModeActive;
+    onExplorerNodeClickRef.current = onExplorerNodeClick;
+    onTraversalNodeClickRef.current = onTraversalNodeClick;
     requestRenderRef.current();
-  }, [showNodeLabels, showRelationshipLabels, lockDraggedNodes, explorerModeActive]);
+  }, [showNodeLabels, showRelationshipLabels, lockDraggedNodes, explorerModeActive, traversalModeActive, onExplorerNodeClick, onTraversalNodeClick]);
 
   // Sync cursor position for rubber-band link
   useEffect(() => {
@@ -316,11 +322,11 @@ export default function GraphForcePage({
   };
 
   const handleNodeClick = async (node) => {
-    if (explorerModeActive && onExplorerNodeClick) {
-      onExplorerNodeClick(node);
+    if (explorerModeActiveRef.current && onExplorerNodeClickRef.current) {
+      onExplorerNodeClickRef.current(node);
     }
-    if (traversalModeActive && onTraversalNodeClick) {
-      onTraversalNodeClick(node);
+    if (traversalModeActiveRef.current && onTraversalNodeClickRef.current) {
+      onTraversalNodeClickRef.current(node);
     }
 
     setActiveNode(node);
