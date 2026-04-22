@@ -66,93 +66,93 @@ export function GraphColorFilterSection({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 rounded-2xl border border-border/35 bg-background/45 p-3">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          <Icon className="h-3.5 w-3.5" />
-          <span className="whitespace-nowrap">{title}</span>
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 text-primary">
+            <Icon className="h-4 w-4" />
+          </div>
+          <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{title}</span>
         </div>
-        <div className="inline-flex shrink-0 items-center overflow-hidden rounded-full border border-border/30 bg-background/35 text-[10px] font-medium">
+        <div className="inline-flex items-center overflow-hidden rounded-full border border-border/40 bg-card/75 text-[10px] font-semibold shadow-sm">
           <button
             type="button"
             onClick={selectAll}
-            className="px-3 py-1.5 text-muted-foreground transition hover:bg-primary/5 hover:text-foreground"
+            className="px-3 py-1.5 text-muted-foreground transition hover:bg-primary/8 hover:text-foreground"
           >
             Select all
           </button>
-          <span className="h-4 w-px bg-border/50" />
+          <span className="h-4 w-px bg-border/55" />
           <button
             type="button"
             onClick={clearAll}
-            className="px-3 py-1.5 text-muted-foreground transition hover:bg-primary/5 hover:text-foreground"
+            className="px-3 py-1.5 text-muted-foreground transition hover:bg-primary/8 hover:text-foreground"
           >
             Clear
           </button>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid gap-2">
         {items.map((item) => {
           const color = getColor(item, colorMap);
           const active = !hasNone && (activeItems.size === 0 || activeItems.has(item));
-          const chipSurface = withAlpha(color, active ? 'F2' : '18');
-          const chipBorder = withAlpha(color, active ? '70' : '42');
-          const chipGlow = withAlpha(color, '30');
-          const chipText = active ? '#FFFFFF' : color;
+          const bg = active
+            ? `linear-gradient(180deg, ${withAlpha(color, 'F2')}, ${withAlpha(color, 'E6')})`
+            : `linear-gradient(180deg, ${withAlpha(color, '14')}, rgba(255,255,255,0.96))`;
+          const border = active ? withAlpha(color, '66') : withAlpha(color, '3F');
 
           return (
             <div
               key={item}
-              className={cn(
-                'group relative rounded-full border transition'
-              )}
-              style={{
-                background: active
-                  ? `linear-gradient(180deg, ${withAlpha(color, 'FF')}, ${withAlpha(color, 'E8')})`
-                  : `linear-gradient(180deg, ${chipSurface}, rgba(255,255,255,0.96))`,
-                borderColor: chipBorder,
-                boxShadow: active ? `inset 0 0 0 1px ${withAlpha('#111827', '10')}` : `inset 0 0 0 1px ${withAlpha(color, '12')}`,
-              }}
+              className={cn('group flex items-center justify-between gap-2 rounded-xl border transition')}
+              style={{ background: bg, borderColor: border }}
             >
               <button
                 type="button"
                 onClick={() => toggleItem(item)}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold transition'
-                )}
-                style={{ color: chipText }}
+                className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left"
               >
                 <span
                   className={cn(
                     'h-2.5 w-2.5 rounded-full border shadow-sm',
-                    active ? 'border-white/70 bg-white/85' : 'border-white/50'
+                    active ? 'border-white/75 bg-white/90' : 'border-white/50'
                   )}
                   style={!active ? { backgroundColor: color } : undefined}
                 />
-                <span>{item}</span>
+                <span className={cn('truncate text-[11px] font-semibold', active ? 'text-foreground' : 'text-muted-foreground')}>
+                  {item}
+                </span>
               </button>
-              <input
-                type="color"
-                value={toHex(color)}
-                onChange={(event) =>
-                  setColorMap?.((current) => ({
-                    ...(current || {}),
-                    [item]: event.target.value,
-                  }))
-                }
-                className="mx-1 my-1 h-6 w-6 cursor-pointer rounded-full border border-white/40 bg-transparent p-0"
+
+              <label
+                className={cn(
+                  'mr-2 inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border transition',
+                  active ? 'border-white/50 bg-white/15' : 'border-border/45 bg-card/85'
+                )}
                 title={`Set ${item} color`}
-                aria-label={`Set ${item} color`}
-              />
+              >
+                <span className="h-4 w-4 rounded-full border border-white/70 shadow-sm" style={{ backgroundColor: toHex(color) }} />
+                <input
+                  type="color"
+                  value={toHex(color)}
+                  onChange={(event) =>
+                    setColorMap?.((current) => ({
+                      ...(current || {}),
+                      [item]: event.target.value,
+                    }))
+                  }
+                  className="absolute h-0 w-0 opacity-0"
+                  aria-label={`Set ${item} color`}
+                />
+              </label>
             </div>
           );
         })}
       </div>
 
-      <p className="text-[11px] text-muted-foreground">
-        {allSelected
-          ? 'All items are active.'
-          : `${activeCount} of ${items.length} active.`}
+      <p className="text-[10px] font-medium text-muted-foreground">
+        {allSelected ? 'All items are active.' : `${activeCount} of ${items.length} active.`}
       </p>
     </div>
   );

@@ -70,6 +70,37 @@ export default function GraphForceGraph3DPage({
   const forceRefreshRef = useRef(false);
   const graphRef = useRef(null);
   const didAutoFitRef = useRef(false);
+  const mergeGraphData = (base, incoming) => {
+    const baseNodes = Array.isArray(base?.nodes) ? base.nodes : [];
+    const incomingNodes = Array.isArray(incoming?.nodes) ? incoming.nodes : [];
+    const baseLinks = Array.isArray(base?.links) ? base.links : [];
+    const incomingLinks = Array.isArray(incoming?.links) ? incoming.links : [];
+
+    const nodeMap = new Map();
+    for (const node of baseNodes) nodeMap.set(String(node.id), node);
+    for (const node of incomingNodes) nodeMap.set(String(node.id), { ...(nodeMap.get(String(node.id)) || {}), ...node });
+
+    const linkMap = new Map();
+    const linkKey = (link) => {
+      const src = String(typeof link.source === 'object' ? link.source?.id : link.source);
+      const dst = String(typeof link.target === 'object' ? link.target?.id : link.target);
+      return String(link.id || `${src}->${dst}:${link.type || 'RELATIONSHIP'}`);
+    };
+    for (const link of baseLinks) linkMap.set(linkKey(link), link);
+    for (const link of incomingLinks) linkMap.set(linkKey(link), { ...(linkMap.get(linkKey(link)) || {}), ...link });
+
+    return {
+      nodes: Array.from(nodeMap.values()),
+      links: Array.from(linkMap.values()),
+    };
+  };
+
+  const filterLinksForKnownNodes = (links, knownNodeIds) =>
+    (Array.isArray(links) ? links : []).filter((link) => {
+      const sourceId = String(typeof link.source === 'object' ? link.source?.id : link.source);
+      const targetId = String(typeof link.target === 'object' ? link.target?.id : link.target);
+      return knownNodeIds.has(sourceId) && knownNodeIds.has(targetId);
+    });
 
   useEffect(() => {
     setFocusedGraphData(null);
@@ -114,10 +145,10 @@ export default function GraphForceGraph3DPage({
       setError(null);
       try {
         const [firstLimit, ...nextLimits] = GRAPH_FETCH_STEPS.force3d;
-        const firstData = await graphService.getFolder(folderId, firstLimit, { force: forceRefreshRef.current });
+        const firstData = await graphService.getFolder(folderId, firstLimit, { force: forceRefreshRef.current, offset: 0 });
         if (cancelled) return;
 
-        setFullGraphData(firstData);
+        setFullGraphData(firstData || { nodes: [], links: [] });
         setFocusedGraphData(null);
 
         setLoading(false);
@@ -126,10 +157,30 @@ export default function GraphForceGraph3DPage({
           setHydrating(true);
         }
 
-        for (const limit of nextLimits) {
-          const nextData = await graphService.getFolder(folderId, limit, { force: forceRefreshRef.current });
+        let loadedCount = Array.isArray(firstData?.nodes) ? firstData.nodes.length : 0;
+        let previousStep = firstLimit;
+        for (const stepLimit of nextLimits) {
           if (cancelled) return;
-          setFullGraphData(nextData);
+          const pageSize = Math.max(0, stepLimit - previousStep);
+          previousStep = stepLimit;
+          if (pageSize <= 0) continue;
+          const pageData = await graphService.getFolder(folderId, pageSize, {
+            force: forceRefreshRef.current,
+            offset: loadedCount,
+          });
+          if (cancelled) return;
+
+          const pageNodes = Array.isArray(pageData?.nodes) ? pageData.nodes : [];
+          const pageLinks = Array.isArray(pageData?.links) ? pageData.links : [];
+          if (!pageNodes.length) break;
+
+          setFullGraphData((prev) => {
+            const merged = mergeGraphData(prev, { nodes: pageNodes, links: [] });
+            const knownNodeIds = new Set((merged.nodes || []).map((n) => String(n.id)));
+            return mergeGraphData(merged, { nodes: [], links: filterLinksForKnownNodes(pageLinks, knownNodeIds) });
+          });
+
+          loadedCount += pageNodes.length;
         }
 
         setTimeout(() => {

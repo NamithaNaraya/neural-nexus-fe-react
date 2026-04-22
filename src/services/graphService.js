@@ -10,7 +10,7 @@ const TTL = {
 
 const keyFor = {
   all: (limit) => `nnv2:graph:all:${limit || 'full'}`,
-  folder: (folderId, limit) => `nnv2:graph:folder:${folderId}:${limit || 'full'}`,
+  folder: (folderId, limit, offset = 0) => `nnv2:graph:folder:${folderId}:${offset}:${limit || 'full'}`,
   file: (fileId) => `nnv2:graph:file:${fileId}`,
   nodeDetails: (nodeId) => `nnv2:graph:node-details:${nodeId}`,
   nodeNeighbors: (nodeId) => `nnv2:graph:node-neighbors:${nodeId}`,
@@ -59,9 +59,12 @@ export const graphService = {
     }, force);
   },
 
-  async getFolder(folderId, limit, { force = false } = {}) {
-    return cached(keyFor.folder(folderId, limit), TTL.graph, async () => {
-      const response = await api.get(`/graph/folder/${folderId}${limit ? `?limit=${limit}` : ''}`);
+  async getFolder(folderId, limit, { force = false, offset = 0 } = {}) {
+    return cached(keyFor.folder(folderId, limit, offset), TTL.graph, async () => {
+      const query = new URLSearchParams();
+      if (limit) query.set('limit', String(limit));
+      if (offset > 0) query.set('offset', String(offset));
+      const response = await api.get(`/graph/folder/${folderId}${query.toString() ? `?${query.toString()}` : ''}`);
       return response.data;
     }, force);
   },

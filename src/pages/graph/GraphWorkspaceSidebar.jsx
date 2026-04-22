@@ -6,6 +6,7 @@ import { Input, Label } from '../../components/ui/Input';
 import { GraphColorFilterSection } from './components/GraphColorFilterSection';
 import { GraphDataQualityPanel } from './components/GraphDataQualityPanel';
 import { getNodeTypeColor, getRelationshipTypeColor } from './colorSystem';
+import { cn } from '../../utils/cn';
 
 function countActiveFilters({ nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans }) {
   let count = 0;
@@ -38,24 +39,34 @@ function ToggleRow({ label, description, active, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={[
-        'flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition',
-        active
-          ? 'border-primary/30 bg-primary/8 shadow-sm'
-          : 'border-border/40 bg-background/35 hover:bg-muted/50',
-      ].join(' ')}
+      className={cn(
+        "group flex w-full items-center justify-between rounded-[20px] border px-4 py-3.5 text-left transition-all duration-300",
+        active 
+          ? "border-primary/20 bg-primary/[0.03] shadow-[0_2px_10px_rgba(var(--primary-rgb),0.05)]" 
+          : "border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50/50"
+      )}
     >
-      <div className="min-w-0">
-        <div className="text-sm font-medium text-foreground">{label}</div>
-        <div className="mt-1 text-xs text-muted-foreground">{description}</div>
+      <div className="min-w-0 pr-2">
+        <div className={cn(
+          "text-[13px] font-bold transition-colors",
+          active ? "text-primary" : "text-slate-700"
+        )}>
+          {label}
+        </div>
+        <div className="mt-1 text-[11px] font-medium leading-relaxed text-slate-400">
+          {description}
+        </div>
       </div>
       <div
-        className={[
-          'ml-3 inline-flex min-w-[58px] items-center justify-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]',
-          active ? 'bg-primary/12 text-primary' : 'bg-muted text-muted-foreground',
-        ].join(' ')}
+        className={cn(
+          "relative flex h-5 w-10 shrink-0 items-center rounded-full transition-colors duration-300",
+          active ? "bg-primary" : "bg-slate-200"
+        )}
       >
-        {active ? 'On' : 'Off'}
+        <div className={cn(
+          "absolute h-3.5 w-3.5 rounded-full bg-white transition-all duration-300 shadow-sm",
+          active ? "left-[22px]" : "left-[4px]"
+        )} />
       </div>
     </button>
   );
@@ -63,20 +74,34 @@ function ToggleRow({ label, description, active, onClick }) {
 
 function OptionList({ items, onPick, emptyLabel }) {
   if (!items.length) {
-    return <div className="rounded-xl border border-dashed border-border/40 bg-background/30 px-3 py-3 text-xs text-muted-foreground">{emptyLabel}</div>;
+    return (
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-6 text-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-2">
+           <Network className="h-5 w-5 opacity-20" />
+        </div>
+        <p className="text-[11px] font-medium text-slate-400">{emptyLabel}</p>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-1 rounded-xl border border-border/40 bg-background/40 p-2">
+    <div className="max-h-48 overflow-y-auto space-y-1.5 rounded-2xl border border-slate-100 bg-white/50 p-2 shadow-sm backdrop-blur-sm">
       {items.map((node) => (
         <button
           key={node.id}
           type="button"
           onClick={() => onPick(node)}
-          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition hover:bg-muted/60"
+          className="group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition-all hover:bg-primary/5"
         >
-          <span className="truncate">{node.name || node.id}</span>
-          <Target className="h-3.5 w-3.5 text-primary" />
+          <div className="min-w-0">
+            <span className="block truncate text-[12px] font-bold text-slate-700 group-hover:text-primary transition-colors">
+              {node.name || node.id}
+            </span>
+            <span className="block text-[10px] text-slate-400 uppercase tracking-tight">{node.type || 'Entity'}</span>
+          </div>
+          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-50 text-slate-400 opacity-0 group-hover:opacity-100 group-hover:bg-primary/10 group-hover:text-primary transition-all">
+            <Target className="h-3.5 w-3.5" />
+          </div>
         </button>
       ))}
     </div>
@@ -88,16 +113,28 @@ function TraversalPanel({
   onTraversalToggle,
 }) {
   return (
-    <div className="space-y-3 rounded-2xl border border-border/40 bg-background/40 p-3">
+    <div className="space-y-4">
+      <div className="flex items-center gap-2.5 px-1">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+           <Waypoints className="h-4 w-4" />
+        </div>
+        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Path Traversal</span>
+      </div>
+
       <ToggleRow
         label="Path traversal mode"
-        description="Turn it on, then click nodes in the graph to move forward and backward."
+        description="Navigate step-by-step through linked nodes in the workspace."
         active={traversalModeActive}
         onClick={onTraversalToggle}
       />
 
-      <div className="rounded-xl border border-dashed border-border/40 bg-background/30 px-3 py-3 text-xs text-muted-foreground">
-        The live path controls appear on the graph view when this mode is on.
+      <div className="rounded-[20px] bg-indigo-50/50 p-4 border border-indigo-100/50">
+        <div className="flex items-start gap-3">
+          <Sparkles className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
+          <p className="text-[11px] font-medium leading-relaxed text-indigo-600/80">
+            Interactive controls will appear on the graph canvas once traversal is enabled.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -118,19 +155,19 @@ function HopFinderPanel({ allNodes, relationshipTypes, onOpenHopFinder }) {
   }, [allNodes, hopNodeQuery]);
 
   return (
-    <div className="space-y-3 rounded-2xl border border-border/40 bg-background/40 p-3">
-      <div className="flex items-center gap-2">
-        <Radar className="h-4 w-4 text-primary" />
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Hop finder</div>
-          <p className="mt-1 text-xs text-muted-foreground">Focus a node and open its 1, 2, or 3 hop neighborhood.</p>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2.5 px-1">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+           <Radar className="h-4 w-4" />
         </div>
+        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Discovery Engine</span>
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Base node</Label>
+        <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-1">Seed Entity</Label>
         <Input
           value={hopNode?.name || hopNodeQuery}
+          className="h-11 rounded-[18px] border-slate-200 bg-white shadow-xs focus:ring-primary/10 transition-all"
           onChange={(event) => {
             setHopNode(null);
             setHopNodeQuery(event.target.value);
@@ -138,7 +175,7 @@ function HopFinderPanel({ allNodes, relationshipTypes, onOpenHopFinder }) {
           onFocus={() => {
             if (hopNode?.name) setHopNodeQuery(hopNode.name);
           }}
-          placeholder="Choose a node"
+          placeholder="Search for a node to expand from..."
         />
         <OptionList
           items={hopOptions}
@@ -146,60 +183,73 @@ function HopFinderPanel({ allNodes, relationshipTypes, onOpenHopFinder }) {
             setHopNode(node);
             setHopNodeQuery(node.name || node.id);
           }}
-          emptyLabel="No matching node found."
+          emptyLabel="No entities found for this query."
         />
-        {!hopNodeQuery.trim() ? (
-          <p className="text-[11px] text-muted-foreground">Suggested nodes are shown first, or search to narrow the list.</p>
-        ) : null}
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Depth</Label>
-        <div className="flex flex-wrap gap-2">
-          {[1, 2, 3].map((depth) => (
-            <ToolChip key={depth} active={hopDepth === depth} onClick={() => setHopDepth(depth)}>
-              {depth} hop{depth === 1 ? '' : 's'}
-            </ToolChip>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Relationship scope</Label>
-        <div className="flex flex-wrap gap-2">
-          {relationshipTypes.slice(0, 12).map((type) => {
-            const active = hopRelationshipTypes.includes(type);
-            return (
-              <ToolChip
-                key={type}
-                active={active}
-                onClick={() => {
-                  setHopRelationshipTypes((current) => (
-                    current.includes(type)
-                      ? current.filter((item) => item !== type)
-                      : [...current, type]
-                  ));
-                }}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-1">Neighborhood Depth</Label>
+          <div className="flex items-center gap-1.5 rounded-[16px] bg-slate-100 p-1">
+            {[1, 2, 3].map((depth) => (
+              <button
+                key={depth}
+                onClick={() => setHopDepth(depth)}
+                className={cn(
+                  "flex-1 h-8 rounded-[12px] text-[11px] font-bold transition-all",
+                  hopDepth === depth 
+                    ? "bg-white text-primary shadow-sm" 
+                    : "text-slate-400 hover:text-slate-600"
+                )}
               >
-                {type}
-              </ToolChip>
-            );
-          })}
+                {depth}H
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-end">
+          <Button
+            variant="gradient"
+            className="h-10 rounded-full bg-slate-900 text-white font-bold shadow-lg hover:shadow-slate-200 transition-all"
+            disabled={!hopNode?.id}
+            onClick={() => onOpenHopFinder(hopNode, hopDepth, hopRelationshipTypes)}
+          >
+            Expand View
+          </Button>
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Button
-          variant="gradient"
-          size="sm"
-          className="gap-2"
-          disabled={!hopNode?.id}
-          onClick={() => onOpenHopFinder(hopNode, hopDepth, hopRelationshipTypes)}
-        >
-          <Radar className="h-4 w-4" />
-          Open neighborhood
-        </Button>
-      </div>
+      {relationshipTypes.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-1">Relationship Constraints</Label>
+          <div className="flex flex-wrap gap-2">
+            {relationshipTypes.slice(0, 12).map((type) => {
+              const active = hopRelationshipTypes.includes(type);
+              return (
+                <button
+                  key={type}
+                  onClick={() => {
+                    setHopRelationshipTypes((current) => (
+                      current.includes(type)
+                        ? current.filter((item) => item !== type)
+                        : [...current, type]
+                    ));
+                  }}
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-[10px] font-bold transition-all",
+                    active 
+                      ? "bg-primary text-white shadow-md" 
+                      : "bg-slate-50 text-slate-500 border border-slate-100 hover:bg-slate-100"
+                  )}
+                >
+                  {type}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -229,95 +279,89 @@ function DistanceFinderPanel({ allNodes, pathLoading, pathError, pathSummary, on
   }, [allNodes, pathTargetQuery, pathSourceNode]);
 
   return (
-    <div className="space-y-3 rounded-2xl border border-border/40 bg-background/40 p-3">
-      <div className="flex items-center gap-2">
-        <MoveRight className="h-4 w-4 text-primary" />
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Distance finder</div>
-          <p className="mt-1 text-xs text-muted-foreground">Find and focus the shortest path between two nodes.</p>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2.5 px-1">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
+           <MoveRight className="h-4 w-4" />
+        </div>
+        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Route Intelligence</span>
+      </div>
+
+      <div className="grid gap-4">
+        <div className="space-y-2">
+          <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-1">Start Entity</Label>
+          <Input
+            value={pathSourceNode?.name || pathSourceQuery}
+            className="h-10 rounded-xl border-slate-200"
+            onChange={(event) => {
+              setPathSourceNode(null);
+              setPathSourceQuery(event.target.value);
+            }}
+            placeholder="Select origin..."
+          />
+          <OptionList
+            items={pathSourceOptions}
+            onPick={(node) => {
+              setPathSourceNode(node);
+              setPathSourceQuery(node.name || node.id);
+            }}
+            emptyLabel="No origin found."
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-1">End Entity</Label>
+          <Input
+            value={pathTargetNode?.name || pathTargetQuery}
+            className="h-10 rounded-xl border-slate-200"
+            onChange={(event) => {
+              setPathTargetNode(null);
+              setPathTargetQuery(event.target.value);
+            }}
+            placeholder="Select destination..."
+          />
+          <OptionList
+            items={pathTargetOptions}
+            onPick={(node) => {
+              setPathTargetNode(node);
+              setPathTargetQuery(node.name || node.id);
+            }}
+            emptyLabel="No destination found."
+          />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Source node</Label>
-        <Input
-          value={pathSourceNode?.name || pathSourceQuery}
-          onChange={(event) => {
-            setPathSourceNode(null);
-            setPathSourceQuery(event.target.value);
-          }}
-          onFocus={() => {
-            if (pathSourceNode?.name) setPathSourceQuery(pathSourceNode.name);
-          }}
-          placeholder="Choose a source"
-        />
-        <OptionList
-          items={pathSourceOptions}
-          onPick={(node) => {
-            setPathSourceNode(node);
-            setPathSourceQuery(node.name || node.id);
-          }}
-          emptyLabel="No matching source node found."
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Target node</Label>
-        <Input
-          value={pathTargetNode?.name || pathTargetQuery}
-          onChange={(event) => {
-            setPathTargetNode(null);
-            setPathTargetQuery(event.target.value);
-          }}
-          onFocus={() => {
-            if (pathTargetNode?.name) setPathTargetQuery(pathTargetNode.name);
-          }}
-          placeholder="Choose a target"
-        />
-        <OptionList
-          items={pathTargetOptions}
-          onPick={(node) => {
-            setPathTargetNode(node);
-            setPathTargetQuery(node.name || node.id);
-          }}
-          emptyLabel="No matching target node found."
-        />
-        {!pathSourceQuery.trim() && !pathTargetQuery.trim() ? (
-          <p className="text-[11px] text-muted-foreground">Start from the suggested nodes below, or type to narrow the choices.</p>
-        ) : null}
-      </div>
-
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-3">
         <Button
           variant="gradient"
-          size="sm"
-          className="gap-2"
+          className="flex-1 h-10 rounded-full bg-slate-900 text-white font-bold shadow-lg"
           disabled={!pathSourceNode?.id || !pathTargetNode?.id || pathLoading}
           onClick={() => onFindPath(pathSourceNode, pathTargetNode)}
         >
-          {pathLoading ? <Sparkles className="h-4 w-4 animate-pulse" /> : <Waypoints className="h-4 w-4" />}
-          Find path
+          {pathLoading ? <Sparkles className="h-4 w-4 animate-pulse mr-2" /> : <Waypoints className="h-4 w-4 mr-2" />}
+          Calculate Shortest Path
         </Button>
         {pathSummary ? (
-          <Button variant="ghost" size="sm" className="gap-2 rounded-full" onClick={onClearPath}>
+          <Button variant="ghost" className="h-10 w-10 rounded-full p-0 bg-slate-50" onClick={onClearPath}>
             <X className="h-4 w-4" />
-            Clear
           </Button>
         ) : null}
       </div>
 
-      {pathError ? (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-600">
+      {pathError && (
+        <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-[11px] font-medium text-red-600">
           {pathError}
         </div>
-      ) : null}
+      )}
 
-      {pathSummary ? (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-3 text-xs text-muted-foreground">
-          <div className="font-semibold text-foreground">{pathSummary.sourceName} to {pathSummary.targetName}</div>
-          <div className="mt-1">{pathSummary.length} hop{pathSummary.length === 1 ? '' : 's'} focused in the graph.</div>
+      {pathSummary && (
+        <div className="rounded-2xl bg-primary/5 p-4 border border-primary/10">
+          <div className="text-[12px] font-bold text-slate-800">{pathSummary.sourceName} → {pathSummary.targetName}</div>
+          <p className="mt-1 text-[11px] font-medium text-slate-500">
+            Optimal connection found in <span className="text-primary font-bold">{pathSummary.length} hops</span>.
+          </p>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
@@ -340,54 +384,59 @@ function FiltersPanel({
   onClearAllFilters,
 }) {
   return (
-    <div className="space-y-3 rounded-2xl border border-border/40 bg-background/40 p-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">View filters</div>
-          <p className="mt-1 text-xs text-muted-foreground">Use quick toggles to clean up the graph view fast.</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-2.5">
+           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Network className="h-4 w-4" />
+           </div>
+           <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Visibility Controllers</span>
         </div>
-        <Button variant="ghost" size="sm" className="rounded-full text-xs" onClick={onClearAllFilters}>
-          Clear all
+        <Button variant="ghost" size="sm" className="h-7 px-3 rounded-full text-[10px] font-bold text-slate-400 hover:text-primary transition-colors" onClick={onClearAllFilters}>
+          Reset Defaults
         </Button>
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid gap-3">
         <ToggleRow
-          label="Connected nodes only"
-          description="Hide isolated nodes and keep the graph cleaner."
+          label="Cleanup Workspace"
+          description="Hide nodes that aren't connected to anything else."
           active={!showOrphans}
           onClick={() => setShowOrphans((value) => !value)}
         />
         <ToggleRow
-          label="Dense view"
-          description="Show stronger parts of the graph first."
+          label="Denser Subgraphs"
+          description="Focus on highly connected clusters in the active view."
           active={minDegree >= 2}
           onClick={() => setMinDegree((value) => (value >= 2 ? 0 : 2))}
         />
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-3">
-          <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Connection strength</Label>
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
-            {minDegree === 0 ? 'All' : `Min ${minDegree}`}
+      <div className="space-y-4 rounded-[24px] bg-slate-50/50 p-5 border border-slate-100">
+        <div className="flex items-center justify-between">
+          <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-1">Connectivity Threshold</Label>
+          <span className="rounded-full bg-white border border-slate-200 px-3 py-1 text-[11px] font-bold text-slate-900 shadow-sm">
+            {minDegree === 0 ? 'Unlimited' : `${minDegree}+ Neighbors`}
           </span>
         </div>
-        <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-background/40 px-3 py-2">
+        <div className="px-2">
           <input
             type="range"
             min={0}
             max={10}
             value={minDegree}
             onChange={(event) => setMinDegree(Number(event.target.value))}
-            className="w-full"
+            className="h-1.5 w-full appearance-none rounded-full bg-slate-200 accent-primary cursor-pointer transition-all hover:bg-slate-300"
           />
-          <span className="text-sm font-semibold text-primary">{minDegree}</span>
+          <div className="flex justify-between mt-2.5 px-0.5">
+             <span className="text-[10px] font-bold text-slate-300">Broad</span>
+             <span className="text-[10px] font-bold text-slate-300">Dense</span>
+          </div>
         </div>
       </div>
 
       <GraphColorFilterSection
-        title="Node types"
+        title="Knowledge Categories"
         icon={Network}
         items={nodeTypes}
         activeItems={nodeTypeFilters}
@@ -398,7 +447,7 @@ function FiltersPanel({
       />
 
       <GraphColorFilterSection
-        title="Relationship types"
+        title="Relation Patterns"
         icon={GitBranch}
         items={relationshipTypes}
         activeItems={relationshipTypeFilters}
@@ -456,28 +505,27 @@ export function GraphWorkspaceSidebar({
   if (!open) return null;
 
   return (
-    <Card className="absolute left-2 top-full z-30 mt-3 flex w-[min(360px,calc(100vw-3rem))] max-h-[min(calc(100vh-13rem),620px)] flex-col overflow-hidden rounded-[28px] border border-border/20 bg-card/44 shadow-[0_18px_40px_rgba(15,23,42,0.05)] backdrop-blur-2xl">
-      <CardContent className="flex min-h-0 flex-1 flex-col gap-4 p-4">
-        <div className="flex items-start justify-between gap-3">
+    <Card className="absolute left-2 top-full z-30 mt-3 flex w-[min(380px,calc(100vw-2.5rem))] max-h-[min(calc(100vh-12.5rem),650px)] flex-col overflow-hidden rounded-[26px] border border-border/40 bg-card/92 shadow-[0_20px_55px_rgba(15,23,42,0.12)] backdrop-blur-2xl">
+      <CardContent className="flex min-h-0 flex-1 flex-col gap-5 p-5">
+        <div className="flex items-start justify-between gap-4 border-b border-border/40 pb-3">
           <div className="space-y-1">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">{panelTitle}</div>
-            <p className="max-w-[220px] text-xs leading-5 text-muted-foreground">
-              {panelDescription || (activeFilterCount > 0 ? `${activeFilterCount} active view controls in this tool.` : 'Each tool controls one part of the graph workspace.')}
+            <div className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">{panelTitle}</div>
+            <p className="max-w-[240px] text-[11px] font-medium leading-relaxed text-muted-foreground">
+              {panelDescription || (activeFilterCount > 0 ? `${activeFilterCount} active controls currently applied.` : 'Use these controls to shape and inspect the graph workspace.')}
             </p>
           </div>
           <Button
             variant="ghost"
-            size="sm"
-            className="gap-2 rounded-full border border-border/60 bg-background px-3 text-xs text-muted-foreground"
+            size="xs"
+            className="h-8 w-8 rounded-full border border-border/50 bg-background shadow-sm text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-all"
             type="button"
             onClick={onClose}
           >
-            <ChevronLeft className="h-4 w-4" />
-            Close
+            <X className="h-4 w-4" />
           </Button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto pr-3 pb-2 animate-in fade-in-0 duration-200 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border/40 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-border/60">
+        <div className="min-h-0 flex-1 overflow-y-auto pr-2 pb-2 animate-in fade-in-0 duration-200 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border/45 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-border/70">
           {activePanel === 'filters' ? (
             <FiltersPanel
               nodeTypes={nodeTypes}

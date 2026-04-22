@@ -74,6 +74,7 @@ export default function GraphPage() {
   const [activeRelationship, setActiveRelationship] = useState(null);
   const uiStateLoadedRef = useRef(false);
   const GRAPH_UI_STATE_KEY = `nnv2:graph:ui:${folderId || 'global'}`;
+  const hydrateJobRef = useRef({ cancelled: false });
 
   const predictedLinks = useMemo(() => getPredictedLinks(folderId), [folderId, getPredictedLinks]);
 
@@ -102,6 +103,13 @@ export default function GraphPage() {
     };
   };
 
+  const filterLinksForKnownNodes = (links, knownNodeIds) =>
+    (Array.isArray(links) ? links : []).filter((link) => {
+      const sourceId = String(typeof link.source === 'object' ? link.source?.id : link.source);
+      const targetId = String(typeof link.target === 'object' ? link.target?.id : link.target);
+      return knownNodeIds.has(sourceId) && knownNodeIds.has(targetId);
+    });
+
   const toolOptions = useMemo(
     () => [
       { id: 'filters', label: 'Node Filter', icon: SlidersHorizontal },
@@ -116,6 +124,7 @@ export default function GraphPage() {
 
   useEffect(() => {
     let ignore = false;
+    hydrateJobRef.current.cancelled = false;
 
     async function loadGraphContext() {
       if (!folderId) {
@@ -124,16 +133,33 @@ export default function GraphPage() {
       }
 
       try {
-        const [firstLimit, ...nextLimits] = GRAPH_FETCH_STEPS.hybrid2d;
-        const firstData = await graphService.getFolder(folderId, firstLimit);
+        const [firstLimit, ...restLimits] = GRAPH_FETCH_STEPS.hybrid2d;
+        const firstData = await graphService.getFolder(folderId, firstLimit, { offset: 0 });
         if (ignore) return;
         setGraphData(firstData || { nodes: [], links: [] });
 
-        for (const limit of nextLimits) {
-          const nextData = await graphService.getFolder(folderId, limit);
-          if (ignore) return;
-          setGraphData((prev) => mergeGraphData(prev, nextData || { nodes: [], links: [] }));
-          await new Promise((resolve) => window.setTimeout(resolve, 80));
+        let loadedCount = Array.isArray(firstData?.nodes) ? firstData.nodes.length : 0;
+        let previousStep = firstLimit;
+
+        for (const stepLimit of restLimits) {
+          if (ignore || hydrateJobRef.current.cancelled) return;
+          const pageSize = Math.max(0, stepLimit - previousStep);
+          previousStep = stepLimit;
+          if (pageSize <= 0) continue;
+
+          const pageData = await graphService.getFolder(folderId, pageSize, { offset: loadedCount });
+          if (ignore || hydrateJobRef.current.cancelled) return;
+          const pageNodes = Array.isArray(pageData?.nodes) ? pageData.nodes : [];
+          const pageLinks = Array.isArray(pageData?.links) ? pageData.links : [];
+          if (!pageNodes.length) break;
+
+          setGraphData((prev) => {
+            const merged = mergeGraphData(prev, { nodes: pageNodes, links: [] });
+            const knownNodeIds = new Set((merged.nodes || []).map((n) => String(n.id)));
+            return mergeGraphData(merged, { nodes: [], links: filterLinksForKnownNodes(pageLinks, knownNodeIds) });
+          });
+          loadedCount += pageNodes.length;
+          await new Promise((resolve) => window.setTimeout(resolve, 90));
         }
       } catch (error) {
         console.error('Failed to load graph context:', error);
@@ -147,6 +173,7 @@ export default function GraphPage() {
 
     return () => {
       ignore = true;
+      hydrateJobRef.current.cancelled = true;
       window.removeEventListener('nnv2:graph-crud', handleCrud);
     };
   }, [folderId, refreshToken]);
