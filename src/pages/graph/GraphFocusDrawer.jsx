@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, GitBranch, Link2, Pencil, Plus, RefreshCw, Save, Sparkles, Target, X } from 'lucide-react';
+import { ArrowRight, GitBranch, Link2, Pencil, Plus, RefreshCw, Save, Sparkles, Target, Trash2, X } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -226,6 +226,20 @@ export function GraphFocusDrawer({
       onSuccess?.();
     } catch (err) {
       setError(err?.response?.data?.detail || err?.message || 'Could not save relationship.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteRelationship = async () => {
+    if (!activeRelationship?.id) return;
+    setSaving(true);
+    setError('');
+    try {
+      await graphService.deleteRelationship(activeRelationship.id, folderId);
+      onSuccess?.();
+    } catch (err) {
+      setError(err?.response?.data?.detail || err?.message || 'Could not delete relationship.');
     } finally {
       setSaving(false);
     }
@@ -551,6 +565,19 @@ export function GraphFocusDrawer({
                 />
 
                 <div className="flex items-center justify-end gap-3">
+                  {!activeRelationship.isPhantom && activeRelationship.id ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 border-destructive/30 text-destructive hover:bg-destructive/10"
+                      onClick={handleDeleteRelationship}
+                      disabled={saving}
+                      type="button"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  ) : null}
                   <Button variant="gradient" size="sm" className="gap-2" onClick={handleSaveRelationship} disabled={saving} type="button">
                     <Save className="h-4 w-4" />
                     {activeRelationship.isPhantom ? 'Create Link' : 'Save Link'}

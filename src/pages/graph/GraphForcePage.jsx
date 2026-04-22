@@ -132,6 +132,7 @@ export default function GraphForcePage({
 
   // Quick CRUD State
   const [inlineCreate, setInlineCreate] = useState(null); // { sourceNode, name, relType }
+  const [linkDraft, setLinkDraft] = useState(null); // { sourceNode }
   const [savingInline, setSavingInline] = useState(false);
   const [transformState, setTransformState] = useState({ x: 0, y: 0, k: 1 });
   const phantomNodeRef = useRef(null);
@@ -322,6 +323,47 @@ export default function GraphForcePage({
   };
 
   const handleNodeClick = async (node) => {
+    if (editMode === 'add-link') {
+      // Two-click relationship creation: pick source, then pick target.
+      if (!linkDraft?.sourceNode) {
+        setLinkDraft({ sourceNode: node });
+        const newLink = { source: node.id, target: '__cursor__', isPhantom: true };
+        phantomLinkRef.current = newLink;
+        setPhantomLink(newLink);
+        setInlineCreate(null);
+        setInspectorOpen(false);
+        return;
+      }
+
+      const sourceNode = linkDraft.sourceNode;
+      const targetNode = node;
+      if (!sourceNode?.id || !targetNode?.id || String(sourceNode.id) === String(targetNode.id)) {
+        return;
+      }
+
+      // Stop preview and open relationship editor.
+      setLinkDraft(null);
+      phantomLinkRef.current = null;
+      setPhantomLink(null);
+      setEditMode?.('view');
+
+      const phantomRelationship = {
+        id: null,
+        isPhantom: true,
+        source: sourceNode.id,
+        target: targetNode.id,
+        type: 'RELATIONSHIP',
+        strength: '',
+        properties: {},
+      };
+      setActiveRelationship(phantomRelationship);
+      setActiveNode(null);
+      setFocusType('relationship');
+      setFocusLabel(`Create link: ${sourceNode.name || sourceNode.id} → ${targetNode.name || targetNode.id}`);
+      setInspectorOpen(true);
+      return;
+    }
+
     if (explorerModeActiveRef.current && onExplorerNodeClickRef.current) {
       onExplorerNodeClickRef.current(node);
     }
@@ -412,6 +454,35 @@ export default function GraphForcePage({
     }
   }, [editMode, inlineCreate]);
 
+  // Cancel link draft if mode changes away from add-link
+  useEffect(() => {
+    if (editMode !== 'add-link' && linkDraft) {
+      setLinkDraft(null);
+      phantomLinkRef.current = null;
+      setPhantomLink(null);
+    }
+  }, [editMode, linkDraft]);
+
+  // ESC cancels inline create and link creation
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key !== 'Escape') return;
+
+      if (inlineCreate) {
+        handleCancelInlineCreate();
+      }
+
+      if (editMode === 'add-link' || linkDraft) {
+        setLinkDraft(null);
+        phantomLinkRef.current = null;
+        setPhantomLink(null);
+        setEditMode?.('view');
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [editMode, inlineCreate, linkDraft]);
+
   const handleConfirmInlineCreate = async () => {
     if (!inlineCreate || !inlineCreate.name.trim()) return;
     setSavingInline(true);
@@ -463,6 +534,73 @@ export default function GraphForcePage({
     setFocusLabel(`${link.type || 'Relationship'} ${link.source?.name || link.source || ''} -> ${link.target?.name || link.target || ''}`);
     setInspectorOpen(true);
     setFocusedGraphData(buildRelationshipFocusGraph(fullGraphData, link));
+  };
+
+  const findLinkAt = (mouseX, mouseY) => {
+    const transform = zoomTransformRef.current;
+    const x = (mouseX - transform.x) / transform.k;
+    const y = (mouseY - transform.y) / transform.k;
+
+    const pointToSegDist = (px, py, ax, ay, bx, by) => {
+      const abx = bx - ax;
+      const aby = by - ay;
+      const apx = px - ax;
+      const apy = py - ay;
+      const denom = abx * abx + aby * aby;
+      if (denom === 0) return Math.hypot(px - ax, py - ay);
+      let t = (apx * abx + apy * aby) / denom;
+      t = Math.max(0, Math.min(1, t));
+      const cx = ax + t * abx;
+      const cy = ay + t * aby;
+      return Math.hypot(px - cx, py - cy);
+    };
+
+    let best = null;
+    let bestDist = Infinity;
+    const threshold = 10 / Math.max(0.4, transform.k);
+
+    for (const link of allSimulationLinks) {
+      if (!visibleLinkIds.has(link.id)) continue;
+      const s = link.source;
+      const tNode = link.target;
+      if (!s || !tNode) continue;
+
+      const curvature = Number(link.curvature || 0);
+      if (!curvature) {
+        const d = pointToSegDist(x, y, s.x, s.y, tNode.x, tNode.y);
+        if (d < bestDist) {
+          bestDist = d;
+          best = link;
+        }
+      } else {
+        const dx = tNode.x - s.x;
+        const dy = tNode.y - s.y;
+        const length = Math.hypot(dx, dy) || 1;
+        const normalX = -dy / length;
+        const normalY = dx / length;
+        const cp = {
+          x: s.x + dx / 2 + normalX * (curvature * length),
+          y: s.y + dy / 2 + normalY * (curvature * length),
+        };
+
+        let prev = { x: s.x, y: s.y };
+        for (let i = 1; i <= 10; i++) {
+          const tt = i / 10;
+          const inv = 1 - tt;
+          const qx = inv * inv * s.x + 2 * inv * tt * cp.x + tt * tt * tNode.x;
+          const qy = inv * inv * s.y + 2 * inv * tt * cp.y + tt * tt * tNode.y;
+          const d = pointToSegDist(x, y, prev.x, prev.y, qx, qy);
+          if (d < bestDist) {
+            bestDist = d;
+            best = link;
+          }
+          prev = { x: qx, y: qy };
+        }
+      }
+    }
+
+    if (best && bestDist <= threshold) return best;
+    return null;
   };
 
   // ─── D3 Physics & Canvas Rendering ─────────────────────────────
@@ -645,6 +783,27 @@ export default function GraphForcePage({
        canvas.style.cursor = overNode ? 'pointer' : 'default';
     };
     canvas.addEventListener('mousemove', handleMouseOver);
+    
+    const handleClick = (event) => {
+      if (draggingNode) return;
+      const overNode = findNodeAt(event.offsetX, event.offsetY);
+      if (overNode) return;
+      if (editMode === 'add-link') {
+        if (linkDraft?.sourceNode) {
+          // Background click cancels the draft if user changes mind.
+          setLinkDraft(null);
+          phantomLinkRef.current = null;
+          setPhantomLink(null);
+          setEditMode?.('view');
+        }
+        return;
+      }
+      const overLink = findLinkAt(event.offsetX, event.offsetY);
+      if (overLink) {
+        handleRelationshipClick(overLink);
+      }
+    };
+    canvas.addEventListener('click', handleClick);
 
     // Drawing
     const requestRender = () => {
@@ -676,10 +835,23 @@ export default function GraphForcePage({
         const pLink = phantomLinkRef.current;
 
         if (pLink && pLink.source && pLink.target) {
-            const s = allSimulationNodes.find(n => n.id === pLink.source) || (pNode && pNode.id === pLink.source ? pNode : null);
-            const tNode = allSimulationNodes.find(n => n.id === pLink.target) || (pNode && pNode.id === pLink.target ? pNode : null);
-            
-            if (s && tNode) {
+          const s = allSimulationNodes.find(n => n.id === pLink.source) || (pNode && pNode.id === pLink.source ? pNode : null);
+          if (s) {
+            let targetPos = null;
+            if (pLink.target === '__cursor__') {
+              const [mx, my] = lastMousePos.current;
+              targetPos = {
+                x: (mx - t.x) / t.k,
+                y: (my - t.y) / t.k,
+              };
+            } else {
+              const tNode = allSimulationNodes.find(n => n.id === pLink.target) || (pNode && pNode.id === pLink.target ? pNode : null);
+              if (tNode) {
+                targetPos = { x: tNode.x, y: tNode.y };
+              }
+            }
+
+            if (targetPos) {
               ctx.save();
               ctx.globalAlpha = 0.6;
               ctx.beginPath();
@@ -687,10 +859,11 @@ export default function GraphForcePage({
               ctx.lineWidth = 1.5;
               ctx.setLineDash([2, 3]); // DOTTED look
               ctx.moveTo(s.x, s.y);
-              ctx.lineTo(tNode.x, tNode.y);
+              ctx.lineTo(targetPos.x, targetPos.y);
               ctx.stroke();
               ctx.restore();
             }
+          }
         }
 
         const showDetails = t.k > 0.15 || explorerModeActiveRef.current;
@@ -917,8 +1090,9 @@ export default function GraphForcePage({
       simulation.stop();
       window.cancelAnimationFrame(animationId);
       canvas.removeEventListener('mousemove', handleMouseOver);
+      canvas.removeEventListener('click', handleClick);
     };
-  }, [allSimulationNodes, allSimulationLinks, visibleNodeIds, visibleLinkIds, highlightedNodeIds, highlightedLinkIds, showNodeLabels, showRelationshipLabels, activeNode, traversalModeActive, explorerModeActive, draggingNode, lockDraggedNodes]);
+  }, [allSimulationNodes, allSimulationLinks, visibleNodeIds, visibleLinkIds, highlightedNodeIds, highlightedLinkIds, showNodeLabels, showRelationshipLabels, activeNode, traversalModeActive, explorerModeActive, draggingNode, lockDraggedNodes, editMode, linkDraft]);
 
   // Handle Signal/Reset logic
   useEffect(() => {
@@ -993,6 +1167,16 @@ export default function GraphForcePage({
         </div>
       ) : null}
 
+      {editMode === 'add-link' ? (
+        <div className="pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2">
+          <div className="pointer-events-none rounded-full border border-primary/25 bg-primary/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-primary shadow-sm backdrop-blur-xl">
+            {linkDraft?.sourceNode
+              ? `Select target node • ESC to cancel`
+              : `Select source node • ESC to cancel`}
+          </div>
+        </div>
+      ) : null}
+
       {!loading && visibleNodeIds.size === 0 && (
          <div className="flex h-full items-center justify-center px-6">
             <div className="flex items-center gap-3 rounded-2xl border border-border/50 bg-card/90 px-4 py-3 text-sm text-muted-foreground shadow-sm">
@@ -1035,6 +1219,12 @@ export default function GraphForcePage({
           expandLoading={focusLoading}
           onSelectLink={handleRelationshipClick}
           onAddRelated={handleAddRelated}
+          onSuccess={() => {
+            // Keep inspector open but force refresh of local focused graph where possible.
+            if (focusType === 'node' && activeNode) {
+              void refreshNodeFocus(activeNode);
+            }
+          }}
         />
       )}
 

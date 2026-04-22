@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '../../../components/ui/Button';
-import { BrainCircuit, Info, ListOrdered, Network, X } from 'lucide-react';
+import { BrainCircuit, Info, ListOrdered, Network, Radar, X } from 'lucide-react';
 import { getAlgorithmDetails, getResultMetrics, getResultSubtitle, getResultTitle } from '../chatAlgorithmDetails';
 
 export function ChatAnswerDetailsDrawer({ isOpen, message, onClose }) {
@@ -8,6 +8,14 @@ export function ChatAnswerDetailsDrawer({ isOpen, message, onClose }) {
 
   const algorithmDetails = getAlgorithmDetails(message.algorithm);
   const results = Array.isArray(message.results) ? message.results.filter(Boolean) : [];
+  const openInGraph = (nodeId) => {
+    if (!nodeId) return;
+    try {
+      window.location.href = `/graph/2d?exploreId=${encodeURIComponent(String(nodeId))}`;
+    } catch {
+      // ignore
+    }
+  };
 
   return (
     <>
@@ -73,6 +81,7 @@ export function ChatAnswerDetailsDrawer({ isOpen, message, onClose }) {
                     const metrics = getResultMetrics(result, message.algorithm);
                     const title = getResultTitle(result, index);
                     const subtitle = getResultSubtitle(result);
+                    const nodeId = result?.node_id || result?.id || result?.nodeId || null;
 
                     return (
                       <div
@@ -101,6 +110,20 @@ export function ChatAnswerDetailsDrawer({ isOpen, message, onClose }) {
                                     <div className="mt-1 text-sm font-semibold text-foreground">{metric.value}</div>
                                   </div>
                                 ))}
+                              </div>
+                            ) : null}
+
+                            {nodeId ? (
+                              <div className="mt-4 flex justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => openInGraph(nodeId)}
+                                  className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-primary transition hover:bg-primary/12"
+                                  title="Open this node in Graph"
+                                >
+                                  <Radar className="h-3.5 w-3.5" />
+                                  Open in graph
+                                </button>
                               </div>
                             ) : null}
                           </div>

@@ -62,9 +62,13 @@ function PageTransition({ children }) {
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const routeScopeKey = (() => {
+    const first = location.pathname.split('/').filter(Boolean)[0];
+    return first || 'root';
+  })();
   return (
     <AnimatePresence mode="wait" initial={false}>
-      <Routes location={location} key={location.pathname}>
+      <Routes location={location} key={routeScopeKey}>
         <Route path="/" element={<Navigate to="/folders" replace />} />
         <Route path="/folders" element={<PageTransition><FoldersPage /></PageTransition>} />
         <Route path="/graph/*" element={<PageTransition><GraphPage /></PageTransition>} />

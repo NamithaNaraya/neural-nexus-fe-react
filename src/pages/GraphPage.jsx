@@ -72,8 +72,35 @@ export default function GraphPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeNode, setActiveNode] = useState(null);
   const [activeRelationship, setActiveRelationship] = useState(null);
+  const uiStateLoadedRef = useRef(false);
+  const GRAPH_UI_STATE_KEY = `nnv2:graph:ui:${folderId || 'global'}`;
 
   const predictedLinks = useMemo(() => getPredictedLinks(folderId), [folderId, getPredictedLinks]);
+
+  const mergeGraphData = (base, incoming) => {
+    const baseNodes = Array.isArray(base?.nodes) ? base.nodes : [];
+    const incomingNodes = Array.isArray(incoming?.nodes) ? incoming.nodes : [];
+    const baseLinks = Array.isArray(base?.links) ? base.links : [];
+    const incomingLinks = Array.isArray(incoming?.links) ? incoming.links : [];
+
+    const nodeMap = new Map();
+    for (const node of baseNodes) nodeMap.set(String(node.id), node);
+    for (const node of incomingNodes) nodeMap.set(String(node.id), { ...(nodeMap.get(String(node.id)) || {}), ...node });
+
+    const linkMap = new Map();
+    const linkKey = (link) => {
+      const src = String(typeof link.source === 'object' ? link.source?.id : link.source);
+      const dst = String(typeof link.target === 'object' ? link.target?.id : link.target);
+      return String(link.id || `${src}->${dst}:${link.type || 'RELATIONSHIP'}`);
+    };
+    for (const link of baseLinks) linkMap.set(linkKey(link), link);
+    for (const link of incomingLinks) linkMap.set(linkKey(link), { ...(linkMap.get(linkKey(link)) || {}), ...link });
+
+    return {
+      nodes: Array.from(nodeMap.values()),
+      links: Array.from(linkMap.values()),
+    };
+  };
 
   const toolOptions = useMemo(
     () => [
@@ -105,7 +132,8 @@ export default function GraphPage() {
         for (const limit of nextLimits) {
           const nextData = await graphService.getFolder(folderId, limit);
           if (ignore) return;
-          setGraphData(nextData || { nodes: [], links: [] });
+          setGraphData((prev) => mergeGraphData(prev, nextData || { nodes: [], links: [] }));
+          await new Promise((resolve) => window.setTimeout(resolve, 80));
         }
       } catch (error) {
         console.error('Failed to load graph context:', error);
@@ -122,6 +150,65 @@ export default function GraphPage() {
       window.removeEventListener('nnv2:graph-crud', handleCrud);
     };
   }, [folderId, refreshToken]);
+
+  useEffect(() => {
+    if (!folderId) return;
+    try {
+      const raw = localStorage.getItem(GRAPH_UI_STATE_KEY);
+      if (!raw) {
+        uiStateLoadedRef.current = true;
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        if (typeof parsed.toolsOpen === 'boolean') setToolsOpen(parsed.toolsOpen);
+        if (typeof parsed.sidebarOpen === 'boolean') setSidebarOpen(parsed.sidebarOpen);
+        if (typeof parsed.activePanel === 'string') setActivePanel(parsed.activePanel);
+        if (typeof parsed.showNodeLabels === 'boolean') setShowNodeLabels(parsed.showNodeLabels);
+        if (typeof parsed.showRelationshipLabels === 'boolean') setShowRelationshipLabels(parsed.showRelationshipLabels);
+        if (typeof parsed.lockDraggedNodes === 'boolean') setLockDraggedNodes(parsed.lockDraggedNodes);
+        if (typeof parsed.linkStyle === 'string') setLinkStyle(parsed.linkStyle);
+        if (parsed.nodeTypeColors && typeof parsed.nodeTypeColors === 'object') setNodeTypeColors(parsed.nodeTypeColors);
+        if (parsed.relationshipTypeColors && typeof parsed.relationshipTypeColors === 'object') setRelationshipTypeColors(parsed.relationshipTypeColors);
+      }
+    } catch {
+      // ignore malformed cached state
+    } finally {
+      uiStateLoadedRef.current = true;
+    }
+  }, [GRAPH_UI_STATE_KEY, folderId]);
+
+  useEffect(() => {
+    if (!folderId || !uiStateLoadedRef.current) return;
+    const payload = {
+      toolsOpen,
+      sidebarOpen,
+      activePanel,
+      showNodeLabels,
+      showRelationshipLabels,
+      lockDraggedNodes,
+      linkStyle,
+      nodeTypeColors,
+      relationshipTypeColors,
+    };
+    try {
+      localStorage.setItem(GRAPH_UI_STATE_KEY, JSON.stringify(payload));
+    } catch {
+      // ignore storage failures
+    }
+  }, [
+    GRAPH_UI_STATE_KEY,
+    folderId,
+    toolsOpen,
+    sidebarOpen,
+    activePanel,
+    showNodeLabels,
+    showRelationshipLabels,
+    lockDraggedNodes,
+    linkStyle,
+    nodeTypeColors,
+    relationshipTypeColors,
+  ]);
 
   useEffect(() => {
     const result = resetTraversal();
@@ -491,18 +578,18 @@ export default function GraphPage() {
               >
                 {editMode === 'add-node' ? 'Place Node...' : 'Add Node'}
               </button>
-              {/* <button
+              <button
                 type="button"
                 onClick={() => setEditMode(editMode === 'add-link' ? 'view' : 'add-link')}
                 className={[
-                  "inline-flex h-10 items-center rounded-full px-4 text-sm font-medium shadow-lg transition",
+                  "inline-flex h-10 items-center rounded-full px-4 text-sm font-medium transition",
                   editMode === 'add-link' 
-                    ? "border border-primary/30 bg-primary/10 text-primary ring-4 ring-primary/15" 
-                    : "bg-teal-600 text-white shadow-teal-500/20 hover:bg-teal-700"
+                    ? "border border-primary/35 bg-primary/12 text-primary ring-2 ring-primary/20" 
+                    : "bg-primary text-white shadow-primary/20 hover:bg-primary/90"
                 ].join(' ')}
               >
                 {editMode === 'add-link' ? 'Select Nodes...' : 'Add Relation'}
-              </button> */}
+              </button>
               <div className="hidden h-10 items-center gap-2 rounded-full border border-border/40 bg-background/60 px-3 text-xs text-muted-foreground md:flex">
                 <span>{Number(graphStats.nodes || 0).toLocaleString()} nodes</span>
                 <span className="text-border">•</span>

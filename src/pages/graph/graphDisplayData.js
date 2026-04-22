@@ -6,9 +6,10 @@ export const GRAPH_RENDER_LIMITS = Object.freeze({
 });
 
 export const GRAPH_FETCH_STEPS = Object.freeze({
-  canvas2d: [240, 900, 3000],
-  hybrid2d: [320, 1200, 3200],
-  force3d: [120, 420, 1500],
+  // Progressive staged loading keeps UI responsive and avoids big render jumps.
+  canvas2d: [60, 140, 280, 560, 1100, 2200, 3200],
+  hybrid2d: [60, 140, 280, 560, 1100, 2200, 3200],
+  force3d: [40, 100, 220, 460, 900, 1500],
 });
 
 export function capGraphData(graphData, maxNodes = 5000) {

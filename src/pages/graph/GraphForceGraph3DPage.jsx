@@ -69,6 +69,7 @@ export default function GraphForceGraph3DPage({
   const [hydrating, setHydrating] = useState(false);
   const forceRefreshRef = useRef(false);
   const graphRef = useRef(null);
+  const didAutoFitRef = useRef(false);
 
   useEffect(() => {
     setFocusedGraphData(null);
@@ -77,6 +78,7 @@ export default function GraphForceGraph3DPage({
     setActiveNode(null);
     setActiveRelationship(null);
     setInspectorOpen(false);
+    didAutoFitRef.current = false;
   }, [folderId]);
 
   useEffect(() => {
@@ -116,26 +118,7 @@ export default function GraphForceGraph3DPage({
         if (cancelled) return;
 
         setFullGraphData(firstData);
-        if (focusType === 'node' && activeNode?.id) {
-          setFocusLoading(true);
-          try {
-            const expanded = await graphService.expandNode(activeNode.id, {
-              depth: expandDepth,
-              relationshipTypes: expandRelationshipTypes,
-              force: forceRefreshRef.current,
-            });
-            setFocusedGraphData(buildNodeFocusGraph(firstData, expanded, activeNode));
-          } catch (focusError) {
-            console.error('Failed to restore focused node:', focusError);
-            setFocusedGraphData(buildNodeFocusGraph(firstData, { nodes: [activeNode], links: [] }, activeNode));
-          } finally {
-            setFocusLoading(false);
-          }
-        } else if (focusType === 'relationship' && activeRelationship) {
-          setFocusedGraphData(buildRelationshipFocusGraph(firstData, activeRelationship));
-        } else {
-          setFocusedGraphData(null);
-        }
+        setFocusedGraphData(null);
 
         setLoading(false);
 
@@ -169,7 +152,7 @@ export default function GraphForceGraph3DPage({
       cancelled = true;
       window.removeEventListener('nnv2:graph-crud', handleCrud);
     };
-  }, [folderId, refreshToken, graphData, graphDataOverride, disableRemoteLoad, focusType, activeNode, activeRelationship, expandDepth, expandRelationshipTypes]);
+  }, [folderId, refreshToken, graphData, graphDataOverride, disableRemoteLoad]);
 
   useEffect(() => {
     if (!addNodeSignal) return;
@@ -401,14 +384,15 @@ export default function GraphForceGraph3DPage({
     }
 
     if (!renderedGraph.nodes.length) return;
-
     graphInstance.d3ReheatSimulation?.();
+    if (didAutoFitRef.current) return;
+    didAutoFitRef.current = true;
     const timeout = setTimeout(() => {
       graphInstance.zoomToFit?.(520, 110);
-    }, 180);
+    }, 120);
 
     return () => clearTimeout(timeout);
-  }, [renderedGraph.nodes.length, renderedGraph.links.length, relationshipTypeFilters, nodeTypeFilters, minDegree, showOrphans, nodeSearch]);
+  }, [renderedGraph.nodes.length, renderedGraph.links.length]);
 
   useEffect(() => {
     const domElement = graphRef.current?.renderer?.()?.domElement;
