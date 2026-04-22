@@ -5,6 +5,39 @@ function Shell({ children, className = '' }) {
   return <div className={`space-y-5 pb-6 ${className}`}>{children}</div>;
 }
 
+export function PublicPageSkeleton({ titleWidthClass = 'w-56' }) {
+  return (
+    <div className="min-h-screen w-full bg-background text-foreground">
+      <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-6 py-14">
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <Skeleton className={`h-9 ${titleWidthClass} max-w-full rounded-2xl`} />
+            <SkeletonText lines={2} className="max-w-xl" />
+          </div>
+          <div className="rounded-[32px] border border-border/50 bg-card/70 p-6 shadow-sm">
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full rounded-2xl" />
+              <Skeleton className="h-12 w-full rounded-2xl" />
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Skeleton className="h-12 w-40 rounded-2xl" />
+                <Skeleton className="h-12 w-32 rounded-2xl" />
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="rounded-[24px] border border-border/50 bg-card/60 p-5 shadow-sm">
+                <Skeleton className="mb-3 h-4 w-28" />
+                <SkeletonText lines={2} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HeroBlock({ compact = false }) {
   return (
     <div className={`rounded-[30px] border border-border/50 bg-card/70 p-6 shadow-sm ${compact ? 'space-y-3' : 'space-y-4'}`}>
@@ -392,6 +425,8 @@ export function HelpPageSkeleton() {
 export function RoutePageSkeleton({ pathname = '' }) {
   const path = String(pathname || '').toLowerCase();
 
+  if (path.startsWith('/login')) return <PublicPageSkeleton titleWidthClass="w-44" />;
+  if (path === '/') return <PublicPageSkeleton titleWidthClass="w-64" />;
   if (path.startsWith('/folders')) return <FoldersPageSkeleton />;
   if (path.startsWith('/graph')) return <GraphPageSkeleton />;
   if (path.startsWith('/visualize')) return <VisualizePageSkeleton />;

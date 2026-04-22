@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { Suspense, lazy, useCallback, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -20,10 +20,12 @@ import {
 import { cn } from '../utils/cn';
 import { uploadService } from '../services/uploadService';
 import { useGlobalFolder } from '../contexts/GlobalFolderContext';
-import { TextIngest } from '../components/ingest/TextIngest';
-import { CypherIngest } from '../components/ingest/CypherIngest';
-import { ExcelMapper } from '../components/ingest/ExcelMapper';
 import { useNavigate } from 'react-router-dom';
+import { UploadPageSkeleton } from '../components/skeletons/RoutePageSkeleton';
+
+const TextIngest = lazy(() => import('../components/ingest/TextIngest').then((m) => ({ default: m.TextIngest })));
+const CypherIngest = lazy(() => import('../components/ingest/CypherIngest').then((m) => ({ default: m.CypherIngest })));
+const ExcelMapper = lazy(() => import('../components/ingest/ExcelMapper').then((m) => ({ default: m.ExcelMapper })));
 
 export default function UploadPage() {
   const { currentFolder, selectedFolderId } = useGlobalFolder();
@@ -316,7 +318,9 @@ export default function UploadPage() {
                     <h3 className="text-2xl font-black uppercase tracking-tight">Paste Text</h3>
                     <p className="text-sm text-muted-foreground font-medium">Paste plain text directly into the current workspace.</p>
                   </div>
-                  <TextIngest folderId={selectedFolderId} />
+                  <Suspense fallback={<UploadPageSkeleton />}>
+                    <TextIngest folderId={selectedFolderId} />
+                  </Suspense>
                 </div>
               )}
 
@@ -326,7 +330,9 @@ export default function UploadPage() {
                     <h3 className="text-2xl font-black uppercase tracking-tight">Direct Query</h3>
                     <p className="text-sm text-muted-foreground font-medium">Run a direct graph query in the current workspace.</p>
                   </div>
-                  <CypherIngest folderId={selectedFolderId} />
+                  <Suspense fallback={<UploadPageSkeleton />}>
+                    <CypherIngest folderId={selectedFolderId} />
+                  </Suspense>
                 </div>
               )}
 
@@ -336,7 +342,9 @@ export default function UploadPage() {
                     <h3 className="text-2xl font-black uppercase tracking-tight">Table Mapper</h3>
                     <p className="text-sm text-muted-foreground font-medium">Map Excel or CSV columns into graph fields step by step.</p>
                   </div>
-                  <ExcelMapper folderId={selectedFolderId} />
+                  <Suspense fallback={<UploadPageSkeleton />}>
+                    <ExcelMapper folderId={selectedFolderId} />
+                  </Suspense>
                 </div>
               )}
             </>

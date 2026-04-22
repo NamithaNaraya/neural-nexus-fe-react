@@ -1,5 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import * as XLSX from 'xlsx';
+import React, { useRef, useState, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input, Label } from '../ui/Input';
@@ -41,6 +40,8 @@ export function ExcelMapper({ folderId, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [result, setResult] = useState(null);
+  const [xlsxLoading, setXlsxLoading] = useState(false);
+  const xlsxRef = useRef(null);
 
   // --- Step 1: File Loading ---
   const handleFileUpload = (e) => {
@@ -49,18 +50,27 @@ export function ExcelMapper({ folderId, onSuccess }) {
     
     setFile(uploadedFile);
     const reader = new FileReader();
-    reader.onload = (evt) => {
-      const bstr = evt.target.result;
-      const wb = XLSX.read(bstr, { type: 'binary' });
-      setWorkbook(wb);
-      setSheets(wb.SheetNames);
-      setSelectedSheet(wb.SheetNames[0]);
-      processSheet(wb, wb.SheetNames[0]);
+    reader.onload = async (evt) => {
+      try {
+        setXlsxLoading(true);
+        const XLSX = await import('xlsx');
+        xlsxRef.current = XLSX;
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        setWorkbook(wb);
+        setSheets(wb.SheetNames);
+        setSelectedSheet(wb.SheetNames[0]);
+        processSheet(wb, wb.SheetNames[0], XLSX);
+      } finally {
+        setXlsxLoading(false);
+      }
     };
     reader.readAsBinaryString(uploadedFile);
   };
 
-  const processSheet = (wb, sheetName) => {
+  const processSheet = (wb, sheetName, XLSXArg) => {
+    const XLSX = XLSXArg || xlsxRef.current;
+    if (!XLSX) return;
     const ws = wb.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(ws);
     if (jsonData.length > 0) {
@@ -308,12 +318,13 @@ export function ExcelMapper({ folderId, onSuccess }) {
             </div>
             <Button 
               variant="outline" 
-              className="h-14 rounded-2xl px-10 gap-3 border-primary/25 text-foreground font-black relative overflow-hidden group"
+              className="h-14 rounded-2xl px-10 gap-3 border-primary/25 text-foreground font-black relative overflow-hidden group disabled:opacity-60 disabled:cursor-wait"
               onClick={() => document.getElementById('excel-input').click()}
+              disabled={xlsxLoading}
             >
               <div className="absolute inset-0 bg-primary/8 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-              <FileSpreadsheet className="w-5 h-5" />
-              Choose Structured File
+              {xlsxLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileSpreadsheet className="w-5 h-5" />}
+              {xlsxLoading ? 'Loading parser…' : 'Choose Structured File'}
               <input 
                 id="excel-input" 
                 type="file" 

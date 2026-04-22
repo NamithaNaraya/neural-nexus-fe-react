@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Card, CardContent } from '../../components/ui/Card';
 import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
@@ -6,12 +6,14 @@ import { usePredictedLinks } from '../../contexts/PredictedLinksContext';
 import { graphService } from '../../services/graphService';
 import { GraphViewsNavigation } from '../graph/GraphViewsNavigation';
 import { visualizeDataSections } from '../graph/graphViewSections';
-import GraphSunburstPage from '../graph/GraphSunburstPage';
-import GraphTreemapPage from '../graph/GraphTreemapPage';
-import GraphSchemaExplorerPage from '../graph/GraphSchemaExplorerPage';
-import GraphDegreeDistributionPage from '../graph/GraphDegreeDistributionPage';
-import GraphRelationshipMatrixPage from '../graph/GraphRelationshipMatrixPage';
 import { mergePredictedLinks } from '../graph/mergePredictedLinks';
+import { VisualizePageSkeleton } from '../../components/skeletons/RoutePageSkeleton';
+
+const GraphSunburstPage = lazy(() => import('../graph/GraphSunburstPage'));
+const GraphTreemapPage = lazy(() => import('../graph/GraphTreemapPage'));
+const GraphSchemaExplorerPage = lazy(() => import('../graph/GraphSchemaExplorerPage'));
+const GraphDegreeDistributionPage = lazy(() => import('../graph/GraphDegreeDistributionPage'));
+const GraphRelationshipMatrixPage = lazy(() => import('../graph/GraphRelationshipMatrixPage'));
 
 export default function VisualizeDataPage() {
   const { selectedFolderId: folderId, currentFolder } = useGlobalFolder();
@@ -96,15 +98,17 @@ export default function VisualizeDataPage() {
 
       <div className="min-h-0 flex-1 overflow-hidden rounded-b-2xl border border-t-0 border-border/60 bg-card/50">
         <div className="h-full overflow-y-auto overflow-x-hidden p-4">
-          <Routes>
-            <Route path="" element={<Navigate to="sunburst" replace />} />
-            <Route path="sunburst" element={<GraphSunburstPage {...sharedGraphProps} />} />
-            <Route path="treemap" element={<GraphTreemapPage {...sharedGraphProps} />} />
-            <Route path="schema" element={<GraphSchemaExplorerPage {...sharedGraphProps} />} />
-            <Route path="degree" element={<GraphDegreeDistributionPage {...sharedGraphProps} />} />
-            <Route path="matrix" element={<GraphRelationshipMatrixPage {...sharedGraphProps} />} />
-            <Route path="*" element={<Navigate to="sunburst" replace />} />
-          </Routes>
+          <Suspense fallback={<VisualizePageSkeleton />}>
+            <Routes>
+              <Route path="" element={<Navigate to="sunburst" replace />} />
+              <Route path="sunburst" element={<GraphSunburstPage {...sharedGraphProps} />} />
+              <Route path="treemap" element={<GraphTreemapPage {...sharedGraphProps} />} />
+              <Route path="schema" element={<GraphSchemaExplorerPage {...sharedGraphProps} />} />
+              <Route path="degree" element={<GraphDegreeDistributionPage {...sharedGraphProps} />} />
+              <Route path="matrix" element={<GraphRelationshipMatrixPage {...sharedGraphProps} />} />
+              <Route path="*" element={<Navigate to="sunburst" replace />} />
+            </Routes>
+          </Suspense>
         </div>
       </div>
     </div>

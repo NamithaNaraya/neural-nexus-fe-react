@@ -5,7 +5,7 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    include: ['@neo4j-nvl/react', 'echarts/core', 'echarts/charts', 'echarts/components', 'echarts/renderers'],
+    include: [],
   },
   resolve: {
     alias: {
@@ -38,6 +38,7 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        ws: true,
         // Enable streaming: tell http-proxy not to buffer responses
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq, req) => {

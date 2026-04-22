@@ -3,7 +3,6 @@ import { Navigate, Route, Routes, useSearchParams } from 'react-router-dom';
 import { ChevronRight, Compass, MoveRight, Radar, RotateCcw, SlidersHorizontal, Sparkles, Spline, Waypoints, Layout } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
-import GraphForcePage from './graph/GraphForcePage';
 import GraphPropertyTablePage from './graph/GraphPropertyTablePage';
 import { GraphViewsNavigation } from './graph/GraphViewsNavigation';
 import { GraphWorkspaceSidebar } from './graph/GraphWorkspaceSidebar';
@@ -21,6 +20,7 @@ import { GraphHeaderSkeleton } from './graph/components/GraphHeaderSkeleton';
 import { GRAPH_FETCH_STEPS } from './graph/graphDisplayData';
 
 const GraphForceGraph3DPage = lazy(() => import('./graph/GraphForceGraph3DPage'));
+const GraphForcePage = lazy(() => import('./graph/GraphForcePage'));
 
 function GraphViewLoader() {
   return <GraphHeaderSkeleton />;
@@ -688,13 +688,15 @@ export default function GraphPage() {
           <Route
             path="2d"
             element={
-              <GraphForcePage
-                {...sharedGraphProps}
-                displayGraphData={
-                  traversalModeActive && traversalPath.length > 0 ? traversalGraphData : 
-                  explorerModeActive ? explorerGraphData : null
-                }
-              />
+                          <Suspense fallback={<GraphViewLoader />}>
+                            <GraphForcePage
+                              {...sharedGraphProps}
+                              displayGraphData={
+                                traversalModeActive && traversalPath.length > 0 ? traversalGraphData :
+                                explorerModeActive ? explorerGraphData : null
+                              }
+                            />
+                          </Suspense>
             }
           />
 

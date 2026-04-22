@@ -1,11 +1,11 @@
 import React from 'react';
-import { ArrowRight, Orbit, ScanSearch } from 'lucide-react';
+import { ArrowRight, Orbit, Radar, ScanSearch } from 'lucide-react';
 import { Badge } from '../../../components/ui/Badge';
 import { Card, CardContent } from '../../../components/ui/Card';
 import { cn } from '../../../utils/cn';
 import { getNodeDescription, getNodeName, getNodePropertyEntries, getNodeType, getTypeStyle } from '../helpers';
 
-export function StreamView({ nodes }) {
+export function StreamView({ nodes, onOpenInGraph = null }) {
   return (
     <div className="space-y-3">
       {nodes.map((node, index) => {
@@ -46,6 +46,15 @@ export function StreamView({ nodes }) {
                   <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Graph degree</p>
                   <p className="mt-1 text-2xl font-semibold">{node.degree ?? 0}</p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => onOpenInGraph?.(node)}
+                  className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-primary transition hover:bg-primary/12"
+                  title="Open this node in Graph view"
+                >
+                  <Radar className="h-3.5 w-3.5" />
+                  Open in graph
+                </button>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Orbit className="h-3.5 w-3.5" />
                   Connected entity

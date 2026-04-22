@@ -1,4 +1,3 @@
-import { jsPDF } from 'jspdf';
 import { toast } from 'react-hot-toast';
 import { triggerHrefDownload } from './triggerFileDownload';
 
@@ -6,13 +5,77 @@ import { triggerHrefDownload } from './triggerFileDownload';
  * Export chat messages to a professional PDF report.
  * Uses a fixed-width, grid-aligned layout for a "Premium" feel.
  */
-export const exportToPdf = ({ messages, folderName, sessionTitle }) => {
+function _parseHslTriplet(value) {
+  const raw = String(value || '').trim();
+  // Tailwind-style CSS var format: "96 25% 33%"
+  const parts = raw.split(/\s+/).filter(Boolean);
+  if (parts.length < 3) return null;
+  const h = Number(parts[0]);
+  const s = Number(String(parts[1]).replace('%', ''));
+  const l = Number(String(parts[2]).replace('%', ''));
+  if ([h, s, l].some((n) => Number.isNaN(n))) return null;
+  return { h, s: s / 100, l: l / 100 };
+}
+
+function _hslToRgb({ h, s, l }) {
+  // h in degrees, s/l in [0,1]
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const hh = ((h % 360) + 360) % 360;
+  const x = c * (1 - Math.abs(((hh / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r1 = 0, g1 = 0, b1 = 0;
+  if (hh < 60) [r1, g1, b1] = [c, x, 0];
+  else if (hh < 120) [r1, g1, b1] = [x, c, 0];
+  else if (hh < 180) [r1, g1, b1] = [0, c, x];
+  else if (hh < 240) [r1, g1, b1] = [0, x, c];
+  else if (hh < 300) [r1, g1, b1] = [x, 0, c];
+  else [r1, g1, b1] = [c, 0, x];
+  const r = Math.round((r1 + m) * 255);
+  const g = Math.round((g1 + m) * 255);
+  const b = Math.round((b1 + m) * 255);
+  return [r, g, b];
+}
+
+function _getThemeRgbVars() {
+  try {
+    const style = getComputedStyle(document.documentElement);
+    const primary = _parseHslTriplet(style.getPropertyValue('--primary'));
+    const foreground = _parseHslTriplet(style.getPropertyValue('--foreground'));
+    const mutedForeground = _parseHslTriplet(style.getPropertyValue('--muted-foreground'));
+    const background = _parseHslTriplet(style.getPropertyValue('--background'));
+    const border = _parseHslTriplet(style.getPropertyValue('--border'));
+
+    return {
+      primary: primary ? _hslToRgb(primary) : [46, 125, 75],
+      text: foreground ? _hslToRgb(foreground) : [30, 41, 59],
+      muted: mutedForeground ? _hslToRgb(mutedForeground) : [100, 116, 139],
+      bg: background ? _hslToRgb(background) : [248, 250, 252],
+      line: border ? _hslToRgb(border) : [226, 232, 240],
+    };
+  } catch {
+    return {
+      primary: [46, 125, 75],
+      text: [30, 41, 59],
+      muted: [100, 116, 139],
+      bg: [248, 250, 252],
+      line: [226, 232, 240],
+    };
+  }
+}
+
+export const exportToPdf = async ({ messages, folderName, sessionTitle }) => {
   if (!messages || messages.length === 0) {
     toast.error('No messages to export');
     return false;
   }
 
   try {
+    const jspdfMod = await import('jspdf');
+    const jsPDF = jspdfMod.jsPDF || jspdfMod.default?.jsPDF || jspdfMod.default;
+    if (!jsPDF) {
+      toast.error('PDF export is unavailable right now');
+      return false;
+    }
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -21,13 +84,7 @@ export const exportToPdf = ({ messages, folderName, sessionTitle }) => {
     let y = margin;
 
     // Define colors
-    const colors = {
-      primary: [16, 185, 129], // Emerald
-      text: [30, 41, 59],      // Slate 800
-      muted: [100, 116, 139],  // Slate 500
-      bg: [248, 250, 252],     // Slate 50
-      line: [226, 232, 240]    // Slate 200
-    };
+    const colors = _getThemeRgbVars();
 
     const dateStr = new Date().toLocaleDateString('en-US', { 
       year: 'numeric', 

@@ -173,6 +173,9 @@ export default function ChatPage() {
   const saveTimeoutRef = useRef(null);
   const streamBufferRef = useRef('');
   const streamFlushTimerRef = useRef(null);
+  const wsRef = useRef(null);
+  const wsStateRef = useRef({ status: 'idle' });
+  const wsRequestIdRef = useRef(null);
   const backendHydrationRef = useRef('');
   const hasHydratedWorkspaceRef = useRef(false);
   const lastFolderIdRef = useRef(selectedFolderId || '');
@@ -531,36 +534,66 @@ export default function ChatPage() {
 
       const activeMessages = messages.filter(m => !m.isWelcome).map(m => ({ role: m.role, content: m.content }));
       const token = localStorage.getItem('neural_nexus_token');
-      const response = await fetch('/api/v1/combined-chat/stream-answer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({
-          question: userMessage,
-          folder_id: selectedFolderId || null,
-          session_id: workspace.currentSessionId || null,
-          history: activeMessages.slice(-CHAT_HISTORY_SEND_WINDOW),
-          web_search: isWebSearchEnabled,
-        }),
-      });
-      if (!response.ok) throw new Error('Network fault');
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let accumulatedContent = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunkStr = decoder.decode(value, { stream: true });
-        const lines = chunkStr.split('\n');
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const chunk = JSON.parse(line);
-            if (chunk.type === 'content') {
-              accumulatedContent += chunk.data;
-              streamBufferRef.current += chunk.data;
-              scheduleStreamFlush();
-            }
-          } catch { /* parse fail */ }
+      const ws = wsRef.current;
+      const canUseWs = ws && ws.readyState === WebSocket.OPEN;
+
+      if (canUseWs) {
+        const requestId =
+          typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        wsRequestIdRef.current = requestId;
+        ws.send(
+          JSON.stringify({
+            type: 'chat_stream',
+            request_id: requestId,
+            question: userMessage,
+            folder_id: selectedFolderId || null,
+            session_id: workspace.currentSessionId || null,
+            history: activeMessages.slice(-CHAT_HISTORY_SEND_WINDOW),
+            web_search: isWebSearchEnabled,
+          })
+        );
+
+        // Wait until ws handler marks this request as done/error.
+        const startedAt = Date.now();
+        while (wsRequestIdRef.current === requestId) {
+          await new Promise((r) => setTimeout(r, 40));
+          // Safety: avoid hanging if server doesn't reply.
+          if (Date.now() - startedAt > 180000) {
+            throw new Error('WebSocket stream timeout');
+          }
+        }
+      } else {
+        const response = await fetch('/api/v1/combined-chat/stream-answer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({
+            question: userMessage,
+            folder_id: selectedFolderId || null,
+            session_id: workspace.currentSessionId || null,
+            history: activeMessages.slice(-CHAT_HISTORY_SEND_WINDOW),
+            web_search: isWebSearchEnabled,
+          }),
+        });
+        if (!response.ok) throw new Error('Network fault');
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunkStr = decoder.decode(value, { stream: true });
+          const lines = chunkStr.split('\n');
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const chunk = JSON.parse(line);
+              if (chunk.type === 'content') {
+                streamBufferRef.current += chunk.data;
+                scheduleStreamFlush();
+              }
+            } catch { /* parse fail */ }
+          }
         }
       }
       if (streamFlushTimerRef.current) {
@@ -593,9 +626,92 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
+    const token = localStorage.getItem('neural_nexus_token');
+    if (!token) return;
+
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${proto}//${window.location.host}/api/v1/ws?token=${encodeURIComponent(token)}`;
+    let ws;
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch {
+      return;
+    }
+    wsRef.current = ws;
+    wsStateRef.current = { status: 'connecting' };
+
+    const flushStreamBuffer = () => {
+      if (!streamBufferRef.current) return;
+      const pending = streamBufferRef.current;
+      streamBufferRef.current = '';
+      setWorkspace((prev) => {
+        const s = prev.sessions.find((x) => x.id === prev.currentSessionId);
+        if (!s || !s.messages?.length) return prev;
+        const msgs = [...s.messages];
+        const lastIdx = msgs.length - 1;
+        msgs[lastIdx] = { ...msgs[lastIdx], content: (msgs[lastIdx].content || '') + pending };
+        return {
+          ...prev,
+          sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
+        };
+      });
+    };
+
+    const scheduleStreamFlush = () => {
+      if (streamFlushTimerRef.current) return;
+      streamFlushTimerRef.current = window.setTimeout(() => {
+        streamFlushTimerRef.current = null;
+        flushStreamBuffer();
+      }, 45);
+    };
+
+    ws.onopen = () => {
+      wsStateRef.current = { status: 'open' };
+      try {
+        ws.send(JSON.stringify({ type: 'ping' }));
+      } catch {
+        // ignore
+      }
+    };
+    ws.onclose = () => {
+      wsStateRef.current = { status: 'closed' };
+      if (wsRef.current === ws) wsRef.current = null;
+    };
+    ws.onerror = () => {
+      wsStateRef.current = { status: 'error' };
+    };
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(String(event.data || '{}'));
+        const requestId = msg?.request_id ?? null;
+        if (requestId && wsRequestIdRef.current && requestId !== wsRequestIdRef.current) {
+          return;
+        }
+        if (msg?.type === 'chat_chunk') {
+          const payload = msg?.data || {};
+          if (payload?.type === 'content' && typeof payload?.data === 'string') {
+            streamBufferRef.current += payload.data;
+            scheduleStreamFlush();
+          }
+        } else if (msg?.type === 'chat_done') {
+          wsRequestIdRef.current = null;
+        } else if (msg?.type === 'chat_error') {
+          wsRequestIdRef.current = null;
+        }
+      } catch {
+        // ignore parse errors
+      }
+    };
+
     return () => {
       if (streamFlushTimerRef.current) {
         clearTimeout(streamFlushTimerRef.current);
+      }
+      try {
+        wsRequestIdRef.current = null;
+        if (wsRef.current) wsRef.current.close();
+      } catch {
+        // ignore
       }
     };
   }, []);

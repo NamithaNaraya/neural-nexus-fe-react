@@ -1,11 +1,11 @@
 import React from 'react';
-import { Dna, GitFork, Layers3, Network } from 'lucide-react';
+import { Dna, GitFork, Layers3, Network, Radar } from 'lucide-react';
 import { Badge } from '../../../components/ui/Badge';
 import { Card, CardContent } from '../../../components/ui/Card';
 import { cn } from '../../../utils/cn';
 import { getNodeDescription, getNodeName, getNodePropertyCount, getNodeType, getTypeStyle } from '../helpers';
 
-export function GalleryView({ nodes }) {
+export function GalleryView({ nodes, onOpenInGraph = null }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {nodes.map((node, index) => {
@@ -30,6 +30,21 @@ export function GalleryView({ nodes }) {
                   </div>
                   <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">{getNodeDescription(node)}</p>
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Explore
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onOpenInGraph?.(node)}
+                  className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-primary transition hover:bg-primary/12"
+                  title="Open this node in Graph view"
+                >
+                  <Radar className="h-3.5 w-3.5" />
+                  Open in graph
+                </button>
               </div>
 
               <div className="grid grid-cols-3 gap-2">

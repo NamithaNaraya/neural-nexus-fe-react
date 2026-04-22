@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BrowseFilters } from './components/BrowseFilters';
 import { BrowseHero } from './components/BrowseHero';
 import { BrowsePagination } from './components/BrowsePagination';
@@ -11,6 +12,7 @@ import { StreamView } from './views/StreamView';
 import { TableView } from './views/TableView';
 
 export default function BrowsePage() {
+  const navigate = useNavigate();
   const {
     folderId,
     nodeTypes,
@@ -34,17 +36,22 @@ export default function BrowsePage() {
     groupedNodes,
   } = useBrowseExplorer();
 
+  const handleOpenInGraph = (node) => {
+    if (!node?.id) return;
+    navigate(`/graph/2d?exploreId=${encodeURIComponent(String(node.id))}`);
+  };
+
   const renderView = () => {
     switch (viewMode) {
       case 'stream':
-        return <StreamView nodes={nodes} />;
+        return <StreamView nodes={nodes} onOpenInGraph={handleOpenInGraph} />;
       case 'table':
-        return <TableView nodes={nodes} />;
+        return <TableView nodes={nodes} onOpenInGraph={handleOpenInGraph} />;
       case 'groups':
         return <GroupsView groups={groupedNodes} />;
       case 'gallery':
       default:
-        return <GalleryView nodes={nodes} />;
+        return <GalleryView nodes={nodes} onOpenInGraph={handleOpenInGraph} />;
     }
   };
 

@@ -8,6 +8,7 @@ import { PredictedLinksProvider } from './contexts/PredictedLinksContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { ChakraAppProvider } from './providers/ChakraAppProvider';
 import { pageLoaders } from './pages/pageLoaders';
+import { RoutePageSkeleton } from './components/skeletons/RoutePageSkeleton';
 
 const LoginPage = lazy(pageLoaders.login);
 const LandingPage = lazy(pageLoaders.landing);
@@ -38,7 +39,7 @@ function HomeRoute() {
   const { isAuthenticated } = useAuth();
   if (isAuthenticated) return <Navigate to="/folders" replace />;
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<RoutePageSkeleton pathname="/" />}>
       <LandingPage />
     </Suspense>
   );
@@ -56,49 +57,6 @@ function PageTransition({ children }) {
     >
       {children}
     </motion.div>
-  );
-}
-
-function AppRouteFallback() {
-  return (
-    <div className="space-y-6 pb-6 animate-pulse">
-      <div className="rounded-[32px] border border-border/40 bg-card/40 p-10 shadow-sm ring-1 ring-black/5">
-        <div className="space-y-4">
-          <div className="h-4 w-32 rounded-full bg-primary/10" />
-          <div className="h-10 w-96 max-w-[80%] rounded-2xl bg-secondary" />
-          <div className="h-4 w-full max-w-2xl rounded-full bg-muted/20" />
-        </div>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[400px_minmax(0,1fr)]">
-        <div className="space-y-4">
-          <div className="h-14 w-full rounded-2xl bg-secondary" />
-          {[1, 2, 3].map((item) => (
-            <div key={item} className="rounded-[28px] border border-border/30 bg-card/60 p-6">
-              <div className="flex items-start gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-secondary" />
-                <div className="flex-1 space-y-3">
-                  <div className="h-5 w-2/3 rounded-full bg-muted/20" />
-                  <div className="h-3 w-1/2 rounded-full bg-muted/10" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="rounded-[32px] border border-border/40 bg-card/40 p-8 shadow-sm ring-1 ring-black/5">
-          <div className="grid grid-cols-3 gap-5">
-            {[1, 2, 3].map((item) => (
-              <div key={item} className="rounded-3xl border border-border/20 bg-secondary/50 p-6 h-32" />
-            ))}
-          </div>
-          <div className="mt-8 space-y-4">
-            <div className="h-12 w-64 rounded-2xl bg-secondary" />
-            <div className="h-[300px] w-full rounded-[28px] bg-secondary/30" />
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -125,7 +83,8 @@ function AnimatedRoutes() {
 }
 
 function AppContent() {
-  const protectedFallback = <AppRouteFallback />;
+  const location = useLocation();
+  const protectedFallback = <RoutePageSkeleton pathname={location.pathname} />;
 
   return (
     <Routes>
@@ -137,7 +96,7 @@ function AppContent() {
         path="/login"
         element={
           <PublicRoute>
-            <Suspense fallback={null}>
+            <Suspense fallback={<RoutePageSkeleton pathname="/login" />}>
               <LoginPage />
             </Suspense>
           </PublicRoute>
