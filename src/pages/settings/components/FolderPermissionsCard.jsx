@@ -30,7 +30,7 @@ export function FolderPermissionsCard() {
       setStatus('');
     } catch (error) {
       setPermissions([]);
-      setStatus(error.response?.data?.detail || 'Permissions restricted for this biosphere segment.');
+      setStatus(error.response?.data?.detail || 'Permissions restricted for this folder.');
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,7 @@ export function FolderPermissionsCard() {
     setSaving(true);
     try {
       const response = await folderService.grantPermission(selectedFolderId, userEmail.trim(), permission);
-      setStatus(response?.message || 'Access granted to research partner.');
+      setStatus(response?.message || 'Access granted.');
       setUserEmail('');
       await loadPermissions();
     } catch (error) {
@@ -62,7 +62,7 @@ export function FolderPermissionsCard() {
 
     try {
       const response = await folderService.revokePermission(selectedFolderId, userId);
-      setStatus(response?.message || 'Access pruned successfully.');
+      setStatus(response?.message || 'Access revoked successfully.');
       await loadPermissions();
     } catch (error) {
       setStatus(error.response?.data?.detail || 'Failed to prune access.');
@@ -77,18 +77,18 @@ export function FolderPermissionsCard() {
             <Lock className="h-7 w-7" />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Ecosystem Access Control</p>
-            <h2 className="text-xl font-black text-foreground uppercase tracking-tight truncate max-w-[280px]">{currentFolder?.name || 'Secure Biosphere'}</h2>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Access Control</p>
+            <h2 className="text-xl font-black text-foreground uppercase tracking-tight truncate max-w-[280px]">{currentFolder?.name || 'Secure Folder'}</h2>
           </div>
         </div>
 
         <form onSubmit={handleGrant} className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-5 p-7 rounded-[32px] border border-border/10 bg-white/40 shadow-xl shadow-primary/5">
           <div className="space-y-3">
-            <Label className="font-black text-[10px] text-muted-foreground/50 uppercase tracking-[0.2em] ml-1">Invite Researcher</Label>
+            <Label className="font-black text-[10px] text-muted-foreground/50 uppercase tracking-[0.2em] ml-1">Invite User</Label>
             <Input 
               value={userEmail} 
               onChange={(event) => setUserEmail(event.target.value)} 
-              placeholder="partner@botany.nexus" 
+              placeholder="user@example.com" 
               className="h-12 rounded-[20px] bg-secondary/10 border-border/15 focus:ring-4 focus:ring-primary/10 font-bold px-5" 
             />
           </div>
@@ -122,8 +122,8 @@ export function FolderPermissionsCard() {
 
         <div className="flex-1 flex flex-col space-y-4 min-h-0">
           <div className="flex items-center justify-between px-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Authorized Manifest</p>
-            <Badge variant="outline" className="h-5 px-2 text-[9px] font-black border-border/10 text-muted-foreground/30">{permissions.length} PARTNERS</Badge>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Authorized Users</p>
+            <Badge variant="outline" className="h-5 px-2 text-[9px] font-black border-border/10 text-muted-foreground/30">{permissions.length} USERS</Badge>
           </div>
           
           <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar">
@@ -151,7 +151,7 @@ export function FolderPermissionsCard() {
                     type="button"
                     onClick={() => handleRevoke(entry.user_id)}
                     className="rounded-xl p-3 text-muted-foreground/30 transition-all hover:bg-destructive/10 hover:text-destructive group/revoke"
-                    title="Prune access"
+                    title="Revoke access"
                   >
                     <X className="h-5 w-5 transition-transform group-hover/revoke:rotate-90 group-hover/revoke:scale-110" />
                   </button>
@@ -160,7 +160,7 @@ export function FolderPermissionsCard() {
             ) : (
               <div className="rounded-[32px] border border-dashed border-border/20 bg-secondary/5 px-6 py-12 text-center group">
                 <Users className="h-10 w-10 text-muted-foreground/20 mx-auto mb-4 group-hover:scale-110 transition-transform duration-700" />
-                <p className="text-[13px] font-black uppercase tracking-widest text-muted-foreground/40">No research partners detected.</p>
+                <p className="text-[13px] font-black uppercase tracking-widest text-muted-foreground/40">No users with access yet.</p>
               </div>
             )}
           </div>

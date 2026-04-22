@@ -118,7 +118,7 @@ export default function LandingPage() {
                   Connect your <span className="text-primary">knowledge</span> dots with ease.
                 </h1>
                 <p className="max-w-2xl text-xl font-medium leading-relaxed text-muted-foreground/80">
-                   The ultimate neural workspace for data-driven teams. Transform fragmented documents and knowledge graphs into an interactive, high-performance ecosystem.
+                   The ultimate neural workspace for data-driven teams. Transform fragmented documents and knowledge graphs into an interactive, high-performance platform.
                 </p>
               </div>
 

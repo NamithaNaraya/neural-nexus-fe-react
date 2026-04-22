@@ -30,7 +30,7 @@ export function AppLayout({ children }) {
             </div>
             <div className="flex flex-col">
               <span className="text-[13px] font-[900] tracking-tighter text-foreground leading-none">NESSO</span>
-              <span className="text-[8px] font-black text-primary/70 tracking-[0.25em] uppercase mt-0.5">Botanica</span>
+              <span className="text-[8px] font-black text-primary/70 tracking-[0.25em] uppercase mt-0.5">Platform</span>
             </div>
           </div>
 
@@ -63,7 +63,7 @@ export function AppLayout({ children }) {
         </header>
 
         <main id="main-content" tabIndex={-1} className="relative flex-1 flex flex-col overflow-hidden focus:outline-none scroll-smooth bg-transparent">
-          {/* Ambient Botanical Backgrounds - NEW: CRAZY GLASSY ARCHITECTURE */}
+          {/* Ambient Backgrounds - NEW: CRAZY GLASSY ARCHITECTURE */}
           <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
             {/* Primary Morphing Blob */}
             <div className="absolute -left-[10%] -top-[10%] h-[70%] w-[70%] rounded-full bg-primary/10 blur-[120px] animate-morph opacity-60" />

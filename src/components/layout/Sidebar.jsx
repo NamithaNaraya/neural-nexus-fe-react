@@ -42,9 +42,9 @@ const navSections = [
     ],
   },
   {
-    label: 'Biosphere',
+    label: 'Machine Learning',
     items: [
-      { icon: Leaf, label: 'Growth ML', path: '/ml-prediction' },
+      { icon: Leaf, label: 'ML Predictions', path: '/ml-prediction' },
       { icon: BarChart3, label: 'Analytics', path: '/analytics' },
     ],
   },
@@ -52,7 +52,7 @@ const navSections = [
     label: 'Core',
     items: [
       { icon: Settings, label: 'Settings', path: '/settings' },
-      { icon: HelpCircle, label: 'Help Center', path: '/help' },
+      { icon: HelpCircle, label: 'Help', path: '/help' },
     ],
   },
 ];

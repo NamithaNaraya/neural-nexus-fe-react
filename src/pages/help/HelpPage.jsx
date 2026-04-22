@@ -10,7 +10,7 @@ export default function HelpPage() {
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             <LifeBuoy className="h-3.5 w-3.5" />
-            Help Center
+            Help
           </div>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight text-foreground">
             Platform guidance for upload, graph, chat, and analytics

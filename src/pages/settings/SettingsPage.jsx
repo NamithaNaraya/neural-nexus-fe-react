@@ -9,7 +9,7 @@ import { Badge } from '../../components/ui/Badge';
 export default function SettingsPage() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-8 overflow-hidden pt-4 bg-transparent">
-      {/* Botanical Header */}
+      {/* Settings Header */}
       <div className="flex flex-col gap-4 px-2">
         <div className="flex items-center gap-3">
            <div className="p-2.5 rounded-2xl bg-primary/10 backdrop-blur-xl border border-primary/20">
@@ -22,7 +22,7 @@ export default function SettingsPage() {
         <div className="space-y-2">
           <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase">Settings</h1>
           <p className="max-w-3xl text-[14px] text-muted-foreground/60 font-bold leading-relaxed tracking-tight group-hover:text-muted-foreground/80 transition-colors">
-            Configure your research environment. Orchestrate profile aesthetics, security layers, and data visibility permissions within your neural ecosystem.
+            Configure your workspace. Manage profile settings, security options, and data access permissions across the platform.
           </p>
         </div>
       </div>

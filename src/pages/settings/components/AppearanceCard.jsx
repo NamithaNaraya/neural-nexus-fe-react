@@ -8,23 +8,23 @@ import { Badge } from '../../../components/ui/Badge';
 const themes = [
   {
     value: 'system',
-    label: 'Fluid Sync',
+    label: 'Auto Sync',
     icon: Wind,
-    description: 'Dynamic adaptation to environmental light.',
+    description: 'Adapts to your system theme.',
     preview: 'theme-preview-auto',
   },
   {
     value: 'light',
-    label: 'Diurnal Growth',
+    label: 'Light Mode',
     icon: Sun,
-    description: 'Vibrant moss-green laboratory aesthetic.',
+    description: 'Clean, bright interface for daytime work.',
     preview: 'theme-preview-light',
   },
   {
     value: 'dark',
-    label: 'Nocturnal Bloom',
+    label: 'Dark Mode',
     icon: Moon,
-    description: 'Deep sage glass for focused research.',
+    description: 'Low-light layout for focused work sessions.',
     preview: 'theme-preview-dark',
   },
 ];
@@ -40,8 +40,8 @@ export function AppearanceCard() {
             <Palette className="h-7 w-7" />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Ecosystem Atmosphere</p>
-            <h2 className="text-xl font-black text-foreground uppercase tracking-tight">Growth Environment</h2>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Interface Theme</p>
+            <h2 className="text-xl font-black text-foreground uppercase tracking-tight">Display Mode</h2>
           </div>
         </div>
 

@@ -103,7 +103,7 @@ export default function GraphSchemaExplorerPage(props) {
         <CardContent className="p-8">
           <div className="mb-8 flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-xl font-black tracking-tight uppercase">Node Ecosystem</h2>
+              <h2 className="text-xl font-black tracking-tight uppercase">Node Network</h2>
               <p className="mt-1 text-[13px] font-bold text-muted-foreground/40 italic">Most common entity groups in the current filtered dataset.</p>
             </div>
             <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary shadow-sm backdrop-blur-md">

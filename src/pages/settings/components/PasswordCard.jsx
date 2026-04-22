@@ -47,19 +47,19 @@ export function PasswordCard() {
     if (saving) return;
 
     if (newPassword !== confirmPassword) {
-      setStatus('Verification failed: Neural signatures do not match.');
+      setStatus('Verification failed: passwords do not match.');
       return;
     }
 
     setSaving(true);
     try {
       const response = await authService.changePassword(currentPassword, newPassword);
-      setStatus(response?.message || 'Cipher matrix updated successfully.');
+      setStatus(response?.message || 'Password updated successfully.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
-      setStatus(error.response?.data?.detail || 'Handshake failed: Root access denied.');
+      setStatus(error.response?.data?.detail || 'Password update failed.');
     } finally {
       setSaving(false);
     }
@@ -72,34 +72,34 @@ export function PasswordCard() {
           <Fingerprint className="h-7 w-7" />
         </div>
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Encrypted Roots</p>
-          <h2 className="text-xl font-black text-foreground uppercase tracking-tight">Cipher Matrix</h2>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Security</p>
+          <h2 className="text-xl font-black text-foreground uppercase tracking-tight">Credentials</h2>
         </div>
       </div>
 
       <div className="mt-8 rounded-[24px] border border-primary/20 bg-primary/5 p-6 shadow-inner ring-1 ring-primary/5">
          <div className="flex items-start gap-4">
             <ShieldCheck className="h-5 w-5 text-primary/60 shrink-0 mt-1" />
-            <p className="text-[13px] font-bold text-foreground/80 leading-relaxed tracking-tight">Utilize a unique biometric cipher. Ensure your roots are protected across all distributed ecosystems.</p>
+            <p className="text-[13px] font-bold text-foreground/80 leading-relaxed tracking-tight">Use a strong password and keep your account credentials secure across the platform.</p>
          </div>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-6 rounded-[32px] border border-border/10 bg-white/40 p-8 shadow-xl">
         <PasswordField
-          label="Current Root Cipher"
+          label="Current Password"
           value={currentPassword}
           onChange={(event) => setCurrentPassword(event.target.value)}
         />
         <div className="h-px bg-border/5" />
         <PasswordField
-          label="Fresh Neural Sequence"
+          label="New Password"
           value={newPassword}
           onChange={(event) => setNewPassword(event.target.value)}
           minLength={3}
           hint="Strength: High"
         />
         <PasswordField
-          label="Verify Sequence"
+          label="Confirm Password"
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
           minLength={3}
