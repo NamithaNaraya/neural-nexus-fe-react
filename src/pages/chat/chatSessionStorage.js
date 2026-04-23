@@ -1,5 +1,6 @@
 const STORAGE_PREFIX = 'neural_nexus_chat_sessions_v3';
 const MAX_SESSION_COUNT = 24;
+const MAX_MESSAGES_PER_SESSION = 240;
 const MAX_SOURCE_COUNT = 6;
 const MAX_RESULTS_COUNT = 20;
 const MAX_TEXT_LENGTH = 12000;
@@ -181,23 +182,11 @@ const serializeWorkspace = (workspace, options = {}) => {
   const sessions = (workspace?.sessions || [])
     .slice(0, MAX_SESSION_COUNT)
     .map((session) => {
-      const isCurrent = session.id === currentSessionId;
-      // LAZY PERSISTENCE: Keep localStorage "thin" to prevent "Page Unresponsive" errors.
-      // 1. For active session, keep the most recent 100 messages.
-      // 2. For background sessions, keep only the first and last message for sidebar previews.
-      let messagesToSerialize = [WELCOME_MESSAGE];
       const rawMessages = Array.isArray(session?.messages) ? session.messages : [];
-      
-      if (isCurrent) {
-        // Keep last 90 messages for the current session to ensure quick re-entry but avoid bloat
-        messagesToSerialize = rawMessages.slice(-90);
-      } else {
-        const nonWelcome = rawMessages.filter(m => !m.isWelcome);
-        if (nonWelcome.length > 0) {
-          // Keep first non-welcome (for title/preview) and the very last message
-          messagesToSerialize = [nonWelcome[0], nonWelcome[nonWelcome.length - 1]].filter((m, i, arr) => m && (i === 0 || m !== arr[0]));
-        }
-      }
+      // Persist full chat history per session (bounded) so refresh restores conversations reliably.
+      const messagesToSerialize = rawMessages.length > 0
+        ? rawMessages.slice(-MAX_MESSAGES_PER_SESSION)
+        : [WELCOME_MESSAGE];
 
       return {
         id: String(session?.id || generateId()),
@@ -206,7 +195,7 @@ const serializeWorkspace = (workspace, options = {}) => {
         title: session?.title || getDefaultSessionTitle(session?.folderName || 'New Research'),
         createdAt: Number(session?.createdAt || Date.now()),
         updatedAt: Number(session?.updatedAt || session?.createdAt || Date.now()),
-        messages: messagesToSerialize.map((message) => serializeMessage(message, isCurrent ? options : { ...options, aggressive: true })),
+        messages: messagesToSerialize.map((message) => serializeMessage(message, options)),
       };
     });
 

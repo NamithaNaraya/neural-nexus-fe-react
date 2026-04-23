@@ -182,6 +182,7 @@ export default function ChatPage() {
   const hasHydratedWorkspaceRef = useRef(false);
   const lastFolderIdRef = useRef(selectedFolderId || '');
   const attemptedSessionsHydrationRef = useRef(new Set());
+  const hydrationInFlightRef = useRef(new Set());
 
   const activeSession = useMemo(
     () => workspace.sessions.find((session) => session.id === workspace.currentSessionId) || null,
@@ -300,7 +301,10 @@ export default function ChatPage() {
 
   const startNewChat = useCallback(() => {
     setWorkspace((prev) => {
-      const newSession = createBlankSession(currentFolder?.name || 'New Research', selectedFolderId);
+      const newSession = createBlankSession({
+        folderId: selectedFolderId ? String(selectedFolderId) : '',
+        folderName: currentFolder?.name || 'New Research',
+      });
       return {
         ...prev,
         currentSessionId: newSession.id,
@@ -314,25 +318,21 @@ export default function ChatPage() {
     setDeleteConfirmId(sessionId);
   }, []);
 
-  const confirmDeleteSession = useCallback(() => {
+  const confirmDeleteSession = useCallback(async () => {
     if (!deleteConfirmId) return;
     const sessionId = deleteConfirmId;
-    setWorkspace((prev) => {
-      const nextSessions = prev.sessions.filter((s) => s.id !== sessionId);
-      let nextId = prev.currentSessionId;
-      if (nextId === sessionId) {
-        nextId = nextSessions[0]?.id || null;
-      }
-      removeSession(storageKey, sessionId);
-      return {
-        ...prev,
-        currentSessionId: nextId,
-        sessions: nextSessions,
-      };
-    });
-    toast.success('Session pruned.');
     setDeleteConfirmId(null);
-  }, [deleteConfirmId, storageKey]);
+    setWorkspace((prev) => removeSession(prev, sessionId));
+    if (user?.id) {
+      const deleted = await chatService.deleteSession(sessionId);
+      if (!deleted) {
+        toast.error('Session removed locally, but backend delete failed.');
+        return;
+      }
+    }
+    toast.success('Session deleted.');
+    setDeleteConfirmId(null);
+  }, [deleteConfirmId, user?.id]);
 
   const clearChat = useCallback(() => {
     setIsClearConfirmOpen(true);
@@ -376,10 +376,8 @@ export default function ChatPage() {
   useEffect(() => {
     const syncFromBackend = async () => {
       if (!user?.id) return;
-      let attempts = 0;
-      while (!hasHydratedWorkspaceRef.current && attempts < 20) {
+      for (let attempts = 0; !hasHydratedWorkspaceRef.current && attempts < 20; attempts += 1) {
         await new Promise(r => setTimeout(r, 100));
-        attempts++;
       }
       try {
         const backendWorkspace = await chatService.syncWorkspaceFromBackend({ timeoutMs: CHAT_STARTUP_SYNC_TIMEOUT_MS });
@@ -416,26 +414,37 @@ export default function ChatPage() {
     const loadSessionContent = async () => {
       if (!workspace.currentSessionId || isWorkspaceLoading || !user?.id) return;
       const session = workspace.sessions.find(s => s.id === workspace.currentSessionId);
+      if (!session) return;
       
       const localCount = session?.messages?.filter(m => !m.isWelcome).length || 0;
       const backendCount = session?.messageCount || 0;
       const isTrimmed = localCount <= 2 && backendCount > localCount;
       const isEmpty = localCount === 0;
+      const needsHydration = (isEmpty || isTrimmed) && backendCount > 0;
+      const sessionId = workspace.currentSessionId;
 
-      if (session && (isEmpty || isTrimmed) && !attemptedSessionsHydrationRef.current.has(workspace.currentSessionId)) {
-        attemptedSessionsHydrationRef.current.add(workspace.currentSessionId);
-        try {
-          const rawMessages = await chatService.getSessionHistory(workspace.currentSessionId);
-          if (rawMessages && rawMessages.length > 0) {
-            const normalized = normalizeBackendMessages(rawMessages);
-            setWorkspace(prev => ({
-              ...prev,
-              sessions: prev.sessions.map(s => s.id === workspace.currentSessionId ? { ...s, messages: normalized, messageCount: rawMessages.length } : s)
-            }));
-          }
-        } catch (error) {
-          console.error('Failed to load session history:', error);
+      if (!needsHydration) return;
+      if (hydrationInFlightRef.current.has(sessionId)) return;
+      // If a previous hydrate attempt happened but local is still empty/trimmed,
+      // allow another attempt so the user can recover from transient backend errors.
+      hydrationInFlightRef.current.add(sessionId);
+      try {
+        const rawMessages = await chatService.getSessionHistory(sessionId);
+        if (rawMessages && rawMessages.length > 0) {
+          const normalized = normalizeBackendMessages(rawMessages);
+          attemptedSessionsHydrationRef.current.add(sessionId);
+          setWorkspace(prev => ({
+            ...prev,
+            sessions: prev.sessions.map(s => s.id === sessionId ? { ...s, messages: normalized, messageCount: rawMessages.length } : s)
+          }));
+        } else {
+          attemptedSessionsHydrationRef.current.delete(sessionId);
         }
+      } catch (error) {
+        attemptedSessionsHydrationRef.current.delete(sessionId);
+        console.error('Failed to load session history:', error);
+      } finally {
+        hydrationInFlightRef.current.delete(sessionId);
       }
     };
     loadSessionContent();
@@ -447,7 +456,14 @@ export default function ChatPage() {
     setWorkspace((prev) => {
       if (prev.currentSessionId) {
         const session = prev.sessions.find(s => s.id === prev.currentSessionId);
-        if (session && String(session.folderId || '') === folderIdStr) return prev;
+        if (session) {
+          const hasRealMessages = Array.isArray(session.messages)
+            && session.messages.some((m) => !m?.isWelcome && String(m?.content || '').trim().length > 0);
+          // Preserve restored session after refresh instead of auto-replacing with a blank folder session.
+          if (hasRealMessages || String(session.folderId || '') === folderIdStr) {
+            return prev;
+          }
+        }
       }
       return selectSessionForFolder(prev, folderIdStr, currentFolder?.name || '');
     });
@@ -461,6 +477,26 @@ export default function ChatPage() {
     }, 800);
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, [workspace, userKey, isWorkspaceLoading]);
+
+  useEffect(() => {
+    if (!userKey || isWorkspaceLoading || !hasHydratedWorkspaceRef.current) return;
+    const flushWorkspace = () => {
+      try {
+        saveChatWorkspace(userKey, workspace);
+      } catch {
+        // keep unload path resilient
+      }
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') flushWorkspace();
+    };
+    window.addEventListener('beforeunload', flushWorkspace);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('beforeunload', flushWorkspace);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [workspace, userKey, isWorkspaceLoading]);
 
