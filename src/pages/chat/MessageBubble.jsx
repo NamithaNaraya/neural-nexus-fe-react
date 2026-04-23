@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Bot, Globe, ExternalLink, Loader2, User, Sprout, Leaf, Sparkles } from 'lucide-react';
+import { Bot, Globe, ExternalLink, Loader2, User, Sprout, Leaf, Sparkles, BrainCircuit, Database, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import { getAlgorithmDetails } from './chatAlgorithmDetails';
 
 const MD_INLINE_REGEX = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(\*\*([^*]+)\*\*)|(`([^`]+)`)|(\*([^*\n]+)\*)/g;
 
@@ -355,7 +356,8 @@ const AnimatedDots = ({ tone = 'neutral' }) => {
   );
 };
 
-function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIndex }) {
+function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequestGeneralAnswer, messageIndex }) {
+  const [algoExpanded, setAlgoExpanded] = useState(false);
   const isUser = message.role === 'user';
   const isError = message.isError;
   const isWebSearch = message.isWebSearch;
@@ -425,8 +427,70 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIn
           )}
         </div>
 
-        {/* Action Bar (Web Search / Details) */}
-        {!isUser && !isError && !isWelcome && !message.isStreaming && ((onWebSearch && !message.webSearchAnswer && message.content) || hasAnalysisDetails) && (
+        {/* Data Source & Algorithm Indicators */}
+        {!isUser && !isError && !isWelcome && !message.isStreaming && message.content && (
+          <div className="mt-5 flex flex-wrap items-center gap-2.5">
+            {/* Data source pill */}
+            {message.dataGrounding && (
+              <span className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] border transition-all',
+                message.dataGrounding.grounded
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+              )}>
+                {message.dataGrounding.grounded ? (
+                  <><Database className="h-3 w-3" /> From Knowledge Graph</>
+                ) : (
+                  <><AlertTriangle className="h-3 w-3" /> No DB Match</>
+                )}
+              </span>
+            )}
+            {/* Algorithm pill (expandable) */}
+            {hasAnalysisDetails && message.algorithm && (
+              <button
+                onClick={() => setAlgoExpanded((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/8 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-primary transition-all hover:bg-primary/15"
+              >
+                <BrainCircuit className="h-3 w-3" />
+                {getAlgorithmDetails(message.algorithm).label}
+                {algoExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </button>
+            )}
+            {/* Strategy pill */}
+            {message.contextSummary && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/20 px-3.5 py-1.5 text-[10px] font-medium text-muted-foreground">
+                {message.contextSummary}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Expandable Algorithm Details */}
+        {algoExpanded && hasAnalysisDetails && message.algorithm && (() => {
+          const details = getAlgorithmDetails(message.algorithm);
+          return (
+            <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-5 animate-fade-up">
+              <div className="flex items-center gap-2 mb-3">
+                <BrainCircuit className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">{details.label}</span>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{details.category}</span>
+              </div>
+              <p className="text-xs leading-relaxed text-foreground/80 mb-2">{details.summary}</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                <span className="font-semibold">Score meaning:</span> {details.scoreMeaning}
+              </p>
+              {message.dataGrounding?.source_count != null && (
+                <div className="mt-3 flex gap-4 text-[10px] text-muted-foreground">
+                  <span>Sources: <strong className="text-foreground">{message.dataGrounding.source_count}</strong></span>
+                  <span>Context: <strong className="text-foreground">{Math.round((message.dataGrounding.context_chars || 0) / 100) / 10}k</strong> chars</span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Action Bar (Web Search / Details / Answer Outside DB) */}
+        {!isUser && !isError && !isWelcome && !message.isStreaming && ((onWebSearch && !message.webSearchAnswer && message.content) || hasAnalysisDetails || (message.dataGrounding && !message.dataGrounding.grounded && onRequestGeneralAnswer && !message.generalAnswer)) && (
           <div className="mt-7 flex flex-wrap gap-4 border-t border-border/20 pt-7">
             {onWebSearch && !message.webSearchAnswer && message.content && (
               <button
@@ -461,6 +525,63 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, messageIn
                 Analysis
               </button>
             )}
+
+            {/* Answer Outside DB button */}
+            {message.dataGrounding && !message.dataGrounding.grounded && onRequestGeneralAnswer && !message.generalAnswer && (
+              <button
+                onClick={() => onRequestGeneralAnswer({
+                  question: message.originalQuestion || message.content,
+                  messageIndex,
+                })}
+                disabled={message.generalAnswerPending}
+                className={cn(
+                  'flex items-center gap-3 rounded-[20px] px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] transition-all ring-1 ring-inset',
+                  message.generalAnswerPending
+                    ? 'bg-muted/10 ring-border/20 text-muted-foreground'
+                    : 'bg-amber-500/10 ring-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 hover:scale-105 active:scale-95 hover:shadow-xl hover:shadow-amber-500/20 shadow-sm'
+                )}
+              >
+                {message.generalAnswerPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4" />
+                )}
+                {message.generalAnswerPending ? 'Generating...' : 'Answer Outside DB'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* General Answer (outside DB) Section */}
+        {(message.generalAnswer || message.isStreamingGeneralAnswer) && (
+          <div className="mt-8 rounded-[32px] border border-amber-500/25 bg-amber-500/5 p-8 shadow-inner backdrop-blur-3xl animate-fade-up ring-1 ring-amber-500/10">
+            <div className="mb-6 flex items-center gap-4 text-amber-600 dark:text-amber-400">
+              <div className="p-2.5 rounded-2xl bg-amber-500/15 backdrop-blur-md">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <span className="text-[12px] font-black uppercase tracking-[0.3em]">General Knowledge</span>
+              {message.isStreamingGeneralAnswer && (
+                <div className="ml-auto flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+                  <span className="text-[10px] font-black text-amber-500/60 uppercase tracking-widest">Streaming</span>
+                </div>
+              )}
+            </div>
+            <div className="prose prose-sm max-w-none break-words whitespace-normal w-full overflow-hidden">
+              {message.isStreamingGeneralAnswer && !message.generalAnswer?.trim() ? (
+                <div className="flex items-center gap-4 py-2">
+                  <span className="text-[11px] font-black text-amber-500/60 tracking-[0.2em] uppercase">Generating</span>
+                  <AnimatedDots tone="amber" />
+                </div>
+              ) : message.isStreamingGeneralAnswer ? (
+                <p className="mb-0 whitespace-pre-wrap leading-[1.8] text-foreground/90 font-medium">
+                  {message.generalAnswer}
+                  <span className="inline-block w-3 h-5 ml-3 bg-amber-500/40 rounded-sm animate-pulse align-text-bottom" />
+                </p>
+              ) : (
+                renderMarkdownContent(message.generalAnswer)
+              )}
+            </div>
           </div>
         )}
 
@@ -544,6 +665,7 @@ export const MessageBubble = React.memo(
     prevProps.message === nextProps.message
     && prevProps.messageIndex === nextProps.messageIndex
     && prevProps.onOpenDetails === nextProps.onOpenDetails
+    && prevProps.onRequestGeneralAnswer === nextProps.onRequestGeneralAnswer
 );
 
 export const TypingIndicator = React.memo(function TypingIndicator() {

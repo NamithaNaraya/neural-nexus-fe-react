@@ -153,31 +153,18 @@ const isUntitledSession = (session, currentFolderName) => {
 };
 
 const normalizeStreamingText = (text = '') => {
-  let next = String(text || '');
-  // Collapse repeated leading characters: "TTamarind" -> "Tamarind"
-  next = next.replace(/\b([a-zA-Z])\1{1,}/g, '$1');
-  // Collapse repeated in-word fragments: "galactogogogogues" -> "galactogogues"
-  next = next.replace(/\b([a-zA-Z]{2,5})\1{1,}\b/g, '$1');
-  // Collapse immediate repeated words: "the the" -> "the"
-  next = next.replace(/\b([a-zA-Z]{2,})\b(\s+\1\b)+/gi, '$1');
-  // Collapse repeated punctuation glitches.
-  next = next.replace(/([,.;:!?])\1+/g, '$1');
-  return next;
+  // Minimal normalization — only fix truly broken punctuation.
+  // Do NOT touch words/letters — Ollama sends clean tokens that don't need dedup.
+  return String(text || '').replace(/([,.;:!?])\1{2,}/g, '$1');
 };
 
 const mergeChunkWithOverlap = (existing = '', incoming = '') => {
+  // Simple concatenation — Ollama sends clean, non-overlapping chunks.
+  // The old overlap-detection algorithm was causing duplicate content.
   const left = String(existing || '');
   const right = String(incoming || '');
   if (!right) return left;
   if (!left) return right;
-  if (left.endsWith(right)) return left;
-  if (right.startsWith(left)) return right;
-  const maxOverlap = Math.min(left.length, right.length, 180);
-  for (let k = maxOverlap; k >= 1; k -= 1) {
-    if (left.slice(-k) === right.slice(0, k)) {
-      return left + right.slice(k);
-    }
-  }
   return left + right;
 };
 
@@ -560,6 +547,65 @@ export default function ChatPage() {
     } catch { toast.error('Web pollination failed.'); } finally { setLoading(false); }
   }, [currentFolder?.name, messages.length, updateCurrentSession, updateMessageAtIndex, workspace.currentSessionId]);
 
+  const requestGeneralAnswer = useCallback(async ({ question, messageIndex }) => {
+    if (!question || loading) return;
+    setLoading(true);
+    // Mark the message as loading general answer
+    if (typeof messageIndex === 'number') {
+      updateMessageAtIndex(messageIndex, (msg) => ({ ...msg, generalAnswerPending: true }));
+    }
+    try {
+      const token = localStorage.getItem('neural_nexus_token');
+      const response = await fetch('/api/v1/combined-chat/general-answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ question, session_id: workspace.currentSessionId || null }),
+      });
+      if (!response.ok) throw new Error('Network fault');
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullAnswer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunkStr = decoder.decode(value, { stream: true });
+        for (const line of chunkStr.split('\n')) {
+          if (!line.trim()) continue;
+          try {
+            const chunk = JSON.parse(line);
+            if (chunk.type === 'content' && chunk.data) {
+              fullAnswer += chunk.data;
+              if (typeof messageIndex === 'number') {
+                const currentAnswer = fullAnswer;
+                updateMessageAtIndex(messageIndex, (msg) => ({
+                  ...msg,
+                  generalAnswer: currentAnswer,
+                  generalAnswerPending: false,
+                  isStreamingGeneralAnswer: true,
+                }));
+              }
+            }
+          } catch { /* parse fail */ }
+        }
+      }
+      if (typeof messageIndex === 'number') {
+        updateMessageAtIndex(messageIndex, (msg) => ({
+          ...msg,
+          generalAnswer: fullAnswer,
+          generalAnswerPending: false,
+          isStreamingGeneralAnswer: false,
+        }));
+      }
+    } catch {
+      toast.error('General answer failed.');
+      if (typeof messageIndex === 'number') {
+        updateMessageAtIndex(messageIndex, (msg) => ({ ...msg, generalAnswerPending: false }));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, updateMessageAtIndex, workspace.currentSessionId]);
+
   const sendMessage = async (e, overrideMessage = null) => {
     e.preventDefault();
     const draft = typeof overrideMessage === 'string' ? overrideMessage : input;
@@ -588,7 +634,7 @@ export default function ChatPage() {
               ...session,
               title: isUntitledSession(session, currentFolder?.name) ? nextSessionTitle : session.title,
               folderId: selectedFolderId ? String(selectedFolderId) : session.folderId,
-              messages: [...session.messages, { role: 'user', content: userMessage }, { role: 'assistant', content: '', isStreaming: true }],
+              messages: [...session.messages, { role: 'user', content: userMessage }, { role: 'assistant', content: '', isStreaming: true, originalQuestion: userMessage }],
               updatedAt: Date.now(),
             }
           : session
@@ -601,6 +647,7 @@ export default function ChatPage() {
         results: null,
         intent: null,
         contextSummary: '',
+        dataGrounding: null,
       };
       const applyStreamMeta = (partial) => {
         Object.assign(streamMeta, partial || {});
@@ -616,6 +663,7 @@ export default function ChatPage() {
             ...(Array.isArray(streamMeta.results) ? { results: streamMeta.results } : {}),
             ...(streamMeta.intent ? { intent: streamMeta.intent } : {}),
             ...(streamMeta.contextSummary ? { contextSummary: streamMeta.contextSummary } : {}),
+            ...(streamMeta.dataGrounding !== null ? { dataGrounding: streamMeta.dataGrounding } : {}),
           };
           return {
             ...prev,
@@ -691,6 +739,10 @@ export default function ChatPage() {
                   intent: chunk?.data || null,
                   contextSummary: String(chunk?.data?.research_strategy || '').trim(),
                 });
+              } else if (chunk.type === 'data_grounding') {
+                applyStreamMeta({
+                  dataGrounding: chunk?.data || null,
+                });
               }
             } catch { /* parse fail */ }
           }
@@ -732,19 +784,21 @@ export default function ChatPage() {
       } else {
         await streamViaHttp();
       }
+      // Cancel any pending flush timer FIRST to prevent double-flush race
       if (streamFlushTimerRef.current) {
         clearTimeout(streamFlushTimerRef.current);
         streamFlushTimerRef.current = null;
       }
-      if (streamBufferRef.current) {
-        const pending = streamBufferRef.current;
+      // Final flush — only if there's actually pending content
+      const finalPending = streamBufferRef.current;
+      if (finalPending) {
         streamBufferRef.current = '';
         setWorkspace((prev) => {
           const s = prev.sessions.find((x) => x.id === prev.currentSessionId);
           if (!s || !s.messages?.length) return prev;
           const msgs = [...s.messages];
           const lastIdx = msgs.length - 1;
-          const combined = mergeChunkWithOverlap(msgs[lastIdx].content || '', pending);
+          const combined = (msgs[lastIdx].content || '') + finalPending;
           msgs[lastIdx] = { ...msgs[lastIdx], content: normalizeStreamingText(combined) };
           return {
             ...prev,
@@ -871,6 +925,21 @@ export default function ChatPage() {
               sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
             };
           });
+        } else if (payload?.type === 'data_grounding') {
+          setWorkspace((prev) => {
+            const s = prev.sessions.find((x) => x.id === prev.currentSessionId);
+            if (!s || !s.messages?.length) return prev;
+            const msgs = [...s.messages];
+            const lastIdx = msgs.length - 1;
+            msgs[lastIdx] = {
+              ...msgs[lastIdx],
+              dataGrounding: payload?.data || msgs[lastIdx]?.dataGrounding || null,
+            };
+            return {
+              ...prev,
+              sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
+            };
+          });
           }
         } else if (msg?.type === 'chat_done') {
           wsRequestIdRef.current = null;
@@ -990,6 +1059,7 @@ export default function ChatPage() {
               messages={virtualItems}
               onWebSearch={performWebSearch}
               onOpenDetails={openMessageDetails}
+              onRequestGeneralAnswer={requestGeneralAnswer}
             />
             {/* Ambient Bottom Fade */}
             <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background/75 to-transparent z-10" />

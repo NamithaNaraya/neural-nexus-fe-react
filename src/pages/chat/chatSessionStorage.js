@@ -204,6 +204,17 @@ const serializeMessage = (message, options = {}) => {
     base.results = message.results.slice(0, MAX_RESULTS_COUNT);
   }
 
+  // Persist grounding, intent, and general answer data
+  if (message?.dataGrounding) {
+    base.dataGrounding = message.dataGrounding;
+  }
+  if (message?.intent && !aggressive) {
+    base.intent = message.intent;
+  }
+  if (message?.generalAnswer) {
+    base.generalAnswer = clampText(message.generalAnswer, aggressive ? 4000 : MAX_TEXT_LENGTH);
+  }
+
   return base;
 };
 
