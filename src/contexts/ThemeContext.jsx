@@ -15,7 +15,7 @@ export function ThemeProvider({ children }) {
     if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {
       return storedTheme;
     }
-    return 'system';
+    return 'light';
   });
 
   const resolvedTheme = theme === 'system' ? getSystemTheme() : theme;
