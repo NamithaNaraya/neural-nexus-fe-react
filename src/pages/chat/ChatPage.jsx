@@ -152,6 +152,31 @@ const isUntitledSession = (session, currentFolderName) => {
   return !sessionTitle || sessionTitle === 'New Chat' || sessionTitle === folderTitle || sessionTitle === currentFolderTitle;
 };
 
+const normalizeStreamingText = (text = '') => {
+  let next = String(text || '');
+  // Collapse immediate repeated words: "the the" -> "the"
+  next = next.replace(/\b([a-zA-Z]{2,})\b(\s+\1\b)+/gi, '$1');
+  // Collapse repeated punctuation glitches.
+  next = next.replace(/([,.;:!?])\1+/g, '$1');
+  return next;
+};
+
+const mergeChunkWithOverlap = (existing = '', incoming = '') => {
+  const left = String(existing || '');
+  const right = String(incoming || '');
+  if (!right) return left;
+  if (!left) return right;
+  if (left.endsWith(right)) return left;
+  if (right.startsWith(left)) return right;
+  const maxOverlap = Math.min(left.length, right.length, 180);
+  for (let k = maxOverlap; k >= 1; k -= 1) {
+    if (left.slice(-k) === right.slice(0, k)) {
+      return left + right.slice(k);
+    }
+  }
+  return left + right;
+};
+
 export default function ChatPage() {
   const { currentFolder, selectedFolderId, setSelectedFolderId } = useGlobalFolder();
   const { user } = useAuth();
@@ -470,15 +495,15 @@ export default function ChatPage() {
   }, [selectedFolderId, isWorkspaceLoading, currentFolder?.name]);
 
   useEffect(() => {
-    if (isWorkspaceLoading || !hasHydratedWorkspaceRef.current || !userKey) return;
+    if (!hasHydratedWorkspaceRef.current || !userKey) return;
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
       saveChatWorkspace(userKey, workspace);
-    }, 800);
+    }, 250);
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [workspace, userKey, isWorkspaceLoading]);
+  }, [workspace, userKey]);
 
   useEffect(() => {
     if (!userKey || isWorkspaceLoading || !hasHydratedWorkspaceRef.current) return;
@@ -493,9 +518,11 @@ export default function ChatPage() {
       if (document.visibilityState === 'hidden') flushWorkspace();
     };
     window.addEventListener('beforeunload', flushWorkspace);
+    window.addEventListener('pagehide', flushWorkspace);
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
       window.removeEventListener('beforeunload', flushWorkspace);
+      window.removeEventListener('pagehide', flushWorkspace);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [workspace, userKey, isWorkspaceLoading]);
@@ -535,13 +562,33 @@ export default function ChatPage() {
     if (!draft.trim() || loading) return;
     const userMessage = draft.trim();
     setInput('');
+    let activeSessionId = workspace.currentSessionId;
+    if (!activeSessionId) {
+      const seeded = createBlankSession({
+        folderId: selectedFolderId ? String(selectedFolderId) : '',
+        folderName: currentFolder?.name || 'New Research',
+      });
+      activeSessionId = seeded.id;
+      setWorkspace((prev) => ({
+        ...prev,
+        currentSessionId: seeded.id,
+        sessions: [seeded, ...(prev.sessions || [])],
+      }));
+    }
     const nextSessionTitle = getSessionTitleFromMessages([...messages.filter(m => !m.isWelcome), { role: 'user', content: userMessage }], currentFolder?.name || 'New Research');
-    updateCurrentSession((session) => ({
-      ...session,
-      title: isUntitledSession(session, currentFolder?.name) ? nextSessionTitle : session.title,
-      folderId: selectedFolderId ? String(selectedFolderId) : session.folderId,
-      messages: [...session.messages, { role: 'user', content: userMessage }, { role: 'assistant', content: '', isStreaming: true }],
-      updatedAt: Date.now(),
+    setWorkspace((prev) => ({
+      ...prev,
+      sessions: prev.sessions.map((session) =>
+        session.id === activeSessionId
+          ? {
+              ...session,
+              title: isUntitledSession(session, currentFolder?.name) ? nextSessionTitle : session.title,
+              folderId: selectedFolderId ? String(selectedFolderId) : session.folderId,
+              messages: [...session.messages, { role: 'user', content: userMessage }, { role: 'assistant', content: '', isStreaming: true }],
+              updatedAt: Date.now(),
+            }
+          : session
+      ),
     }));
     setLoading(true);
     try {
@@ -554,7 +601,8 @@ export default function ChatPage() {
           if (!s || !s.messages?.length) return prev;
           const msgs = [...s.messages];
           const lastIdx = msgs.length - 1;
-          msgs[lastIdx] = { ...msgs[lastIdx], content: (msgs[lastIdx].content || '') + pending };
+          const combined = `${msgs[lastIdx].content || ''}${pending}`;
+          msgs[lastIdx] = { ...msgs[lastIdx], content: normalizeStreamingText(combined) };
           return {
             ...prev,
             sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
@@ -581,7 +629,7 @@ export default function ChatPage() {
           body: JSON.stringify({
             question: userMessage,
             folder_id: selectedFolderId || null,
-            session_id: workspace.currentSessionId || null,
+            session_id: activeSessionId || null,
             history: activeMessages.slice(-CHAT_HISTORY_SEND_WINDOW),
             web_search: isWebSearchEnabled,
           }),
@@ -621,7 +669,7 @@ export default function ChatPage() {
             request_id: requestId,
             question: userMessage,
             folder_id: selectedFolderId || null,
-            session_id: workspace.currentSessionId || null,
+            session_id: activeSessionId || null,
             history: activeMessages.slice(-CHAT_HISTORY_SEND_WINDOW),
             web_search: isWebSearchEnabled,
           })
@@ -654,14 +702,15 @@ export default function ChatPage() {
           if (!s || !s.messages?.length) return prev;
           const msgs = [...s.messages];
           const lastIdx = msgs.length - 1;
-          msgs[lastIdx] = { ...msgs[lastIdx], content: (msgs[lastIdx].content || '') + pending };
+          const combined = mergeChunkWithOverlap(msgs[lastIdx].content || '', pending);
+          msgs[lastIdx] = { ...msgs[lastIdx], content: normalizeStreamingText(combined) };
           return {
             ...prev,
             sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
           };
         });
       }
-      setWorkspace(prev => ({ ...prev, sessions: prev.sessions.map(s => s.id === workspace.currentSessionId ? { ...s, messages: s.messages.map((m, i) => i === s.messages.length - 1 ? { ...m, isStreaming: false } : m) } : s) }));
+      setWorkspace(prev => ({ ...prev, sessions: prev.sessions.map(s => s.id === activeSessionId ? { ...s, messages: s.messages.map((m, i) => i === s.messages.length - 1 ? { ...m, isStreaming: false } : m) } : s) }));
     } catch { toast.error('Synthesis interrupted.'); } finally { setLoading(false); }
   };
 
@@ -695,7 +744,8 @@ export default function ChatPage() {
         if (!s || !s.messages?.length) return prev;
         const msgs = [...s.messages];
         const lastIdx = msgs.length - 1;
-        msgs[lastIdx] = { ...msgs[lastIdx], content: (msgs[lastIdx].content || '') + pending };
+        const combined = `${msgs[lastIdx].content || ''}${pending}`;
+        msgs[lastIdx] = { ...msgs[lastIdx], content: normalizeStreamingText(combined) };
         return {
           ...prev,
           sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
@@ -768,7 +818,7 @@ export default function ChatPage() {
       }
       try {
         wsRequestIdRef.current = null;
-        if (wsRef.current) wsRef.current.close();
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) wsRef.current.close();
       } catch {
         // ignore
       }

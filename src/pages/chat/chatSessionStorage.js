@@ -26,6 +26,36 @@ const safeJsonParse = (value, fallback) => {
   }
 };
 
+const isUuid = (value) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
+
+const hashString = (input) => {
+  let hash = 2166136261;
+  const text = String(input || '');
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+};
+
+const deterministicUuidFromString = (value) => {
+  const a = hashString(`${value}:a`);
+  const b = hashString(`${value}:b`).slice(0, 4);
+  const cRaw = hashString(`${value}:c`).slice(0, 4);
+  const dRaw = hashString(`${value}:d`).slice(0, 4);
+  const e = `${hashString(`${value}:e`)}${hashString(`${value}:f`).slice(0, 4)}`.slice(0, 12);
+  const c = `4${cRaw.slice(1)}`; // version 4 style nibble
+  const d = `a${dRaw.slice(1)}`; // variant nibble
+  return `${a}-${b}-${c}-${d}-${e}`;
+};
+
+const normalizeSessionId = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return generateId();
+  return isUuid(raw) ? raw : deterministicUuidFromString(raw);
+};
+
 const normalizeUserKey = (userKey) => {
   const raw = String(userKey || 'anonymous').trim().toLowerCase();
   return raw.replace(/[^a-z0-9._-]/g, '_');
@@ -48,7 +78,7 @@ export const createChatSession = ({ folderId = '', folderName = '', title, messa
   const createdAt = Date.now();
 
   return {
-    id: generateId(),
+    id: normalizeSessionId(generateId()),
     folderId: folderId ? String(folderId) : '',
     folderName: folderName || '',
     title: title || getSessionTitleFromMessages(sessionMessages, getDefaultSessionTitle(folderName)),
@@ -87,7 +117,7 @@ export const loadChatWorkspace = (userKey) => {
     ? parsed.sessions
         .filter(Boolean)
         .map((session) => ({
-          id: String(session.id || generateId()),
+          id: normalizeSessionId(session.id || generateId()),
           folderId: session.folderId ? String(session.folderId) : '',
           folderName: session.folderName || '',
           title: session.title || getSessionTitleFromMessages(session.messages || [], getDefaultSessionTitle(session.folderName || 'New Research')),
@@ -122,7 +152,7 @@ export const saveChatWorkspace = (userKey, workspace) => {
     localStorage.setItem(getChatStorageKey(userKey), JSON.stringify(serializeWorkspace(workspace)));
   } catch {
     try {
-      const reducedWorkspace = serializeWorkspace(workspace, { aggressive: true });
+      const reducedWorkspace = serializeWorkspaceCompact(workspace);
       localStorage.setItem(getChatStorageKey(userKey), JSON.stringify(reducedWorkspace));
     } catch {
       // Ignore storage failures so the UI never crashes.
@@ -189,7 +219,7 @@ const serializeWorkspace = (workspace, options = {}) => {
         : [WELCOME_MESSAGE];
 
       return {
-        id: String(session?.id || generateId()),
+        id: normalizeSessionId(session?.id || generateId()),
         folderId: session?.folderId ? String(session.folderId) : '',
         folderName: session?.folderName || '',
         title: session?.title || getDefaultSessionTitle(session?.folderName || 'New Research'),
@@ -205,6 +235,30 @@ const serializeWorkspace = (workspace, options = {}) => {
 
   return {
     currentSessionId: finalCurrentId,
+    sessions,
+  };
+};
+
+const serializeWorkspaceCompact = (workspace) => {
+  const currentSessionId = String(workspace?.currentSessionId || '');
+  const sessions = (workspace?.sessions || [])
+    .slice(0, 12)
+    .map((session) => {
+      const sid = normalizeSessionId(session?.id || generateId());
+      const rawMessages = Array.isArray(session?.messages) ? session.messages : [];
+      const keep = sid === currentSessionId ? rawMessages.slice(-40) : rawMessages.slice(-6);
+      return {
+        id: sid,
+        folderId: session?.folderId ? String(session.folderId) : '',
+        folderName: session?.folderName || '',
+        title: session?.title || 'New Chat',
+        createdAt: Number(session?.createdAt || Date.now()),
+        updatedAt: Number(session?.updatedAt || session?.createdAt || Date.now()),
+        messages: (keep.length ? keep : [WELCOME_MESSAGE]).map((message) => serializeMessage(message, { aggressive: true })),
+      };
+    });
+  return {
+    currentSessionId: sessions.some((s) => s.id === currentSessionId) ? currentSessionId : sessions[0]?.id || '',
     sessions,
   };
 };
