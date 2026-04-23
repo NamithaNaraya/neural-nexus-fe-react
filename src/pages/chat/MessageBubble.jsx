@@ -33,7 +33,18 @@ const stripInlineAnalyticsScores = (text) =>
     .trim();
 
 const sanitizeAssistantAnswer = (text) => {
-  const safeText = String(text || '').replace(/\r\n/g, '\n');
+  let safeText = String(text || '').replace(/\r\n/g, '\n');
+  // Strip technical node IDs / folder-prefixed labels
+  // e.g. "TherapeuticUse_F_a92d748e_d903_4b29_ac91_fb0e0e59ba72" → "TherapeuticUse"
+  safeText = safeText.replace(/(\w+?)_F_[0-9a-f]{8}(?:_[0-9a-f]{4,12}){1,5}/gi, '$1');
+  // Strip standalone UUIDs and hex IDs
+  safeText = safeText.replace(/\b[0-9a-f]{8}[-_][0-9a-f]{4}[-_][0-9a-f]{4}[-_][0-9a-f]{4}[-_][0-9a-f]{12}\b/gi, '');
+  // Strip F_xxxxx folder labels
+  safeText = safeText.replace(/\bF_[0-9a-f_]{20,}\b/gi, '');
+  // Strip trailing _F from labels like "TherapeuticUse_F" → "TherapeuticUse"
+  safeText = safeText.replace(/(\w+?)_F\b/g, '$1');
+  // Clean up leftover artifacts (double spaces, empty bold markers, orphaned commas)
+  safeText = safeText.replace(/\*\*\s*\*\*/g, '').replace(/  +/g, ' ').replace(/, ,/g, ',');
   const lines = safeText.split('\n');
   const cleanedLines = [];
 
@@ -546,7 +557,7 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequest
                 ) : (
                   <AlertTriangle className="w-4 h-4" />
                 )}
-                {message.generalAnswerPending ? 'Generating...' : 'Answer Outside DB'}
+                {message.generalAnswerPending ? 'Generating...' : 'External Info'}
               </button>
             )}
           </div>
@@ -559,7 +570,7 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequest
               <div className="p-2.5 rounded-2xl bg-amber-500/15 backdrop-blur-md">
                 <AlertTriangle className="w-5 h-5" />
               </div>
-              <span className="text-[12px] font-black uppercase tracking-[0.3em]">General Knowledge</span>
+              <span className="text-[12px] font-black uppercase tracking-[0.3em]">External Info</span>
               {message.isStreamingGeneralAnswer && (
                 <div className="ml-auto flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />

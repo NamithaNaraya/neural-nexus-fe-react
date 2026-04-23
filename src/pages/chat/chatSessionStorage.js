@@ -63,9 +63,9 @@ const normalizeUserKey = (userKey) => {
 
 export const getChatStorageKey = (userKey) => `${STORAGE_PREFIX}:${normalizeUserKey(userKey)}`;
 
-export const getDefaultSessionTitle = (folderName = 'New Growth') => folderName || 'New Growth';
+export const getDefaultSessionTitle = (folderName = 'New Session') => folderName || 'New Session';
 
-export const getSessionTitleFromMessages = (messages = [], fallback = 'New Growth') => {
+export const getSessionTitleFromMessages = (messages = [], fallback = 'New Session') => {
   const firstUserMessage = messages.find((message) => message?.role === 'user' && String(message?.content || '').trim());
   const content = String(firstUserMessage?.content || '').trim();
 
