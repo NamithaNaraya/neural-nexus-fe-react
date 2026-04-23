@@ -490,7 +490,7 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequest
         })()}
 
         {/* Action Bar (Web Search / Details / Answer Outside DB) */}
-        {!isUser && !isError && !isWelcome && !message.isStreaming && ((onWebSearch && !message.webSearchAnswer && message.content) || hasAnalysisDetails || (message.dataGrounding && !message.dataGrounding.grounded && onRequestGeneralAnswer && !message.generalAnswer)) && (
+        {!isUser && !isError && !isWelcome && !message.isStreaming && message.content && ((onWebSearch && !message.webSearchAnswer) || hasAnalysisDetails || (onRequestGeneralAnswer && !message.generalAnswer)) && (
           <div className="mt-7 flex flex-wrap gap-4 border-t border-border/20 pt-7">
             {onWebSearch && !message.webSearchAnswer && message.content && (
               <button
@@ -526,8 +526,8 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequest
               </button>
             )}
 
-            {/* Answer Outside DB button */}
-            {message.dataGrounding && !message.dataGrounding.grounded && onRequestGeneralAnswer && !message.generalAnswer && (
+            {/* Answer Outside DB button — always available */}
+            {onRequestGeneralAnswer && !message.generalAnswer && (
               <button
                 onClick={() => onRequestGeneralAnswer({
                   question: message.originalQuestion || message.content,
