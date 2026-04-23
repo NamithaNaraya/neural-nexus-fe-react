@@ -154,6 +154,10 @@ const isUntitledSession = (session, currentFolderName) => {
 
 const normalizeStreamingText = (text = '') => {
   let next = String(text || '');
+  // Collapse repeated leading characters: "TTamarind" -> "Tamarind"
+  next = next.replace(/\b([a-zA-Z])\1{1,}/g, '$1');
+  // Collapse repeated in-word fragments: "galactogogogogues" -> "galactogogues"
+  next = next.replace(/\b([a-zA-Z]{2,5})\1{1,}\b/g, '$1');
   // Collapse immediate repeated words: "the the" -> "the"
   next = next.replace(/\b([a-zA-Z]{2,})\b(\s+\1\b)+/gi, '$1');
   // Collapse repeated punctuation glitches.
@@ -592,6 +596,34 @@ export default function ChatPage() {
     }));
     setLoading(true);
     try {
+      const streamMeta = {
+        algorithm: null,
+        results: null,
+        intent: null,
+        contextSummary: '',
+      };
+      const applyStreamMeta = (partial) => {
+        Object.assign(streamMeta, partial || {});
+        setWorkspace((prev) => {
+          const session = prev.sessions.find((x) => x.id === activeSessionId);
+          if (!session || !session.messages?.length) return prev;
+          const msgs = [...session.messages];
+          const lastIdx = msgs.length - 1;
+          const last = msgs[lastIdx] || {};
+          msgs[lastIdx] = {
+            ...last,
+            ...(streamMeta.algorithm ? { algorithm: streamMeta.algorithm } : {}),
+            ...(Array.isArray(streamMeta.results) ? { results: streamMeta.results } : {}),
+            ...(streamMeta.intent ? { intent: streamMeta.intent } : {}),
+            ...(streamMeta.contextSummary ? { contextSummary: streamMeta.contextSummary } : {}),
+          };
+          return {
+            ...prev,
+            sessions: prev.sessions.map((x) => (x.id === activeSessionId ? { ...x, messages: msgs } : x)),
+          };
+        });
+      };
+
       const flushStreamBuffer = () => {
         if (!streamBufferRef.current) return;
         const pending = streamBufferRef.current;
@@ -649,6 +681,16 @@ export default function ChatPage() {
               if (chunk.type === 'content') {
                 streamBufferRef.current += chunk.data;
                 scheduleStreamFlush();
+              } else if (chunk.type === 'gds_results') {
+                applyStreamMeta({
+                  algorithm: chunk?.data?.algorithm || null,
+                  results: Array.isArray(chunk?.data?.results) ? chunk.data.results : null,
+                });
+              } else if (chunk.type === 'intent') {
+                applyStreamMeta({
+                  intent: chunk?.data || null,
+                  contextSummary: String(chunk?.data?.research_strategy || '').trim(),
+                });
               }
             } catch { /* parse fail */ }
           }
@@ -797,6 +839,38 @@ export default function ChatPage() {
             wsChunkCountRef.current += 1;
             streamBufferRef.current += payload.data;
             scheduleStreamFlush();
+        } else if (payload?.type === 'gds_results') {
+          setWorkspace((prev) => {
+            const s = prev.sessions.find((x) => x.id === prev.currentSessionId);
+            if (!s || !s.messages?.length) return prev;
+            const msgs = [...s.messages];
+            const lastIdx = msgs.length - 1;
+            msgs[lastIdx] = {
+              ...msgs[lastIdx],
+              algorithm: payload?.data?.algorithm || msgs[lastIdx]?.algorithm || null,
+              results: Array.isArray(payload?.data?.results) ? payload.data.results : msgs[lastIdx]?.results || null,
+            };
+            return {
+              ...prev,
+              sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
+            };
+          });
+        } else if (payload?.type === 'intent') {
+          setWorkspace((prev) => {
+            const s = prev.sessions.find((x) => x.id === prev.currentSessionId);
+            if (!s || !s.messages?.length) return prev;
+            const msgs = [...s.messages];
+            const lastIdx = msgs.length - 1;
+            msgs[lastIdx] = {
+              ...msgs[lastIdx],
+              intent: payload?.data || msgs[lastIdx]?.intent || null,
+              contextSummary: String(payload?.data?.research_strategy || msgs[lastIdx]?.contextSummary || '').trim(),
+            };
+            return {
+              ...prev,
+              sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
+            };
+          });
           }
         } else if (msg?.type === 'chat_done') {
           wsRequestIdRef.current = null;
