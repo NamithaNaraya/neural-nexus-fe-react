@@ -39,6 +39,8 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
         ws: true,
+        proxyTimeout: 300000, // 5 minutes
+        timeout: 300000,      // 5 minutes
         // Enable streaming: tell http-proxy not to buffer responses
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq, req) => {
