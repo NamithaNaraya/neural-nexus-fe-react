@@ -17,7 +17,6 @@ export default function GraphRadarPage(props) {
     nodeSearch
   } = props;
 
-  // APPLY GLOBAL FILTERS
   const filteredGraph = useMemo(
     () => filterGraphData(graphData, { nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch }),
     [graphData, nodeTypeFilters, relationshipTypeFilters, minDegree, showOrphans, nodeSearch]
@@ -37,11 +36,7 @@ export default function GraphRadarPage(props) {
     }));
   }, [filteredGraph]);
 
-  if (!radarData.length) return (
-    <div className="h-full w-full flex items-center justify-center">
-       <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/20 italic">No Filtered Data to Analyze</p>
-    </div>
-  );
+  if (!radarData.length) return null;
 
   return (
     <div className="h-full w-full flex flex-col p-6 animate-in zoom-in duration-700">
@@ -51,19 +46,18 @@ export default function GraphRadarPage(props) {
             <PolarGrid stroke="hsl(var(--primary) / 0.1)" strokeDasharray="3 3" />
             <PolarAngleAxis 
                dataKey="subject" 
-               tick={{ fill: 'hsl(var(--muted-foreground) / 0.6)', fontSize: 10, fontWeight: 900 }}
+               tick={{ fill: 'hsl(var(--muted-foreground) / 0.5)', fontSize: 10, fontWeight: 900 }}
             />
             <PolarRadiusAxis 
                angle={30} 
                domain={[0, 'auto']} 
-               tick={{ fill: 'hsl(var(--primary) / 0.3)', fontSize: 8 }}
+               tick={{ fill: 'hsl(var(--primary) / 0.2)', fontSize: 8 }}
             />
             <Radar
-              name="Filtered Density"
               dataKey="A"
-              stroke="hsl(var(--primary))"
+              stroke="hsl(var(--primary) / 0.6)"
               fill="hsl(var(--primary))"
-              fillOpacity={0.3}
+              fillOpacity={0.2}
             />
             <Tooltip 
                content={({ active, payload }) => {
@@ -71,7 +65,7 @@ export default function GraphRadarPage(props) {
                     return (
                       <div className="bg-background/95 backdrop-blur-2xl border border-white/10 p-4 rounded-2xl shadow-2xl">
                         <p className="text-[9px] font-black uppercase tracking-widest text-primary mb-1">{payload[0].payload.subject}</p>
-                        <p className="text-xl font-black text-foreground">{payload[0].value} <span className="text-[10px] font-normal text-muted-foreground ml-1">Nodes</span></p>
+                        <p className="text-xl font-black text-foreground">{payload[0].value}</p>
                       </div>
                     );
                   }

@@ -19,15 +19,11 @@ function buildSunburstHierarchy(nodes) {
     .map(([type, typeNodes]) => {
       const sortedNodes = [...typeNodes].sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)));
       const limitedNodes = sortedNodes.slice(0, 80);
-      const overflowCount = Math.max(0, sortedNodes.length - limitedNodes.length);
       const nodeChildren = limitedNodes.map((node) => ({
         name: node.name || node.id,
         id: node.id,
         value: 1,
       }));
-      if (overflowCount > 0) {
-        nodeChildren.push({ name: `Other ${overflowCount}`, value: overflowCount, synthetic: true });
-      }
       return { name: type, value: typeNodes.length, children: nodeChildren };
     });
 
@@ -43,7 +39,7 @@ export default function GraphSunburstPage(props) {
     minDegree,
     showOrphans,
     nodeSearch,
-    nodeTypeColors = {} // Use the brand colors passed down
+    nodeTypeColors = {}
   } = props;
   
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
@@ -67,7 +63,6 @@ export default function GraphSunburstPage(props) {
         const response = await graphService.getFolder(folderId, 10000);
         setGraphData(response || { nodes: [], links: [] });
       } catch (err) {
-        console.error('Graph sunburst load failed:', err);
         setGraphData({ nodes: [], links: [] });
       } finally {
         setLoading(false);
@@ -143,9 +138,26 @@ export default function GraphSunburstPage(props) {
       .append('title')
       .text((d) => `${d.data.name}: ${d.value}`);
 
+    const topLevelLabels = root.descendants().filter((d) => d.depth === 1 && (d.x1 - d.x0) > 0.22);
+    g.selectAll('text')
+      .data(topLevelLabels)
+      .join('text')
+      .attr('transform', (d) => {
+        const angle = ((d.x0 + d.x1) / 2) * (180 / Math.PI);
+        const y = (d.y0 + d.y1) / 2 + 10;
+        return `rotate(${angle - 90}) translate(${y},0) rotate(${angle < 180 ? 0 : 180})`;
+      })
+      .attr('text-anchor', 'middle')
+      .attr('alignment-baseline', 'middle')
+      .attr('font-size', 11)
+      .attr('font-weight', 900)
+      .attr('fill', 'hsl(var(--foreground) / 0.6)')
+      .attr('class', 'uppercase tracking-widest')
+      .text((d) => d.data.name);
+
     const center = g.append('g').attr('text-anchor', 'middle');
-    center.append('circle').attr('r', 65).attr('fill', 'rgba(255,255,255,0.02)').attr('stroke', 'rgba(255,255,255,0.05)').attr('stroke-width', 1);
-    center.append('text').attr('y', 10).attr('font-size', 28).attr('font-weight', 900).attr('fill', 'hsl(var(--foreground))').attr('opacity', 0.2).text(renderedGraph.nodes.length);
+    center.append('circle').attr('r', 65).attr('fill', 'rgba(255,255,255,0.01)').attr('stroke', 'rgba(255,255,255,0.03)').attr('stroke-width', 1);
+    center.append('text').attr('y', 15).attr('font-size', 36).attr('font-weight', 900).attr('fill', 'hsl(var(--foreground))').attr('opacity', 0.15).text(renderedGraph.nodes.length);
   }, [containerWidth, loading, renderedGraph.nodes.length, sunburstData, nodeTypeColors]);
 
   return (

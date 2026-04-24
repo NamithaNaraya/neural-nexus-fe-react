@@ -32,11 +32,7 @@ export default function GraphDistributionPage(props) {
       .sort((a, b) => b.value - a.value);
   }, [filteredGraph]);
 
-  if (!pieData.length) return (
-    <div className="h-full w-full flex items-center justify-center">
-       <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/20 italic">No Filtered Distribution</p>
-    </div>
-  );
+  if (!pieData.length) return null;
 
   return (
     <div className="h-full w-full flex flex-col p-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -57,7 +53,7 @@ export default function GraphDistributionPage(props) {
                 <Cell 
                   key={`cell-${index}`} 
                   fill={nodeTypeColors[entry.name] || 'hsl(var(--primary))'} 
-                  style={{ filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.1))' }}
+                  style={{ filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.1))', opacity: 0.8 }}
                 />
               ))}
             </Pie>
@@ -68,9 +64,7 @@ export default function GraphDistributionPage(props) {
                   return (
                     <div className="bg-background/95 backdrop-blur-2xl border border-white/10 p-4 rounded-[24px] shadow-2xl">
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1">{data.name}</p>
-                      <p className="text-2xl font-black text-foreground">
-                        {data.value} <span className="text-[10px] font-normal text-muted-foreground ml-1">Nodes</span>
-                      </p>
+                      <p className="text-2xl font-black text-foreground">{data.value}</p>
                     </div>
                   );
                 }
@@ -80,19 +74,17 @@ export default function GraphDistributionPage(props) {
           </PieChart>
         </ResponsiveContainer>
         
-        {/* CENTER LABEL (Now reactive to filters) */}
+        {/* CENTER LABEL (Raw count only) */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-           <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/30">Visible</span>
-           <span className="text-4xl font-black text-foreground/80 tracking-tighter">{filteredGraph.nodes.length}</span>
-           <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 mt-1">Entities</span>
+           <span className="text-5xl font-black text-foreground/10 tracking-tighter">{filteredGraph.nodes.length}</span>
         </div>
       </div>
       
       <div className="mt-6 flex flex-wrap justify-center gap-4">
-         {pieData.slice(0, 6).map((entry, i) => (
+         {pieData.slice(0, 8).map((entry, i) => (
             <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/5 bg-white/2">
-               <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: nodeTypeColors[entry.name] }} />
-               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">{entry.name}</span>
+               <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: nodeTypeColors[entry.name], opacity: 0.5 }} />
+               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">{entry.name}</span>
             </div>
          ))}
       </div>
