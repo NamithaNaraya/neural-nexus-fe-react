@@ -21,6 +21,7 @@ import {
   HelpCircle,
   Sparkles,
   Leaf,
+  Layout,
 } from 'lucide-react';
 import nessoLogo from '../../assets/logo.png';
 
@@ -39,6 +40,12 @@ const navSections = [
     items: [
       { icon: Upload, label: 'Ingest Data', path: '/upload' },
       { icon: Search, label: 'Browse Graph', path: '/browse' },
+    ],
+  },
+  {
+    label: 'Creative Lab',
+    items: [
+      { icon: Layout, label: 'Neural Canvas', path: '/canvas', badge: 'NEW' },
     ],
   },
   {

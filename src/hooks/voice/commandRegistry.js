@@ -91,6 +91,12 @@ export const VOICE_COMMANDS = [
     label: 'Opening ML Predictions'
   },
   {
+    keywords: ['canvas', 'draw', 'sketch', 'sketchpad', 'whiteboard'],
+    action: 'NAVIGATE',
+    path: '/canvas',
+    label: 'Opening Neural Canvas'
+  },
+  {
     keywords: ['clear', 'reset', 'wipe', 'empty'],
     action: 'UI_ACTION',
     command: 'CLEAR_CHAT',

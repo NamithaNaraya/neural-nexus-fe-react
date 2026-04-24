@@ -22,6 +22,7 @@ const MLPredictionPage = lazy(pageLoaders.mlPrediction);
 const AnalyticsPage = lazy(pageLoaders.analytics);
 const SettingsPage = lazy(pageLoaders.settings);
 const HelpPage = lazy(pageLoaders.help);
+const CanvasPage = lazy(() => import('./pages/canvas/CanvasPage'));
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -80,6 +81,7 @@ function AnimatedRoutes() {
         <Route path="/analytics" element={<PageTransition><AnalyticsPage /></PageTransition>} />
         <Route path="/settings" element={<PageTransition><SettingsPage /></PageTransition>} />
         <Route path="/help" element={<PageTransition><HelpPage /></PageTransition>} />
+        <Route path="/canvas" element={<PageTransition><CanvasPage /></PageTransition>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
