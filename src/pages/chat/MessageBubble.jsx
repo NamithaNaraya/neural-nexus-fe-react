@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Bot, Globe, ExternalLink, Loader2, User, Sprout, Leaf, Sparkles, BrainCircuit, Database, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bot, Globe, ExternalLink, Loader2, User, Sprout, Leaf, Sparkles, BrainCircuit, Database, AlertTriangle, ChevronDown, ChevronUp, Volume2, VolumeX } from 'lucide-react';
 import { getAlgorithmDetails } from './chatAlgorithmDetails';
 
 const MD_INLINE_REGEX = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(\*\*([^*]+)\*\*)|(`([^`]+)`)|(\*([^*\n]+)\*)/g;
@@ -369,6 +369,7 @@ const AnimatedDots = ({ tone = 'neutral' }) => {
 
 function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequestGeneralAnswer, messageIndex }) {
   const [algoExpanded, setAlgoExpanded] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const isUser = message.role === 'user';
   const isError = message.isError;
   const isWebSearch = message.isWebSearch;
@@ -384,15 +385,107 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequest
   const hasAssistantText = Boolean(String(cleanedContent || '').trim());
   const hasWebSearchText = Boolean(String(cleanedWebSearchAnswer || '').trim());
 
+  const [currentWordRange, setCurrentWordRange] = useState({ start: 0, end: 0 });
+
+  const handleSpeak = (text) => {
+    // Always cancel existing speech first
+    window.speechSynthesis.cancel();
+    
+    if (isSpeaking) {
+      setIsSpeaking(false);
+      setCurrentWordRange({ start: 0, end: 0 });
+      return;
+    }
+
+    const speechText = String(text || '')
+      .replace(/(\*\*|__)(.*?)\1/g, '$2')
+      .replace(/(\*|_)(.*?)\1/g, '$2')
+      .replace(/#+\s+/g, '')
+      .replace(/`{1,3}.*?`{1,3}/gs, '')
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+      .replace(/\|/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!speechText) return;
+
+    const utterance = new SpeechSynthesisUtterance(speechText);
+    utterance.lang = 'en-US'; // Force language
+    
+    // Voice Selection Fix
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(v => v.lang === 'en-US' && v.name.includes('Google')) 
+                         || voices.find(v => v.lang === 'en-US')
+                         || voices.find(v => v.lang.startsWith('en'));
+    
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    // Word Highlighting Logic
+    utterance.onboundary = (event) => {
+      if (event.name === 'word') {
+        setCurrentWordRange({
+          start: event.charIndex,
+          end: event.charIndex + event.charLength
+        });
+      }
+    };
+
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      console.log('🎙️ Speech started');
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setCurrentWordRange({ start: 0, end: 0 });
+      console.log('🎙️ Speech finished');
+    };
+
+    utterance.onerror = (e) => {
+      console.error('🎙️ TTS Error:', e);
+      setIsSpeaking(false);
+      setCurrentWordRange({ start: 0, end: 0 });
+    };
+    
+    // Small timeout to prevent the "interrupted" error
+    setTimeout(() => {
+      window.speechSynthesis.resume(); // Fix for Chrome hangs
+      window.speechSynthesis.speak(utterance);
+    }, 100);
+  };
+
+  const HighlightedText = ({ text, range, isSpeaking }) => {
+    if (!isSpeaking || !text) return renderMarkdownContent(text);
+
+    // Simple word-level highlight for plain text segments
+    // For markdown, we'll highlight the whole block for now as it's safer
+    // But let's try a split-highlight for the content
+    return (
+      <div className="relative">
+        {renderMarkdownContent(text)}
+        <div className="absolute top-0 left-0 pointer-events-none opacity-20">
+          {/* This is a visual aid layer */}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={cn('flex w-full items-start gap-6 py-5 animate-scale-in', isUser ? 'justify-end' : 'justify-start')}>
       {!isUser && (
         <div className={cn(
           'mt-1 h-14 w-14 rounded-[20px] flex items-center justify-center shrink-0 shadow-2xl border border-primary/20 bg-primary/10 backdrop-blur-xl transition-all duration-700',
-          message.isStreaming ? 'ring-4 ring-primary/20 scale-105 shadow-primary/20' : 'hover:scale-110'
+          (message.isStreaming || isSpeaking) ? 'ring-4 ring-primary/20 scale-105 shadow-primary/20' : 'hover:scale-110'
         )}>
           {isStandaloneWebSearch ? (
             <Globe className="w-7 h-7 text-primary" />
+          ) : isSpeaking ? (
+            <Volume2 className="w-7 h-7 text-primary animate-pulse" />
           ) : (
             <Sparkles className="w-7 h-7 text-primary animate-pulse" />
           )}
@@ -408,7 +501,10 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequest
             ? 'rounded-tl-none bg-destructive/10 text-destructive border border-destructive/20'
             : isWelcome
               ? 'rounded-tl-none bg-gradient-to-br from-primary/10 via-accent/5 to-primary/10 border border-primary/20 text-foreground/90 backdrop-blur-2xl shadow-xl'
-              : 'rounded-tl-none bg-secondary/40 text-foreground border border-border/30 backdrop-blur-2xl shadow-2xl shadow-primary/5 hover:border-primary/40 hover:bg-secondary/50 transition-colors'
+              : cn(
+                  'rounded-tl-none bg-secondary/40 text-foreground border border-border/30 backdrop-blur-2xl shadow-2xl shadow-primary/5 hover:border-primary/40 hover:bg-secondary/50 transition-colors',
+                  isSpeaking && 'ring-2 ring-primary/30 border-primary/40 bg-primary/5'
+                )
       )}>
         {/* Main Content Area */}
         <div className="prose prose-sm max-w-none break-words whitespace-normal w-full overflow-hidden">
@@ -426,7 +522,9 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequest
                 <span className="inline-block w-3 h-5 ml-2.5 bg-primary/40 rounded-sm animate-pulse align-text-bottom" />
               </p>
             ) : (
-              renderMarkdownContent(cleanedContent)
+              <div className={cn("transition-all duration-500", isSpeaking && "text-primary/90 font-bold")}>
+                {renderMarkdownContent(cleanedContent)}
+              </div>
             )
           ) : null}
 
@@ -500,8 +598,8 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequest
           );
         })()}
 
-        {/* Action Bar (Web Search / Details / Answer Outside DB) */}
-        {!isUser && !isError && !isWelcome && !message.isStreaming && message.content && ((onWebSearch && !message.webSearchAnswer) || hasAnalysisDetails || (onRequestGeneralAnswer && !message.generalAnswer)) && (
+        {/* Action Bar (Web Search / Details / Answer Outside DB / Speak) */}
+        {!isUser && !isError && !isWelcome && !message.isStreaming && message.content && ((onWebSearch && !message.webSearchAnswer) || hasAnalysisDetails || (onRequestGeneralAnswer && !message.generalAnswer) || hasAssistantText || hasWebSearchText) && (
           <div className="mt-7 flex flex-wrap gap-4 border-t border-border/20 pt-7">
             {onWebSearch && !message.webSearchAnswer && message.content && (
               <button
@@ -558,6 +656,27 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequest
                   <AlertTriangle className="w-4 h-4" />
                 )}
                 {message.generalAnswerPending ? 'Generating...' : 'External Info'}
+              </button>
+            )}
+
+            {/* Speak button — available for Assistant messages with content */}
+            {!isUser && !message.isStreaming && (hasAssistantText || hasWebSearchText) && (
+              <button
+                onClick={() => handleSpeak(hasWebSearchText ? cleanedWebSearchAnswer : cleanedContent)}
+                className={cn(
+                  'flex items-center gap-3 rounded-[20px] px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] transition-all hover:scale-105 active:scale-95 shadow-sm ring-1 ring-inset',
+                  isSpeaking
+                    ? 'bg-primary text-white ring-primary shadow-xl shadow-primary/20'
+                    : 'bg-secondary/20 ring-border/30 text-muted-foreground hover:bg-secondary/40 hover:text-foreground'
+                )}
+                title={isSpeaking ? "Stop Reading" : "Read Aloud"}
+              >
+                {isSpeaking ? (
+                  <VolumeX className="w-4 h-4 animate-pulse" />
+                ) : (
+                  <Volume2 className="w-4 h-4" />
+                )}
+                {isSpeaking ? 'Stop' : 'Listen'}
               </button>
             )}
           </div>
