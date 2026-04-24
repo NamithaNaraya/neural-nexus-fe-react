@@ -1,6 +1,7 @@
 import React from 'react';
 import { ProfileCard } from './components/ProfileCard';
 import { AppearanceCard } from './components/AppearanceCard';
+import { VoiceSettingsCard } from './components/VoiceSettingsCard';
 import { FolderPermissionsCard } from './components/FolderPermissionsCard';
 import { PasswordCard } from './components/PasswordCard';
 import { Settings2, Sliders, ShieldCheck } from 'lucide-react';
@@ -36,12 +37,15 @@ export default function SettingsPage() {
             <FolderPermissionsCard />
           </div>
         </div>
-        <div className="flex min-h-0 flex-col gap-6">
+        <div className="flex min-h-0 flex-col gap-6 text-foreground">
           <div className="animate-in fade-in slide-in-from-right-8 duration-700 delay-200">
             <PasswordCard />
           </div>
           <div className="animate-in fade-in slide-in-from-right-8 duration-700 delay-400">
             <AppearanceCard />
+          </div>
+          <div className="animate-in fade-in slide-in-from-right-8 duration-700 delay-500">
+            <VoiceSettingsCard />
           </div>
         </div>
       </div>

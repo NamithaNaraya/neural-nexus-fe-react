@@ -412,14 +412,25 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequest
     const utterance = new SpeechSynthesisUtterance(speechText);
     utterance.lang = 'en-US'; // Force language
     
-    // Voice Selection Fix
+    // Voice Selection: Check localStorage for preference first
     const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(v => v.lang === 'en-US' && v.name.includes('Google')) 
+    const preferredVoiceName = localStorage.getItem('preferredVoice');
+    let preferredVoice = null;
+
+    if (preferredVoiceName) {
+      preferredVoice = voices.find(v => v.name === preferredVoiceName);
+    }
+    
+    if (!preferredVoice) {
+      // Fallback to high-quality defaults if no preference
+      preferredVoice = voices.find(v => v.lang === 'en-US' && v.name.includes('Google')) 
                          || voices.find(v => v.lang === 'en-US')
                          || voices.find(v => v.lang.startsWith('en'));
+    }
     
     if (preferredVoice) {
       utterance.voice = preferredVoice;
+      console.log(`🎙️ Speaking with: ${preferredVoice.name}`);
     }
 
     utterance.rate = 1.0;
