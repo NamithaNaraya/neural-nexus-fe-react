@@ -1,4 +1,5 @@
 import React from 'react';
+import { useVoiceCommands } from '../../hooks/voice/useVoiceCommands';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Send, Loader2, Globe, Mic, Square, X } from 'lucide-react';
@@ -20,6 +21,7 @@ export function ChatInput({
   const [isTranscribing, setIsTranscribing] = React.useState(false);
   const mediaRecorderRef = React.useRef(null);
   const audioChunksRef = React.useRef([]);
+  const { processText } = useVoiceCommands();
 
   const startRecording = async () => {
     try {
@@ -80,7 +82,27 @@ export function ChatInput({
       });
       
       if (response.data?.success && response.data?.text) {
-        setInput(response.data.text);
+        const text = response.data.text;
+        
+        // INTERCEPT COMMANDS
+        const cmd = processText(text);
+        if (cmd.matched) {
+          setInput(''); // Clear any partial text
+          toast.success(cmd.label, {
+            icon: '🎙️',
+            style: {
+              borderRadius: '20px',
+              background: 'hsl(var(--secondary))',
+              color: 'hsl(var(--foreground))',
+              border: '1px solid hsl(var(--primary) / 0.2)',
+              fontWeight: 'bold',
+              fontSize: '12px'
+            }
+          });
+          return;
+        }
+
+        setInput(text);
       }
     } catch (err) {
       console.error('🎙️ Transcription error:', err);

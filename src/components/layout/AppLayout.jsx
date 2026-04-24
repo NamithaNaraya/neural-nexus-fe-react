@@ -6,6 +6,8 @@ import { useGlobalFolder } from '../../contexts/GlobalFolderContext';
 import { Moon, Sun, Sprout } from 'lucide-react';
 import { useApiHealth } from '../../hooks/useApiHealth';
 
+import { GlobalVoiceControl } from './GlobalVoiceControl';
+
 export function AppLayout({ children }) {
   const { resolvedTheme, toggleTheme } = useTheme();
   const {
@@ -55,6 +57,7 @@ export function AppLayout({ children }) {
             <div className="mx-2 h-8 w-px bg-border/40" />
 
             <div className="app-surface-muted flex items-center gap-2 rounded-[16px] p-1">
+              <GlobalVoiceControl />
               <button
                 onClick={toggleTheme}
                 type="button"
@@ -68,7 +71,6 @@ export function AppLayout({ children }) {
                 )}
               </button>
             </div>
-
           </div>
         </header>
 
