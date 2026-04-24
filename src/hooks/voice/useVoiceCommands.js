@@ -44,12 +44,13 @@ export function useVoiceCommands() {
   };
 
   const processText = (text) => {
-    if (!text) return false;
+    if (!text) return { matched: false };
+    console.log(`🎙️ Voice Engine: Processing "${text}"`);
 
     const command = findCommand(text);
     
     if (command) {
-      console.log(`🎙️ Voice Command Match: "${command.label}" for input: "${text}"`);
+      console.log(`🎙️ Voice Engine: Command Match -> "${command.label}"`);
       
       if (command.action === 'NAVIGATE') {
         console.log(`🎙️ Redirecting to path: ${command.path}`);
@@ -61,7 +62,12 @@ export function useVoiceCommands() {
         console.log(`🎙️ Triggering UI Action: ${command.command}`);
         
         if (command.command === 'TOGGLE_THEME') {
-          executeClick('Mode'); // Finds "Activate Light Mode" or "Activate Dark Mode"
+          const btn = document.getElementById('theme-toggle-btn');
+          if (btn) {
+            btn.click();
+          } else {
+            executeClick('Mode'); // Fallback
+          }
         }
         
         if (command.command === 'CLEAR_CHAT') {

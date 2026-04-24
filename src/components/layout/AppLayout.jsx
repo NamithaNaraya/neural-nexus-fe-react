@@ -60,6 +60,7 @@ export function AppLayout({ children }) {
               <GlobalVoiceControl />
               <button
                 onClick={toggleTheme}
+                id="theme-toggle-btn"
                 type="button"
                 aria-label={resolvedTheme === 'dark' ? 'Activate Light Mode' : 'Activate Dark Mode'}
                 className="group relative flex h-8 w-8 items-center justify-center rounded-[12px] bg-card text-primary shadow-sm transition hover:scale-105 active:scale-95"

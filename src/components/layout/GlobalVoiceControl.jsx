@@ -1,26 +1,39 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Mic, Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useVoiceCommands } from '../../hooks/voice/useVoiceCommands';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
 
-/**
- * GlobalVoiceControl
- * 
- * A header-integrated microphone component that listens for 
- * app-wide voice commands and triggers UI actions.
- */
 export function GlobalVoiceControl() {
   const [isListening, setIsListening] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const autoStopTimeoutRef = useRef(null);
   const { processText } = useVoiceCommands();
+
+  // Helper to safely stop the recorder
+  const stopRecorder = (shouldKeepSystemActive = false) => {
+    if (autoStopTimeoutRef.current) {
+      clearTimeout(autoStopTimeoutRef.current);
+      autoStopTimeoutRef.current = null;
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      // We don't set isListening here, we let the onstop handler or the manual click handle it
+    }
+    
+    if (!shouldKeepSystemActive) {
+      setIsListening(false);
+    }
+  };
 
   const startRecording = async () => {
     try {
-      console.log('🎙️ Global Voice active...');
+      if (mediaRecorderRef.current?.state === 'recording') return;
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       audioChunksRef.current = [];
@@ -31,35 +44,36 @@ export function GlobalVoiceControl() {
 
       recorder.onstop = () => {
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        // Close stream to free hardware
+        stream.getTracks().forEach(track => track.stop());
         handleTranscription(blob);
       };
 
       mediaRecorderRef.current = recorder;
-      recorder.start(1000);
+      recorder.start();
       setIsListening(true);
 
-      // AUTO-STOP: Commands are short, but 4s allows for full sentences
-      setTimeout(() => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-          console.log('🎙️ Auto-stopping Global Voice...');
-          stopRecording();
+      // Set chunk timer
+      autoStopTimeoutRef.current = setTimeout(() => {
+        if (recorder.state === 'recording') {
+          stopRecorder(true); // Stop chunk but stay active
         }
       }, 4000);
 
     } catch (err) {
-      console.error('🎙️ Global Voice error:', err);
-      toast.error('Microphone access denied.');
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+      console.error('🎙️ Global Voice start error:', err);
+      toast.error('Mic access failed');
       setIsListening(false);
     }
   };
 
   const handleTranscription = async (blob) => {
+    if (blob.size < 1000) {
+       // Too small to be speech
+       finalizeTranscription();
+       return;
+    }
+
     setIsTranscribing(true);
     try {
       const formData = new FormData();
@@ -74,75 +88,88 @@ export function GlobalVoiceControl() {
         const result = processText(text);
         
         if (result.matched) {
-          toast.success(result.label, {
-            icon: '🎙️',
-            style: {
-              borderRadius: '20px',
-              background: 'hsl(var(--secondary))',
-              color: 'hsl(var(--foreground))',
-              border: '1px solid hsl(var(--primary) / 0.2)',
-              fontWeight: 'bold',
-              fontSize: '12px'
-            }
-          });
+          toast.success(result.label, { icon: '🎙️', duration: 2000 });
+        } else if (text.trim().length > 3) {
+          toast(`Heard: "${text}"`, { icon: '💬', duration: 1500 });
         } else {
-          // If no command matched, just show what was heard
-          toast(`Heard: "${text}"`, {
-            icon: '💬',
-            style: {
-              borderRadius: '20px',
-              background: 'hsl(var(--secondary) / 0.8)',
-              fontSize: '11px'
-            }
-          });
+          // If text is very short/unclear
+          console.log('🎙️ Ignored short audio:', text);
         }
       }
     } catch (err) {
-      console.error('🎙️ Global Transcription error:', err);
-      toast.error('Voice processing failed.');
+      console.error('🎙️ Transcription error:', err);
     } finally {
-      setIsTranscribing(false);
+      finalizeTranscription();
     }
   };
 
+  const finalizeTranscription = () => {
+    setIsTranscribing(false);
+    // If user didn't click stop, keep the loop going
+    if (isListening) {
+      setTimeout(() => {
+        if (isListening) startRecording();
+      }, 300);
+    }
+  };
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (autoStopTimeoutRef.current) clearTimeout(autoStopTimeoutRef.current);
+      if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
+    };
+  }, []);
+
   return (
-    <button
-      onClick={isListening ? stopRecording : startRecording}
-      disabled={isTranscribing}
-      className={cn(
-        "relative flex h-8 w-8 items-center justify-center rounded-[12px] transition-all duration-500",
-        isListening 
-          ? "bg-primary text-white scale-110 shadow-lg shadow-primary/40" 
-          : "bg-card text-primary hover:bg-primary/10",
-        isTranscribing && "opacity-50 cursor-wait"
-      )}
-      title="Global Voice Command"
-    >
+    <div className="flex items-center gap-3">
       {isListening && (
-        <span className="absolute inset-0 rounded-[12px] bg-primary animate-ping opacity-40" />
+        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/5 border border-red-500/10 animate-in fade-in zoom-in duration-500">
+          <span className="relative flex h-1.5 w-1.5">
+            {isTranscribing ? (
+              <Loader2 className="h-1.5 w-1.5 animate-spin text-primary" />
+            ) : (
+              <>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
+              </>
+            )}
+          </span>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500/80">
+            {isTranscribing ? 'Processing' : 'Listening'}
+          </span>
+        </div>
       )}
       
-      {isTranscribing ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : isListening ? (
-        <StopIcon className="h-3 w-3 fill-current animate-pulse" />
-      ) : (
-        <Mic className="h-4 w-4 transition-transform hover:scale-110" />
-      )}
-    </button>
+      <button
+        onClick={() => isListening ? stopRecorder(false) : startRecording()}
+        className={cn(
+          "group relative flex h-9 w-9 items-center justify-center rounded-[14px] transition-all duration-500 active:scale-90",
+          isListening 
+            ? "bg-red-500/10 text-red-500 ring-2 ring-red-500/20 shadow-[0_0_25px_-5px_rgba(239,68,68,0.4)]" 
+            : "bg-card text-muted-foreground/60 hover:text-primary hover:bg-primary/5"
+        )}
+      >
+        {isListening && !isTranscribing && (
+          <span className="absolute inset-0 rounded-[14px] bg-red-500 animate-pulse opacity-10" />
+        )}
+        
+        {isTranscribing ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : isListening ? (
+          <StopIcon className="h-3.5 w-3.5 fill-current" />
+        ) : (
+          <Mic className="h-4 w-4" />
+        )}
+      </button>
+    </div>
   );
 }
 
-// Simple internal icon for Stop state
 function StopIcon({ className }) {
   return (
-    <svg 
-      viewBox="0 0 24 24" 
-      className={className} 
-      fill="currentColor" 
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <rect x="6" y="6" width="12" height="12" rx="2" />
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <rect x="7" y="7" width="10" height="10" rx="1.5" />
     </svg>
   );
 }

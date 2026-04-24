@@ -73,13 +73,13 @@ export const VOICE_COMMANDS = [
     label: 'Opening Visualization'
   },
   {
-    keywords: ['dark mode', 'night mode', 'darken', 'black theme', 'dark', 'black'],
+    keywords: ['dark mode', 'night mode', 'darken', 'black theme', 'dark', 'black', 'dark moral'],
     action: 'UI_ACTION',
     command: 'TOGGLE_THEME',
     label: 'Switching to Dark Mode'
   },
   {
-    keywords: ['light mode', 'day mode', 'brighten', 'white theme', 'white', 'light'],
+    keywords: ['light mode', 'day mode', 'brighten', 'white theme', 'white', 'light', 'white moral', 'light moral'],
     action: 'UI_ACTION',
     command: 'TOGGLE_THEME',
     label: 'Switching to Light Mode'
@@ -101,10 +101,14 @@ export const VOICE_COMMANDS = [
 export const findCommand = (text) => {
   const normalizedText = text.toLowerCase().trim();
   
-  // Check for "Neural" trigger or direct keyword match
-  const isDirectCommand = normalizedText.startsWith('neural') || 
-                          normalizedText.startsWith('open') || 
-                          normalizedText.startsWith('go to');
+  // Wake words and their common misspellings
+  const wakeWords = ['neural', 'nuural', 'nural', 'nero', 'neuron'];
+  const prefixes = ['open', 'go to', 'show', 'take me to', 'click', 'press', 'switch to'];
+
+  const hasWakeWord = wakeWords.some(w => normalizedText.includes(w));
+  const hasPrefix = prefixes.some(p => normalizedText.startsWith(p));
+  
+  const isDirectCommand = hasWakeWord || hasPrefix;
 
   for (const cmd of VOICE_COMMANDS) {
     if (cmd.keywords.some(keyword => {
