@@ -398,13 +398,15 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequest
     }
 
     const speechText = String(text || '')
-      .replace(/(\*\*|__)(.*?)\1/g, '$2')
-      .replace(/(\*|_)(.*?)\1/g, '$2')
-      .replace(/#+\s+/g, '')
-      .replace(/`{1,3}.*?`{1,3}/gs, '')
-      .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-      .replace(/\|/g, ' ')
-      .replace(/\s+/g, ' ')
+      .replace(/(\*\*|__)(.*?)\1/g, '$2') // bold
+      .replace(/(\*|_)(.*?)\1/g, '$2')   // italic
+      .replace(/^[\s\-\*\+]+/gm, '')      // strip list markers (*, -, +) at start of lines
+      .replace(/#+\s+/g, '')             // headings
+      .replace(/>\s+/g, '')              // blockquotes
+      .replace(/`{1,3}.*?`{1,3}/gs, '')  // code blocks
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // links
+      .replace(/\|/g, ' ')               // table pipes
+      .replace(/\s+/g, ' ')              // normalize whitespace
       .trim();
 
     if (!speechText) return;
