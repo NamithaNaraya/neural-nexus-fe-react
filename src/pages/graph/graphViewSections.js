@@ -1,4 +1,4 @@
-import { BarChart3, Box, Compass, Grid2x2, Layers, TableProperties, Waypoints } from 'lucide-react';
+import { BarChart3, Box, Compass, Grid2x2, Layers, TableProperties, Waypoints, Zap, PieChart } from 'lucide-react';
 
 export const knowledgeGraphSections = [
   {
@@ -17,7 +17,8 @@ export const visualizeDataSections = [
     items: [
       { path: 'sunburst', label: 'Sunburst', icon: Layers },
       { path: 'treemap', label: 'Treemap', icon: Grid2x2 },
-      { path: 'schema', label: 'Schema', icon: Waypoints },
+      { path: 'radar', label: 'Radar', icon: Zap },
+      { path: 'distribution', label: 'Distribution', icon: PieChart },
       { path: 'degree', label: 'Degree', icon: BarChart3 },
       { path: 'matrix', label: 'Matrix', icon: Grid2x2 },
     ],
