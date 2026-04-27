@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { cn } from '../../utils/cn';
 import { Bot, Globe, ExternalLink, Loader2, User, Sprout, Leaf, Sparkles, BrainCircuit, Database, AlertTriangle, ChevronDown, ChevronUp, Volume2, VolumeX } from 'lucide-react';
 import { getAlgorithmDetails } from './chatAlgorithmDetails';
+import { AlgorithmInsight } from './components/AlgorithmInsight';
 
 const MD_INLINE_REGEX = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(\*\*([^*]+)\*\*)|(`([^`]+)`)|(\*([^*\n]+)\*)/g;
 
@@ -43,6 +44,11 @@ const sanitizeAssistantAnswer = (text) => {
   safeText = safeText.replace(/\bF_[0-9a-f_]{20,}\b/gi, '');
   // Strip trailing _F from labels like "TherapeuticUse_F" → "TherapeuticUse"
   safeText = safeText.replace(/(\w+?)_F\b/g, '$1');
+  // Strip robotic persona/disclaimers (robust regex)
+  safeText = safeText.replace(/\(?Remember that I.*?Neural Nexus.*?assistant.*?\)?/gi, '');
+  safeText = safeText.replace(/\(?I have analyzed only the current conversation history.*?\)?/gi, '');
+  safeText = safeText.replace(/\bNeural Nexus\b/gi, '');
+
   // Clean up leftover artifacts (double spaces, empty bold markers, orphaned commas)
   safeText = safeText.replace(/\*\*\s*\*\*/g, '').replace(/  +/g, ' ').replace(/, ,/g, ',');
   const lines = safeText.split('\n');
@@ -567,17 +573,6 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequest
                 )}
               </span>
             )}
-            {/* Algorithm pill (expandable) */}
-            {hasAnalysisDetails && message.algorithm && (
-              <button
-                onClick={() => setAlgoExpanded((v) => !v)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/8 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-primary transition-all hover:bg-primary/15"
-              >
-                <BrainCircuit className="h-3 w-3" />
-                {getAlgorithmDetails(message.algorithm).label}
-                {algoExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              </button>
-            )}
             {/* Strategy pill */}
             {message.contextSummary && (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/20 px-3.5 py-1.5 text-[10px] font-medium text-muted-foreground">
@@ -587,29 +582,15 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequest
           </div>
         )}
 
-        {/* Expandable Algorithm Details */}
-        {algoExpanded && hasAnalysisDetails && message.algorithm && (() => {
-          const details = getAlgorithmDetails(message.algorithm);
-          return (
-            <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-5 animate-fade-up">
-              <div className="flex items-center gap-2 mb-3">
-                <BrainCircuit className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">{details.label}</span>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{details.category}</span>
-              </div>
-              <p className="text-xs leading-relaxed text-foreground/80 mb-2">{details.summary}</p>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                <span className="font-semibold">Score meaning:</span> {details.scoreMeaning}
-              </p>
-              {message.dataGrounding?.source_count != null && (
-                <div className="mt-3 flex gap-4 text-[10px] text-muted-foreground">
-                  <span>Sources: <strong className="text-foreground">{message.dataGrounding.source_count}</strong></span>
-                  <span>Context: <strong className="text-foreground">{Math.round((message.dataGrounding.context_chars || 0) / 100) / 10}k</strong> chars</span>
-                </div>
-              )}
-            </div>
-          );
-        })()}
+        {/* Algorithm Insight Card (Prominent & Collapsible) */}
+        {!isUser && !isError && !isWelcome && !message.isStreaming && hasAnalysisDetails && message.algorithm && (
+          <AlgorithmInsight 
+            algorithm={message.algorithm}
+            results={message.results}
+            dataGrounding={message.dataGrounding}
+          />
+        )}
+
 
         {/* Action Bar (Web Search / Details / Answer Outside DB / Speak) */}
         {!isUser && !isError && !isWelcome && !message.isStreaming && message.content && ((onWebSearch && !message.webSearchAnswer) || hasAnalysisDetails || (onRequestGeneralAnswer && !message.generalAnswer) || hasAssistantText || hasWebSearchText) && (
