@@ -477,8 +477,9 @@ export default function ChatPage() {
       if (prev.currentSessionId) {
         const session = prev.sessions.find(s => s.id === prev.currentSessionId);
         if (session) {
-          const hasRealMessages = Array.isArray(session.messages)
-            && session.messages.some((m) => !m?.isWelcome && String(m?.content || '').trim().length > 0);
+          const hasRealMessages = (Array.isArray(session.messages)
+            && session.messages.some((m) => !m?.isWelcome && String(m?.content || '').trim().length > 0))
+            || (session.messageCount > 0);
           // Preserve restored session after refresh instead of auto-replacing with a blank folder session.
           if (hasRealMessages || String(session.folderId || '') === folderIdStr) {
             return prev;

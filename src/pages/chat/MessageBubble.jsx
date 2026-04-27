@@ -573,12 +573,7 @@ function MessageBubbleComponent({ message, onWebSearch, onOpenDetails, onRequest
                 )}
               </span>
             )}
-            {/* Strategy pill */}
-            {message.contextSummary && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/20 px-3.5 py-1.5 text-[10px] font-medium text-muted-foreground">
-                {message.contextSummary}
-              </span>
-            )}
+            {/* Strategy pill hidden per user preference */}
           </div>
         )}
 

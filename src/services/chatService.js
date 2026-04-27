@@ -82,7 +82,7 @@ export const chatService = {
           return {
             id: backendSession.session_id,
             messages: [], // LAZY LOADED on selection
-            folderId: '',
+            folderId: backendSession.folder_id || '',
             folderName: '',
             createdAt: lastActivity,
             updatedAt: lastActivity,
