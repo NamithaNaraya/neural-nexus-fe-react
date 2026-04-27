@@ -271,6 +271,10 @@ export default function ChatPage() {
         content: msg.message || msg.content || '',
         citations: msg.citations || msg.sources || [],
         timestamp: msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now(),
+        // Unpack persistent algorithm metadata
+        algorithm: msg.algorithm || null,
+        results: msg.results || null,
+        dataGrounding: msg.dataGrounding || null,
       };
 
       if (webAttachment) {
