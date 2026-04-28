@@ -65,6 +65,52 @@ export const getChatStorageKey = (userKey) => `${STORAGE_PREFIX}:${normalizeUser
 
 export const getDefaultSessionTitle = (folderName = 'New Session') => folderName || 'New Session';
 
+const hasMeaningfulSessionMessages = (messages = []) =>
+  Array.isArray(messages) &&
+  messages.some((message) => {
+    if (message?.isWelcome) return false;
+    return String(message?.content || '').trim().length > 0
+      || Boolean(message?.webSearchAnswer)
+      || Boolean(message?.generalAnswer);
+  });
+
+export const isGhostTimeoutSession = (session) => {
+  const title = String(session?.title || '').toLowerCase();
+  const messageCount = Number(session?.messageCount || 0);
+  const hasRealMessages = hasMeaningfulSessionMessages(session?.messages || []);
+  return title.includes('ollama timeout') && !hasRealMessages && messageCount <= 0;
+};
+
+export const dedupeSessionsById = (sessions = []) => {
+  const uniqueSessions = [];
+  const seen = new Map();
+
+  for (const session of Array.isArray(sessions) ? sessions : []) {
+    if (!session?.id) continue;
+    const existingIndex = seen.get(session.id);
+    if (existingIndex === undefined) {
+      seen.set(session.id, uniqueSessions.length);
+      uniqueSessions.push(session);
+      continue;
+    }
+
+    const existing = uniqueSessions[existingIndex];
+    const existingScore = Number(existing?.updatedAt || existing?.createdAt || 0);
+    const nextScore = Number(session?.updatedAt || session?.createdAt || 0);
+    const existingHasMessages = hasMeaningfulSessionMessages(existing?.messages || []) || Number(existing?.messageCount || 0) > 0;
+    const nextHasMessages = hasMeaningfulSessionMessages(session?.messages || []) || Number(session?.messageCount || 0) > 0;
+
+    if (
+      nextHasMessages && !existingHasMessages
+      || (nextHasMessages === existingHasMessages && nextScore >= existingScore)
+    ) {
+      uniqueSessions[existingIndex] = session;
+    }
+  }
+
+  return uniqueSessions;
+};
+
 export const getSessionTitleFromMessages = (messages = [], fallback = 'New Session') => {
   const firstUserMessage = messages.find((message) => message?.role === 'user' && String(message?.content || '').trim());
   const content = String(firstUserMessage?.content || '').trim();
@@ -114,17 +160,20 @@ export const loadChatWorkspace = (userKey) => {
   }
 
   const sessions = Array.isArray(parsed.sessions)
-    ? parsed.sessions
-        .filter(Boolean)
-        .map((session) => ({
-          id: normalizeSessionId(session.id || generateId()),
-          folderId: session.folderId ? String(session.folderId) : '',
-          folderName: session.folderName || '',
-          title: session.title || getSessionTitleFromMessages(session.messages || [], getDefaultSessionTitle(session.folderName || 'New Research')),
-          createdAt: Number(session.createdAt || Date.now()),
-          updatedAt: Number(session.updatedAt || session.createdAt || Date.now()),
-          messages: Array.isArray(session.messages) && session.messages.length > 0 ? session.messages : [WELCOME_MESSAGE],
-        }))
+    ? dedupeSessionsById(
+        parsed.sessions
+          .filter(Boolean)
+          .map((session) => ({
+            id: normalizeSessionId(session.id || generateId()),
+            folderId: session.folderId ? String(session.folderId) : '',
+            folderName: session.folderName || '',
+            title: session.title || getSessionTitleFromMessages(session.messages || [], getDefaultSessionTitle(session.folderName || 'New Research')),
+            createdAt: Number(session.createdAt || Date.now()),
+            updatedAt: Number(session.updatedAt || session.createdAt || Date.now()),
+            messages: Array.isArray(session.messages) && session.messages.length > 0 ? session.messages : [WELCOME_MESSAGE],
+          }))
+          .filter((session) => !isGhostTimeoutSession(session))
+      )
     : [];
 
   if (sessions.length === 0) {
@@ -220,7 +269,7 @@ const serializeMessage = (message, options = {}) => {
 
 const serializeWorkspace = (workspace, options = {}) => {
   const currentSessionId = workspace?.currentSessionId;
-  const sessions = (workspace?.sessions || [])
+  const sessions = dedupeSessionsById((workspace?.sessions || []))
     .slice(0, MAX_SESSION_COUNT)
     .map((session) => {
       const rawMessages = Array.isArray(session?.messages) ? session.messages : [];
@@ -252,7 +301,7 @@ const serializeWorkspace = (workspace, options = {}) => {
 
 const serializeWorkspaceCompact = (workspace) => {
   const currentSessionId = String(workspace?.currentSessionId || '');
-  const sessions = (workspace?.sessions || [])
+  const sessions = dedupeSessionsById((workspace?.sessions || []))
     .slice(0, 12)
     .map((session) => {
       const sid = normalizeSessionId(session?.id || generateId());
@@ -281,7 +330,7 @@ export const upsertSession = (workspace, session) => {
     updatedAt: Date.now(),
   };
 
-  const sessions = [nextSession, ...(workspace.sessions || []).filter((item) => item.id !== nextSession.id)];
+  const sessions = dedupeSessionsById([nextSession, ...(workspace.sessions || []).filter((item) => item.id !== nextSession.id)]);
   return {
     currentSessionId: workspace.currentSessionId || nextSession.id,
     sessions,
@@ -289,7 +338,7 @@ export const upsertSession = (workspace, session) => {
 };
 
 export const replaceSessionMessages = (workspace, sessionId, messages, patch = {}) => {
-  const sessions = (workspace.sessions || []).map((session) => {
+  const sessions = dedupeSessionsById((workspace.sessions || []).map((session) => {
     if (session.id !== sessionId) return session;
     return {
       ...session,
@@ -298,7 +347,7 @@ export const replaceSessionMessages = (workspace, sessionId, messages, patch = {
       title: patch.title || session.title || getSessionTitleFromMessages(messages, getDefaultSessionTitle(patch.folderName || session.folderName || 'New Research')),
       updatedAt: Date.now(),
     };
-  });
+  }));
 
   return {
     ...workspace,
@@ -311,7 +360,7 @@ export const createBlankSession = ({ folderId = '', folderName = '' } = {}) =>
 
 export const selectSessionForFolder = (workspace, folderId, folderName = '') => {
   const folderKey = folderId ? String(folderId) : '';
-  const matchingSessions = (workspace.sessions || [])
+  const matchingSessions = dedupeSessionsById(workspace.sessions || [])
     .filter((session) => String(session.folderId || '') === folderKey)
     .sort((a, b) => Number(b.updatedAt || b.createdAt || 0) - Number(a.updatedAt || a.createdAt || 0));
 
@@ -325,12 +374,12 @@ export const selectSessionForFolder = (workspace, folderId, folderName = '') => 
   const newSession = createBlankSession({ folderId, folderName });
   return {
     currentSessionId: newSession.id,
-    sessions: [newSession, ...(workspace.sessions || [])],
+    sessions: dedupeSessionsById([newSession, ...(workspace.sessions || [])]),
   };
 };
 
 export const removeSession = (workspace, sessionId) => {
-  const sessions = (workspace.sessions || []).filter((session) => session.id !== sessionId);
+  const sessions = dedupeSessionsById((workspace.sessions || []).filter((session) => session.id !== sessionId));
   const nextCurrent = workspace.currentSessionId === sessionId ? (sessions[0]?.id || '') : workspace.currentSessionId;
   if (sessions.length === 0) {
     const fallback = createBlankSession();

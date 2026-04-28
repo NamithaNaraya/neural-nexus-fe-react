@@ -60,6 +60,22 @@ export const chatService = {
   },
 
   /**
+   * Clear an existing chat session's messages from backend persistence
+   * while keeping the session shell alive locally.
+   * @param {string} sessionId - Session UUID
+   * @returns {Promise<boolean>} Success status
+   */
+  async clearSession(sessionId) {
+    try {
+      await api.post(`/query/chat/session/${sessionId}/clear`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to clear session ${sessionId}:`, error);
+      return false;
+    }
+  },
+
+  /**
    * Sync chat workspace with backend
    * Loads all sessions for authenticated user and reconstructs workspace
    * as metadata-only shells (Lazy Loading).

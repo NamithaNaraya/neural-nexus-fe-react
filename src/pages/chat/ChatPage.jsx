@@ -21,7 +21,9 @@ import {
   WELCOME_MESSAGE,
   createBlankSession,
   getChatStorageKey,
+  dedupeSessionsById,
   getDefaultSessionTitle,
+  isGhostTimeoutSession,
   loadChatWorkspace,
   removeSession,
   saveChatWorkspace,
@@ -199,6 +201,7 @@ export default function ChatPage() {
   const lastFolderIdRef = useRef(selectedFolderId || '');
   const attemptedSessionsHydrationRef = useRef(new Set());
   const hydrationInFlightRef = useRef(new Set());
+  const deletedSessionIdsRef = useRef(new Set());
 
   const activeSession = useMemo(
     () => workspace.sessions.find((session) => session.id === workspace.currentSessionId) || null,
@@ -210,7 +213,7 @@ export default function ChatPage() {
   const deferredMessages = useDeferredValue(messages);
   
   const chatHistory = useMemo(() => {
-    const rawSessions = Array.isArray(workspace?.sessions) ? workspace.sessions : [];
+    const rawSessions = dedupeSessionsById(Array.isArray(workspace?.sessions) ? workspace.sessions : []);
     return rawSessions
       .filter(Boolean)
       .map((s) => ({
@@ -342,31 +345,91 @@ export default function ChatPage() {
     if (!deleteConfirmId) return;
     const sessionId = deleteConfirmId;
     setDeleteConfirmId(null);
-    setWorkspace((prev) => removeSession(prev, sessionId));
+    deletedSessionIdsRef.current.add(sessionId);
+    attemptedSessionsHydrationRef.current.delete(sessionId);
+    hydrationInFlightRef.current.delete(sessionId);
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    const nextWorkspaceSnapshot = removeSession(workspace, sessionId);
+    setWorkspace(nextWorkspaceSnapshot);
+    if (hasHydratedWorkspaceRef.current && userKey && nextWorkspaceSnapshot) {
+      try {
+        saveChatWorkspace(userKey, nextWorkspaceSnapshot);
+      } catch (error) {
+        console.warn('Immediate workspace flush after delete failed:', error);
+      }
+    }
     if (user?.id) {
-      const deleted = await chatService.deleteSession(sessionId);
-      if (!deleted) {
-        toast.error('Session removed locally, but backend delete failed.');
-        return;
+      try {
+        const deleted = await chatService.deleteSession(sessionId);
+        if (!deleted) {
+          toast.error('Session removed locally, but backend delete failed.');
+          return;
+        }
+      } catch (err) {
+        console.error('Delete failed:', err);
+        toast.error('Failed to sync deletion with backend.');
       }
     }
     toast.success('Session deleted.');
     setDeleteConfirmId(null);
-  }, [deleteConfirmId, user?.id]);
+  }, [deleteConfirmId, user?.id, userKey, workspace]);
 
   const clearChat = useCallback(() => {
     setIsClearConfirmOpen(true);
   }, []);
 
-  const confirmClearChat = useCallback(() => {
-    updateCurrentSession((session) => ({
-      ...session,
-      messages: [WELCOME_MESSAGE],
-      updatedAt: Date.now(),
-    }));
-    toast.success('Session cleared.');
+  const confirmClearChat = useCallback(async () => {
+    const activeId = workspace.currentSessionId;
+    if (!activeId) {
+      setIsClearConfirmOpen(false);
+      return;
+    }
+
     setIsClearConfirmOpen(false);
-  }, [updateCurrentSession]);
+    attemptedSessionsHydrationRef.current.delete(activeId);
+    hydrationInFlightRef.current.delete(activeId);
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+
+    const nextWorkspaceSnapshot = {
+      ...workspace,
+      sessions: workspace.sessions.map((session) =>
+        session.id === activeId
+          ? {
+              ...session,
+              messages: [WELCOME_MESSAGE],
+              title: getDefaultSessionTitle(session.folderName || currentFolder?.name || 'New Research'),
+              updatedAt: Date.now(),
+              messageCount: 0,
+            }
+          : session
+      ),
+    };
+
+    setWorkspace(nextWorkspaceSnapshot);
+    if (hasHydratedWorkspaceRef.current && userKey) {
+      try {
+        saveChatWorkspace(userKey, nextWorkspaceSnapshot);
+      } catch (error) {
+        console.warn('Immediate workspace flush after clear failed:', error);
+      }
+    }
+
+    if (user?.id) {
+      try {
+        const cleared = await chatService.clearSession(activeId);
+        if (!cleared) {
+          toast.error('Session cleared locally, but backend clear failed.');
+          return;
+        }
+      } catch (err) {
+        console.error('Clear failed:', err);
+        toast.error('Failed to sync clear with backend.');
+        return;
+      }
+    }
+
+    toast.success('Session cleared.');
+  }, [currentFolder?.name, user?.id, userKey, workspace]);
 
   const exportChat = useCallback((format) => {
     // Basic export logic preservation
@@ -403,25 +466,57 @@ export default function ChatPage() {
         const backendWorkspace = await chatService.syncWorkspaceFromBackend({ timeoutMs: CHAT_STARTUP_SYNC_TIMEOUT_MS });
         if (backendWorkspace) {
           setWorkspace((prev) => {
-            const backendSet = new Set(backendWorkspace.sessions.map((session) => session.id));
-            const localSessionMap = new Map(prev.sessions.map((s) => [s.id, s]));
+            const deletedIds = deletedSessionIdsRef.current;
+            const backendSessions = backendWorkspace.sessions.filter((session) => !deletedIds.has(session.id));
+            const backendSet = new Set(backendSessions.map((session) => session.id));
+            const localSessions = prev.sessions.filter((session) => !deletedIds.has(session.id));
+            const localSessionMap = new Map(localSessions.map((s) => [s.id, s]));
             const folderSessionMap = new Map();
-            prev.sessions.forEach(s => { if (s.folderId) folderSessionMap.set(s.folderId, s); });
+            localSessions.forEach(s => { if (s.folderId) folderSessionMap.set(s.folderId, s); });
 
-            const mergedSessions = [
-              ...backendWorkspace.sessions.map((backendSession) => {
+            const mergedSessions = dedupeSessionsById([
+              ...backendSessions.map((backendSession) => {
                 const localById = localSessionMap.get(backendSession.id);
                 if (localById && (localById.messages?.length > 1 || localById.folderId)) return localById;
                 const localByFolder = backendSession.folderId ? folderSessionMap.get(backendSession.folderId) : null;
                 if (localByFolder && localByFolder.messages?.length <= 1) return { ...backendSession, id: localByFolder.id || backendSession.id };
                 return backendSession;
               }),
-              ...prev.sessions.filter((session) => !backendSet.has(session.id)),
-            ];
+              // Prune local orphans: Only keep local sessions that are NOT in the backend if they are brand new (no UUID or very recently created)
+              ...localSessions.filter((session) => {
+                const isInMemoryOnly = !backendSet.has(session.id);
+                if (!isInMemoryOnly) return false; // Already handled above
+                if (isGhostTimeoutSession(session)) return false;
+                
+                // Keep if it's the current session (might be unsaved) 
+                if (session.id === prev.currentSessionId) return true;
+                
+                // Keep if it has no real ID yet (client-side only)
+                if (!session.id || session.id.length < 32) return true;
+                
+                // Otherwise, if it's missing from backend and has a UUID, it's a ghost. Prune it.
+                return false;
+              }),
+            ]);
+            
+            // Second pass: Self-healing for timeout zombies (0 messages + timeout title)
+            const healedSessions = mergedSessions.filter((session) => {
+              if (!isGhostTimeoutSession(session)) return true;
+              return backendSet.has(session.id);
+            });
+
+            const currentStillExists = healedSessions.some((session) => session.id === prev.currentSessionId);
+
+            const backendCurrentStillExists = healedSessions.some((session) => session.id === backendWorkspace.currentSessionId);
+
             return {
               ...prev,
-              sessions: mergedSessions,
-              currentSessionId: prev.currentSessionId || backendWorkspace.currentSessionId || mergedSessions[0]?.id,
+              sessions: healedSessions,
+              currentSessionId: currentStillExists
+                ? prev.currentSessionId
+                : backendCurrentStillExists
+                  ? backendWorkspace.currentSessionId
+                  : healedSessions[0]?.id || null,
             };
           });
         }
@@ -477,6 +572,15 @@ export default function ChatPage() {
       if (prev.currentSessionId) {
         const session = prev.sessions.find(s => s.id === prev.currentSessionId);
         if (session) {
+          if (isGhostTimeoutSession(session)) {
+            const prunedSessions = dedupeSessionsById(prev.sessions.filter((candidate) => candidate.id !== session.id));
+            const nextWorkspace = {
+              ...prev,
+              sessions: prunedSessions,
+              currentSessionId: prunedSessions[0]?.id || null,
+            };
+            return selectSessionForFolder(nextWorkspace, folderIdStr, currentFolder?.name || '');
+          }
           const hasRealMessages = (Array.isArray(session.messages)
             && session.messages.some((m) => !m?.isWelcome && String(m?.content || '').trim().length > 0))
             || (session.messageCount > 0);
