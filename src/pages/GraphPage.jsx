@@ -42,6 +42,12 @@ export default function GraphPage() {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [refreshToken, setRefreshToken] = useState(0);
   const [graphStats, setGraphStats] = useState({ nodes: 0, links: 0 });
+  const [hydrationStatus, setHydrationStatus] = useState({
+    active: false,
+    loadedSteps: 0,
+    totalSteps: 0,
+    complete: false,
+  });
   const [addNodeSignal, setAddNodeSignal] = useState(0);
   const [traversalModeActive, setTraversalModeActive] = useState(false);
   const [traversalPath, setTraversalPath] = useState([]);
@@ -78,38 +84,6 @@ export default function GraphPage() {
 
   const predictedLinks = useMemo(() => getPredictedLinks(folderId), [folderId, getPredictedLinks]);
 
-  const mergeGraphData = (base, incoming) => {
-    const baseNodes = Array.isArray(base?.nodes) ? base.nodes : [];
-    const incomingNodes = Array.isArray(incoming?.nodes) ? incoming.nodes : [];
-    const baseLinks = Array.isArray(base?.links) ? base.links : [];
-    const incomingLinks = Array.isArray(incoming?.links) ? incoming.links : [];
-
-    const nodeMap = new Map();
-    for (const node of baseNodes) nodeMap.set(String(node.id), node);
-    for (const node of incomingNodes) nodeMap.set(String(node.id), { ...(nodeMap.get(String(node.id)) || {}), ...node });
-
-    const linkMap = new Map();
-    const linkKey = (link) => {
-      const src = String(typeof link.source === 'object' ? link.source?.id : link.source);
-      const dst = String(typeof link.target === 'object' ? link.target?.id : link.target);
-      return String(link.id || `${src}->${dst}:${link.type || 'RELATIONSHIP'}`);
-    };
-    for (const link of baseLinks) linkMap.set(linkKey(link), link);
-    for (const link of incomingLinks) linkMap.set(linkKey(link), { ...(linkMap.get(linkKey(link)) || {}), ...link });
-
-    return {
-      nodes: Array.from(nodeMap.values()),
-      links: Array.from(linkMap.values()),
-    };
-  };
-
-  const filterLinksForKnownNodes = (links, knownNodeIds) =>
-    (Array.isArray(links) ? links : []).filter((link) => {
-      const sourceId = String(typeof link.source === 'object' ? link.source?.id : link.source);
-      const targetId = String(typeof link.target === 'object' ? link.target?.id : link.target);
-      return knownNodeIds.has(sourceId) && knownNodeIds.has(targetId);
-    });
-
   const toolOptions = useMemo(
     () => [
       { id: 'filters', label: 'Node Filter', icon: SlidersHorizontal },
@@ -129,41 +103,75 @@ export default function GraphPage() {
     async function loadGraphContext() {
       if (!folderId) {
         setGraphData({ nodes: [], links: [] });
+        setHydrationStatus({ active: false, loadedSteps: 0, totalSteps: 0, complete: false });
         return;
       }
 
       try {
         const [firstLimit, ...restLimits] = GRAPH_FETCH_STEPS.hybrid2d;
-        const firstData = await graphService.getFolder(folderId, firstLimit, { offset: 0 });
+        const totalSteps = GRAPH_FETCH_STEPS.hybrid2d.length;
+        setHydrationStatus({
+          active: true,
+          loadedSteps: 0,
+          totalSteps,
+          complete: false,
+        });
+        const firstData = await graphService.getFolder(folderId, firstLimit);
         if (ignore) return;
         setGraphData(firstData || { nodes: [], links: [] });
+        setHydrationStatus({
+          active: totalSteps > 1,
+          loadedSteps: 1,
+          totalSteps,
+          complete: totalSteps <= 1,
+        });
 
-        let loadedCount = Array.isArray(firstData?.nodes) ? firstData.nodes.length : 0;
-        let previousStep = firstLimit;
+        let latestSnapshot = firstData || { nodes: [], links: [] };
 
-        for (const stepLimit of restLimits) {
+        for (const [index, stepLimit] of restLimits.entries()) {
           if (ignore || hydrateJobRef.current.cancelled) return;
-          const pageSize = Math.max(0, stepLimit - previousStep);
-          previousStep = stepLimit;
-          if (pageSize <= 0) continue;
-
-          const pageData = await graphService.getFolder(folderId, pageSize, { offset: loadedCount });
+          const pageData = await graphService.getFolder(folderId, stepLimit);
           if (ignore || hydrateJobRef.current.cancelled) return;
           const pageNodes = Array.isArray(pageData?.nodes) ? pageData.nodes : [];
-          const pageLinks = Array.isArray(pageData?.links) ? pageData.links : [];
-          if (!pageNodes.length) break;
+          if (!pageNodes.length) {
+            setHydrationStatus({
+              active: false,
+              loadedSteps: index + 1,
+              totalSteps,
+              complete: true,
+            });
+            break;
+          }
 
-          setGraphData((prev) => {
-            const merged = mergeGraphData(prev, { nodes: pageNodes, links: [] });
-            const knownNodeIds = new Set((merged.nodes || []).map((n) => String(n.id)));
-            return mergeGraphData(merged, { nodes: [], links: filterLinksForKnownNodes(pageLinks, knownNodeIds) });
+          // Keep the first graph visible and update quietly in the status pill.
+          // We only swap to the final cumulative snapshot once loading completes,
+          // which avoids the "blinking" feeling on every batch.
+          latestSnapshot = pageData || latestSnapshot;
+          const loadedSteps = index + 2;
+          setHydrationStatus({
+            active: loadedSteps < totalSteps,
+            loadedSteps,
+            totalSteps,
+            complete: loadedSteps >= totalSteps,
           });
-          loadedCount += pageNodes.length;
           await new Promise((resolve) => window.setTimeout(resolve, 90));
+        }
+
+        if (!ignore && !hydrateJobRef.current.cancelled) {
+          setGraphData(latestSnapshot || { nodes: [], links: [] });
+          setHydrationStatus((prev) => ({
+            ...prev,
+            active: false,
+            complete: true,
+            loadedSteps: prev.totalSteps || prev.loadedSteps,
+          }));
         }
       } catch (error) {
         console.error('Failed to load graph context:', error);
-        if (!ignore) setGraphData({ nodes: [], links: [] });
+        if (!ignore) {
+          setGraphData({ nodes: [], links: [] });
+          setHydrationStatus({ active: false, loadedSteps: 0, totalSteps: 0, complete: false });
+        }
       }
     }
 
@@ -548,6 +556,17 @@ export default function GraphPage() {
     setDrawerOpen,
   };
 
+  const hydrationLabel = useMemo(() => {
+    if (!folderId || hydrationStatus.totalSteps === 0) return '';
+    if (hydrationStatus.active) {
+      return `Loading graph ${Math.min(hydrationStatus.loadedSteps, hydrationStatus.totalSteps)}/${hydrationStatus.totalSteps}`;
+    }
+    if (hydrationStatus.complete) {
+      return 'Graph loaded';
+    }
+    return '';
+  }, [folderId, hydrationStatus]);
+
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
       <div className="relative z-20 mx-4 mt-1 flex-shrink-0 overflow-visible">
@@ -621,6 +640,20 @@ export default function GraphPage() {
                 <span>{Number(graphStats.nodes || 0).toLocaleString()} nodes</span>
                 <span className="text-border">•</span>
                 <span>{Number(graphStats.links || 0).toLocaleString()} relationships</span>
+                {hydrationLabel ? (
+                  <>
+                    <span className="text-border">•</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span
+                        className={[
+                          'h-1.5 w-1.5 rounded-full',
+                          hydrationStatus.active ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500',
+                        ].join(' ')}
+                      />
+                      <span>{hydrationLabel}</span>
+                    </span>
+                  </>
+                ) : null}
               </div>
             </div>
           </div>
