@@ -194,6 +194,7 @@ export default function ChatPage() {
   const wsRef = useRef(null);
   const wsStateRef = useRef({ status: 'idle' });
   const wsRequestIdRef = useRef(null);
+  const wsSessionIdRef = useRef(null);
   const wsChunkCountRef = useRef(0);
   const wsLastErrorRef = useRef('');
   const backendHydrationRef = useRef('');
@@ -751,6 +752,11 @@ export default function ChatPage() {
     }));
     setLoading(true);
     try {
+      streamBufferRef.current = '';
+      if (streamFlushTimerRef.current) {
+        clearTimeout(streamFlushTimerRef.current);
+        streamFlushTimerRef.current = null;
+      }
       const streamMeta = {
         algorithm: null,
         results: null,
@@ -786,7 +792,7 @@ export default function ChatPage() {
         const pending = streamBufferRef.current;
         streamBufferRef.current = '';
         setWorkspace((prev) => {
-          const s = prev.sessions.find((x) => x.id === prev.currentSessionId);
+          const s = prev.sessions.find((x) => x.id === activeSessionId);
           if (!s || !s.messages?.length) return prev;
           const msgs = [...s.messages];
           const lastIdx = msgs.length - 1;
@@ -794,7 +800,7 @@ export default function ChatPage() {
           msgs[lastIdx] = { ...msgs[lastIdx], content: normalizeStreamingText(combined) };
           return {
             ...prev,
-            sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
+            sessions: prev.sessions.map((x) => (x.id === activeSessionId ? { ...x, messages: msgs } : x)),
           };
         });
       };
@@ -866,6 +872,7 @@ export default function ChatPage() {
         wsChunkCountRef.current = 0;
         wsLastErrorRef.current = '';
         wsRequestIdRef.current = requestId;
+        wsSessionIdRef.current = activeSessionId;
         ws.send(
           JSON.stringify({
             type: 'chat_stream',
@@ -903,7 +910,7 @@ export default function ChatPage() {
       if (finalPending) {
         streamBufferRef.current = '';
         setWorkspace((prev) => {
-          const s = prev.sessions.find((x) => x.id === prev.currentSessionId);
+          const s = prev.sessions.find((x) => x.id === activeSessionId);
           if (!s || !s.messages?.length) return prev;
           const msgs = [...s.messages];
           const lastIdx = msgs.length - 1;
@@ -911,12 +918,17 @@ export default function ChatPage() {
           msgs[lastIdx] = { ...msgs[lastIdx], content: normalizeStreamingText(combined) };
           return {
             ...prev,
-            sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
+            sessions: prev.sessions.map((x) => (x.id === activeSessionId ? { ...x, messages: msgs } : x)),
           };
         });
       }
       setWorkspace(prev => ({ ...prev, sessions: prev.sessions.map(s => s.id === activeSessionId ? { ...s, messages: s.messages.map((m, i) => i === s.messages.length - 1 ? { ...m, isStreaming: false } : m) } : s) }));
-    } catch { toast.error('Synthesis interrupted.'); } finally { setLoading(false); }
+    } catch { toast.error('Synthesis interrupted.'); } finally {
+      if (wsSessionIdRef.current === activeSessionId) {
+        wsSessionIdRef.current = null;
+      }
+      setLoading(false);
+    }
   };
 
   const sendQuickPrompt = async (prompt) => {
@@ -945,7 +957,9 @@ export default function ChatPage() {
       const pending = streamBufferRef.current;
       streamBufferRef.current = '';
       setWorkspace((prev) => {
-        const s = prev.sessions.find((x) => x.id === prev.currentSessionId);
+        const targetSessionId = wsSessionIdRef.current;
+        if (!targetSessionId) return prev;
+        const s = prev.sessions.find((x) => x.id === targetSessionId);
         if (!s || !s.messages?.length) return prev;
         const msgs = [...s.messages];
         const lastIdx = msgs.length - 1;
@@ -953,7 +967,7 @@ export default function ChatPage() {
         msgs[lastIdx] = { ...msgs[lastIdx], content: normalizeStreamingText(combined) };
         return {
           ...prev,
-          sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
+          sessions: prev.sessions.map((x) => (x.id === targetSessionId ? { ...x, messages: msgs } : x)),
         };
       });
     };
@@ -979,6 +993,7 @@ export default function ChatPage() {
       if (wsRequestIdRef.current) {
         wsLastErrorRef.current = 'socket_closed';
         wsRequestIdRef.current = null;
+        wsSessionIdRef.current = null;
       }
       if (wsRef.current === ws) wsRef.current = null;
     };
@@ -987,6 +1002,7 @@ export default function ChatPage() {
       if (wsRequestIdRef.current) {
         wsLastErrorRef.current = 'socket_error';
         wsRequestIdRef.current = null;
+        wsSessionIdRef.current = null;
       }
     };
     ws.onmessage = (event) => {
@@ -998,13 +1014,17 @@ export default function ChatPage() {
         }
         if (msg?.type === 'chat_chunk') {
           const payload = msg?.data || {};
+          const targetSessionId = wsSessionIdRef.current;
+          if (!targetSessionId) {
+            return;
+          }
           if (payload?.type === 'content' && typeof payload?.data === 'string') {
             wsChunkCountRef.current += 1;
             streamBufferRef.current += payload.data;
             scheduleStreamFlush();
         } else if (payload?.type === 'gds_results') {
           setWorkspace((prev) => {
-            const s = prev.sessions.find((x) => x.id === prev.currentSessionId);
+            const s = prev.sessions.find((x) => x.id === targetSessionId);
             if (!s || !s.messages?.length) return prev;
             const msgs = [...s.messages];
             const lastIdx = msgs.length - 1;
@@ -1015,12 +1035,12 @@ export default function ChatPage() {
             };
             return {
               ...prev,
-              sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
+              sessions: prev.sessions.map((x) => (x.id === targetSessionId ? { ...x, messages: msgs } : x)),
             };
           });
         } else if (payload?.type === 'intent') {
           setWorkspace((prev) => {
-            const s = prev.sessions.find((x) => x.id === prev.currentSessionId);
+            const s = prev.sessions.find((x) => x.id === targetSessionId);
             if (!s || !s.messages?.length) return prev;
             const msgs = [...s.messages];
             const lastIdx = msgs.length - 1;
@@ -1031,12 +1051,12 @@ export default function ChatPage() {
             };
             return {
               ...prev,
-              sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
+              sessions: prev.sessions.map((x) => (x.id === targetSessionId ? { ...x, messages: msgs } : x)),
             };
           });
         } else if (payload?.type === 'data_grounding') {
           setWorkspace((prev) => {
-            const s = prev.sessions.find((x) => x.id === prev.currentSessionId);
+            const s = prev.sessions.find((x) => x.id === targetSessionId);
             if (!s || !s.messages?.length) return prev;
             const msgs = [...s.messages];
             const lastIdx = msgs.length - 1;
@@ -1046,18 +1066,21 @@ export default function ChatPage() {
             };
             return {
               ...prev,
-              sessions: prev.sessions.map((x) => (x.id === prev.currentSessionId ? { ...x, messages: msgs } : x)),
+              sessions: prev.sessions.map((x) => (x.id === targetSessionId ? { ...x, messages: msgs } : x)),
             };
           });
           }
         } else if (msg?.type === 'chat_done') {
           wsRequestIdRef.current = null;
+          wsSessionIdRef.current = null;
         } else if (msg?.type === 'chat_error') {
           wsLastErrorRef.current = String(msg?.message || 'chat_error');
           wsRequestIdRef.current = null;
+          wsSessionIdRef.current = null;
         } else if (msg?.type === 'error') {
           wsLastErrorRef.current = String(msg?.message || 'error');
           wsRequestIdRef.current = null;
+          wsSessionIdRef.current = null;
         }
       } catch {
         // ignore parse errors
@@ -1070,6 +1093,7 @@ export default function ChatPage() {
       }
       try {
         wsRequestIdRef.current = null;
+        wsSessionIdRef.current = null;
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) wsRef.current.close();
       } catch {
         // ignore
